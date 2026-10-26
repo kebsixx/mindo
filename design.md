@@ -1,198 +1,77 @@
-# Desain UI/UX: Mindo
+# Desain UI/UX: Mindo (Minimalist Neon / Ambient Tech)
 
-Dokumen ini adalah spesifikasi kebutuhan antarmuka untuk Mindo, bukan desain visual akhir. Arah visual, tipografi, warna, dan animasi diputuskan Hipster di Figma. Yang terkunci di sini adalah apa yang harus ada di layar, kondisi apa yang harus ditangani, dan batasan aksesibilitas yang tidak boleh ditawar.
+Spesifikasi antarmuka resmi Mindo. Mengusung konsep **Minimalist Neon / Ambient Tech** untuk aplikasi web *local-first* tanpa akun dan tanpa dashboard enterprise yang rumit. Fungsi utama tetap mengikuti `PRD.md`.
 
-Sumber kebutuhan: `PRD.md` bagian 6, 7, 8, dan 11.
+Terakhir diperbarui: 26 Oktober 2026.
 
-Terakhir diverifikasi: 22 Oktober 2026.
+---
 
-## 1. Aturan yang mengikat semua layar
+## 1. Filosofi & Konsep Visual
 
-| Aturan | Nilai | Alasan |
+Mindo menggunakan antarmuka halaman tunggal (*Single Page Web App*) yang lapang, elegan, dan berfokus pada alur kerja cepat: **Upload/Rekam Audio → Olah AI → Pelajari Hasil**.
+
+* **Atmosfer**: Clean Ambient Tech. Latar off-white lembut dengan pendaran gradien neon radial yang halus di balik elemen hero utama.
+* **Geometri**: Sudut kartu sangat bulat (*radius 28px*) dengan tombol dan kontrol berbentuk *pill* penuh (*border-radius 9999px*).
+* **Grid Paper**: Latar belakang memiliki pola grid buku catatan tipis transparan (`rgba(225, 231, 239, 0.6)`).
+* **Simplisitas Local-First**: Tanpa login, tanpa sidebar folder kompleks, tanpa hirarki berbelit.
+
+---
+
+## 2. Palet Warna & Token Visual
+
+| Token Name | Hex Code / Value | Penggunaan Visual |
 |---|---|---|
-| Bahasa antarmuka | Indonesia | Keputusan default di PRD bagian 15 |
-| Bahasa data | Apa adanya dari transkrip, boleh ada istilah Inggris dari dosen | Memotong isi rekaman berarti memotong makna |
-| Target sentuh | Minimal 44 x 44 px | NFR-04 |
-| Kontras teks | Minimal AA | NFR-04 |
-| Fokus keyboard | Always visible, tidak pernah dihapus tanpa pengganti yang jelas | NFR-04 |
-| Scroll horizontal | Tidak ada di lebar 360 px | NFR-05 |
-| State wajib | Kosong, memuat, gagal, untuk tiap layar data | PRD bagian 6 |
-| Error | Bahasa user, menyebut aksi yang bisa dilakukan | NFR-06 |
+| **Canvas Off-White** | `#FCFCFC` | Latar belakang kanvas utama |
+| **Surface Pure White** | `#FFFFFF` | Latar kartu melayang (*dropzone card*, modal, panel) |
+| **Neon Lime Green** | `#53F16F` | Aksen utama, tombol CTA upload, segmen tab aktif |
+| **Neon Cyan Blue** | `#40D9FF` | Logo MINDO, aksen glow, tombol AI Tutor |
+| **Deep Charcoal** | `#111827` | Teks judul utama & ikon utama |
+| **Muted Gray** | `#6B7280` | Teks deskripsi sekunder & metadata |
+| **Subtle Grid Line** | `rgba(225, 231, 239, 0.6)` | Pola garis grid buku catatan di latar belakang |
+| **Radius Kartu** | `28px` | Kartu melayang & container kerja |
+| **Radius Kontrol** | `9999px` (Pill) | Tombol CTA, tab switcher, input field |
 
-## 2. Daftar layar
+---
 
-| Layar | Rute | Tujuan |
-|---|---|---|
-| Landing | `/` | Menjelaskan manfaat dan mengarahkan ke pengaturan |
-| Pengaturan | `/settings` | Provider, API key, uji koneksi, hapus data |
-| Dashboard | `/dashboard` | Daftar materi, upload, rekam |
-| Pemrosesan | `/processing?id=<id>` | Status tiap tahap selama pipeline berjalan |
-| Materi | `/material?id=<id>` | Empat tab hasil: Ringkasan, Peta Konsep, Flashcard, Tanya Mindo |
-| Rekaman | `/recording`, `?id=` opsional | Rekaman langsung dari browser. Tanpa `id`, rekaman baru. Dengan `id`, rekaman tambahan untuk materi yang sudah ada. |
+## 3. Struktur & Arsitektur Layout (Single Page Web App)
 
-ID materi lewat query string, bukan segmen path. Alasannya di `architecture.md` bagian 6.
+### A. Minimalist Top Navbar
+* **Kiri**: Logo Gelombang Mindo + Logotype "MINDO" warna Neon Cyan (`#40D9FF`).
+* **Tengah**: Navigasi ringkas (`Cara Kerja` \| `Privasi Local-First` \| `Riwayat`).
+* **Kanan**: Badge status "BYOK (API Key)" + Indikator hijau "Penyimpanan Lokal Aktif".
 
-## 3. Landing
+### B. Hero Section & Central Interactive Dropzone
+* **Headline Utama**: Teks judul besar bergaya *Minimalist Clean* ("*Dari suara dosen jadi paham, sekali klik.*").
+* **Sub-headline**: Penjelasan singkat Mindo sebagai asisten belajar AI local-first (100% aman di perangkat, tanpa akun).
+* **Central Interactive Dropzone Card**:
+  * Kartu melayang putih bersih (*Pure White Card*, radius `28px`) di tengah layar dengan pendaran *ambient neon glow* (`#53F16F` & `#40D9FF`) di belakangnya.
+  * **Area Drag & Drop**: Dukungan file audio/video (`.mp3`, `.m4a`, `.wav` maks 25 MB).
+  * **Tombol Rekam Langsung**: Tombol pill berikon mikrofon untuk rekam audio kuliah secara *live*.
+  * **Field API Key Quick Setup**: Input pill simpel untuk menempelkan Groq / OpenAI API Key dengan indikator status siap pakai.
+  * **Tombol Utama CTA**: Tombol pill besar Neon Lime (`#53F16F`) *"Mulai Proses Rekaman"*.
 
-Elemen yang harus ada:
-- Nama produk dan satu kalimat yang menjelaskan apa yang terjadi kalau user mengunggah rekaman kuliah.
-- Satu tombol utama yang masuk ke alur pengaturan atau dashboard.
-- Penjelasan singkat bahwa data tidak meninggalkan browser dan bahwa user memakai API key sendiri.
-- Catatan bahwa diperlukan akun Groq atau OpenAI, supaya user tidak kaget saat diminta kunci.
+### C. Material Result Workspace (Tampil Setelah Audio Diproses)
+* **3-Segment Tab Switcher Bar**: Kapsul pill di bagian atas (`Ringkasan` \| `Peta Konsep` \| `Flashcard`).
+* **Workspace Panel**: Area menampilkan hasil olahan AI dalam satu container melayang yang lapang (`#FFFFFF`).
+* **Tanya Mindo AI Tutor**:
+  * Desktop: Panel samping kanan terintegrasi (~360px).
+  * Mobile: Floating Action Button (FAB) bulat Cyan (`#40D9FF`) kanan bawah yang membuka modal chat drawer.
 
-Tidak perlu: daftar fitur panjang, testimonial, angka pengguna, pricing table. Tidak ada data pengguna yang bisa ditampilkan di sini.
+---
 
-## 4. Pengaturan
+## 4. Aturan Aksesibilitas & UI/UX
 
-Isi layar:
-- **Pilih Provider AI** — 2 pilihan utama:
-  - **Groq (default)** — disarankan, CORS verified, free tier cukup, Whisper large-v3 kualitas Indonesia baik.
-  - **OpenAI (alternatif)** — butuh akun mereka, kualitas tinggi, harga mahal.
-- **Fitur Lanjut** — expandable/accordian di bawah pilihan utama:
-  - **Provider Lainnya** (butuh konfigurasi manual di `opencode.json` atau `lib/ai/models.ts`):
-    - Google Gemini 3.x (`gemini-3.8-flash-high`, `gemini-3.5-flash-low`, dll)
-    - Anthropic Claude 4.x (`claude-sonnet-4-6`, `claude-opus-4-6-thinking`)
-    - DeepSeek v4 (`deepseek-v4-pro`, `deepseek-v4-flash`)
-  - **Model Lokal (Ollama)** — butuh instalasi Ollama di laptop user:
-    - `ollama/gpt-oss:120b`, `ollama/qwen3.5`, `ollama/phi3`, dll
-    - Cocok buat user laptop gaming, full lokal, nggak butuh API key
-- Kolom API key, tipe password, dengan tombol tampilkan/sembunyikan.
-- Tombol uji koneksi. Hasilnya berupa status dan pesan, bukan spinner tanpa ujung.
-- Batas provider yang berlaku, misalnya batas 25 MB per file dan kuota harian free tier. Ini angka yang sudah diverifikasi dan ditampilkan apa adanya sebagai batas.
-- Tombol hapus semua data, dengan dialog konfirmasi yang menyebut akibatnya.
+1. **Target Sentuh**: Minimal `44px x 44px` untuk semua elemen interaktif.
+2. **Kontras Teks**: Minimal tingkat AA (WCAG 2.1). Teks di atas warna Lime/Cyan menggunakan warna Deep Charcoal (`#111827`).
+3. **Fokus Keyboard**: Ring fokus terpotret jelas untuk navigasi tanpa tetikus.
+4. **State Wajib**: Selalu sediakan state Kosong (*Empty*), Memuat (*Loading skeleton*), dan Gagal (*Error with retry*).
+5. **Responsif**: Tidak ada scroll horizontal di viewport seluler (360px ke atas).
 
-Perilaku kunci:
-- Kunci disimpan di localStorage, dikirim hanya ke origin provider yang dipilih.
-- Sesi di browser dengan kunci yang salah harus tampilkan pesan 401 apa adanya, bukan "terjadi kesalahan".
-- Setelah kunci disimpan, dashboard adalah tempat masuk, bukan halaman pengaturan.
-- Fitur Lanjut default collapsed, hanya muncul kalau user klik "Lihat opsi lanjut".
+---
 
-## 5. Dashboard
+## 5. Yang Dilarang (Anti-Patterns)
 
-Elemen yang harus ada:
-- Dua aksi utama: unggah file dan rekam sekarang.
-- Area drop file, dengan format yang diterima dan batas ukuran tertulis.
-- Daftar materi tersimpan. Setiap baris memuat judul, tanggal, durasi, dan status tahap.
-- Setiap baris punya aksi hapus dengan konfirmasi.
-
-State kosong: penjelasan singkat kenapa belum ada materi, plus kedua aksi utama. Bukan ilustrasi besar tanpa fungsi.
-
-State memuat: skeleton baris, bukan spinner di tengah halaman.
-
-## 6. Pemrosesan
-
-Empat tahap ditampilkan terpisah dengan status masing-masing: transkrip, ringkasan, peta konsep, flashcard. Satu tahap gagal tidak mengubah status tahap lain.
-
-Tahap yang gagal menampilkan alasannya dan tombol coba lagi untuk tahap itu saja.
-
-Tahap transkrip menampilkan durasi audio yang sudah diproses kalau provider memberi progres. Kalau tidak, teks yang jujur: sedang memproses, tanpa angka animasi yang tidak berasal dari data.
-
-Ada tombol batal. Batal menghentikan request yang sedang jalan, dan hasil tahap yang sudah selesai tetap tersimpan.
-
-## 7. Materi
-
-Empat tab: Ringkasan, Peta Konsep, Flashcard, Tanya Mindo. Daftar segmen transkrip tidak jadi tab kelima. Dia muncul sebagai panel yang bisa dibuka dari header halaman materi, karena gunanya memeriksa satu bagian tertentu, bukan dibaca semua.
-
-### Panel transkrip (bukan tab)
-
-- Daftar segmen `{start, end, text}` ditampilkan berurutan, satu segmen satu baris.
-- Setiap baris punya tombol putar dari detik segmen itu.
-- Teks segmen bisa diklik untuk menyorot kata kunci dari ringkasan yang muncul di baris itu.
-- Scroll ke segmen tertentu saat user mengklik sitasi di jawaban tutor.
-- Audio asli diputar dari sumber yang sama dengan hasil transkrip, supaya user bisa membandingkan.
-- Aksi ekspor transkrip ke Markdown.
-
-### 7.1 Tab Ringkasan
-
-- Judul rekaman dan metadata ringkas.
-- Daftar bagian hasil ringkasan, tiap bagian punya judul dan poin-poin.
-- Istilah kunci ditampilkan sebagai tag. Mengklik tag mengisi kotak pertanyaan tutor dengan topik itu, jadi user bisa langsung menggali istilah yang tadi ia baca.
-- Aksi ekspor ke Markdown.
-
-### 7.2 Tab Peta Konsep
-
-- Peta interaktif: bisa digeser, di-zoom, dan tiap simpul bisa dibuka atau ditutup.
-- Lebar peta mengikuti container, bukan fixed width, supaya tidak memunculkan scroll horizontal di HP.
-- Di layar kecil, daftar simpul yang bisa dipilah jadi pengganti peta. Peta penuh jadi opsional, bukan satu-satunya jalan.
-- Aksi ekspor ke PNG.
-- Legenda warna simpul diberi label teks, bukan hanya warna.
-
-### 7.3 Tab Flashcard
-
-- Satu kartu per layar. Pertanyaan di atas, jawaban di balik atau di bawah.
-- Swipe ke kanan berarti paham, ke kiri berarti ulang. Panah keyboard kanan dan kiri melakukan hal yang sama.
-- Setelah swipe, kartu berikutnya muncul dan progres sesi bertambah, misalnya 7 dari 15.
-- Status per kartu tersimpan. Kalau user menutup dan membuka lagi, kartu yang sudah dinilai tetap berstatus.
-- Tersedia tombol "acak ulang" dan "ulangi yang salah".
-- Aksi ekspor ke Markdown dengan pemisah yang jelas antara pertanyaan dan jawaban.
-
-### 7.4 Tab Tanya Mindo
-
-- Area percakapan. Pertanyaan user, jawaban tutor.
-- Jawaban memuat markdown sederhana. Kalau jawaban menyertakan sitasi, sitasi tampil sebagai label waktu yang bisa diklik.
-- Menampilkan sumber audio: pemutar atau tombol putar dari detik yang dikutip.
-- Kalau jawaban menyatakan topik tidak dibahas di rekaman, tampilkan dengan label yang jelas, bukan seperti jawaban biasa.
-- Kotak input tetap aktif saat jawaban sedang dibuat. User bisa langsung mengetik pertanyaan berikutnya.
-
-## 8. Rekaman
-
-- Tombol rekam dan stop, dengan indikator waktu berjalan yang nyata.
-- Indikator level volume, supaya user tahu mikrofon menangkap suara.
-- Setelah rekaman selesai, durasi dan ukuran file ditampilkan sebelum dikirim.
-- Ukuran file dihitung selama rekaman, karena itu batas yang menentukan berhasil atau tidak.
-- Peringatan muncul kalau rekaman mendekati 25 MB.
-
-## 9. Daftar komponen
-
-| Komponen | Dipakai di |
-|---|---|
-| Tombol | semua layar |
-| Field input, Field password | pengaturan, chat |
-| Panel tab | materi |
-| Kartu flashcard | materi |
-| Pemutar peta konsep | materi |
-| Panel percakapan | materi |
-| Panel transkrip | materi |
-| Dialog konfirmasi | pengaturan, dashboard |
-| Toast | hasil aksi, error singkat |
-| Skeleton | daftar materi, daftar segmen transkrip |
-| Pemutar audio | materi, tutor |
-
-## 10. Inventaris keputusan visual
-
-Keputusan berikut belum diambil dan milik Hipster. Daftar yang harus diisi:
-- Tipografi: satu atau dua keluarga, skala, dan bobot.
-- Palet: warna latar, permukaan, teks, aksen, plus warna status untuk setiap tahap.
-- Bentuk: radius, garis, tinggi tombol, ketebalan border.
-- Ikon: pakai satu set, bukan campuran.
-- Animasi: durasi dan kurva untuk perpindahan tab, swipe kartu, dan perubahan status tahap.
-- Kepadatan (density): berapa banyak informasi per layar tanpa membuat halaman terasa sesak.
-
-## 11. Struktur file Figma yang disarankan
-
-```
-Mindo
-  00 Cover
-  01 Foundations   (warna, tipografi, spasi, komponen)
-  02 Components
-  03 Screens
-     Landing
-     Pengaturan
-     Dashboard
-     Pemrosesan
-     Materi (4 tab, tiap tab desktop dan mobile, plus panel transkrip)
-     Rekaman
-  04 Prototype
-  05 Archive
-```
-
-## 12. Checklist serah terima
-
-- [ ] Semua layar punya state kosong, memuat, dan gagal.
-- [ ] Semua elemen interaktif bisa diakses dengan keyboard saja, dengan fokus yang terlihat.
-- [ ] Semua target sentuh minimal 44 x 44 px.
-- [ ] Tidak ada scroll horizontal di 360 px.
-- [ ] Kontras teks lolos AA.
-- [ ] Setiap state gagal punya teks bahasa Indonesia dan aksi.
-- [ ] Halaman mobile 375 px sudah dicek untuk empat tab materi.
-- [ ] Prototype alur upload sampai review bisa diklik dari atas ke bawah tanpa bikin jarinya.
+* **TIDAK BRUTALIST**: Dilarang menggunakan border hitam tebal 3px atau bayangan brutalisme kaku.
+* **TIDAK DASHBOARD SAAS KOMPLEKS**: Dilarang membuat multi-sidebar folder, user profile avatar, atau menu enterprise yang membingungkan.
+* **TIDAK EMOJI ABU-ABU**: Dilarang menggunakan emoji dekoratif acak di headline.
+* **TIDAK TEKS GRADIENT BERLEBIHAN**: Gunakan warna solid jernih untuk legibilitas maksimal.
