@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -16,6 +16,21 @@ import { openDB, type Material, type Summary, type Mindmap, type Flashcard, type
 import MarkmapView from "@/components/markmap-view"
 
 export default function MaterialPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-dvh items-center justify-center" aria-live="polite">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <span className="sr-only">Memuat materi</span>
+        </div>
+      }
+    >
+      <MaterialView />
+    </Suspense>
+  )
+}
+
+function MaterialView() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { toast } = useToast()

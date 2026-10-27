@@ -98,7 +98,7 @@ Setiap layar data punya tiga kondisi: kosong (belum ada materi), memuat (proses 
 | FR-06 | Bank flashcard | 10 sampai 20 kartu per rekaman, tiap kartu berisi pertanyaan, jawaban, tingkat kesulitan, dan referensi timestamp. |
 | FR-07 | Mode belajar flashcard | Swipe kiri berarti ulang, swipe kanan berarti paham. Status per kartu tersimpan dan progres sesi tampil. Tombol keyboard panah kiri dan kanan harus jalan. |
 | FR-08 | Tanya Mindo (tutor AI) | Menjawab hanya dari potongan transkrip yang ditemukan lewat retrieval. Setiap jawaban mencantumkan timestamp. Kalau tidak ada di rekaman, jawab jujur bahwa tidak dibahas. |
-| FR-09 | Riwayat materi lokal | Daftar materi tersimpan di browser, bisa dibuka lagi, bisa dihapus satu per satu dari daftar. |
+| FR-09 | Riwayat materi lokal | Daftar materi tersimpan di browser, bisa dibuka lagi, bisa dihapus satu per satu dari daftar. Judul materi bisa diedit, nilai awal diambil dari nama file lalu dari tanggal rekam. |
 | FR-10 | Pengaturan provider | Dua pilihan: Groq (default, direkomendasikan) dan OpenAI. API key disimpan lokal, bisa diganti, bisa dihapus. Ada tombol uji koneksi. |
 | FR-11 | Ekspor | Peta konsep ke PNG, ringkasan, flashcard, dan transkrip ke Markdown. Semua berjalan di browser tanpa server. |
 | FR-12 | Hapus data | Satu tombol hapus semua data di browser, dengan konfirmasi. Menghapus API key juga. |

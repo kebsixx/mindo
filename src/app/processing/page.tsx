@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,6 +20,21 @@ interface ProcessingStage {
 }
 
 export default function ProcessingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-dvh items-center justify-center" aria-live="polite">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <span className="sr-only">Memuat halaman pemrosesan</span>
+        </div>
+      }
+    >
+      <ProcessingView />
+    </Suspense>
+  )
+}
+
+function ProcessingView() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { toast } = useToast()

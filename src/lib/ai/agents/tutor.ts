@@ -32,7 +32,7 @@ export async function tutor(
     const idx = chunks.findIndex((c) => c.start === r.chunk.start)
     const prev = idx > 0 ? chunks[idx - 1] : null
     const next = idx < chunks.length - 1 ? chunks[idx + 1] : null
-    return [prev, r.chunk, next].filter(Boolean)
+    return [prev, r.chunk, next].filter((c): c is (typeof chunks)[number] => c !== null)
   })
 
   const contextText = contextChunks
