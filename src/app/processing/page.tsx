@@ -42,7 +42,7 @@ function ProcessingView() {
   const [stages, setStages] = useState<ProcessingStage[]>([
     { id: "transcribe", label: "Transkrip", icon: <FileText className="h-5 w-5" />, status: "pending" },
     { id: "summarize", label: "Ringkasan", icon: <Brain className="h-5 w-5" />, status: "pending" },
-    { id: "mindmap", label: "Peta Konsep", icon: <Sparkles className="h-5 w-5" />, status: "pending" },
+    { id: "mindmap", label: "Mindmap", icon: <Sparkles className="h-5 w-5" />, status: "pending" },
     { id: "flashcard", label: "Flashcard", icon: <Layers className="h-5 w-5" />, status: "pending" },
   ])
 

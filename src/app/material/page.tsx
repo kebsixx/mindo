@@ -99,7 +99,7 @@ function MaterialView() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="summary">Ringkasan</TabsTrigger>
-            <TabsTrigger value="mindmap">Peta Konsep</TabsTrigger>
+            <TabsTrigger value="mindmap">Mindmap</TabsTrigger>
             <TabsTrigger value="flashcard">Flashcard</TabsTrigger>
             <TabsTrigger value="tutor">Tanya Mindo</TabsTrigger>
           </TabsList>
@@ -137,13 +137,13 @@ function MaterialView() {
           <TabsContent value="mindmap">
             <Card>
               <CardHeader>
-                <CardTitle>{mindmap?.title || "Peta Konsep"}</CardTitle>
+                <CardTitle>{mindmap?.title || "Mindmap"}</CardTitle>
               </CardHeader>
               <CardContent>
                 {mindmap ? (
                   <MarkmapView content={JSON.stringify(mindmap)} className="w-full h-[500px]" />
                 ) : (
-                  <p className="text-muted-foreground">Belum ada peta konsep.</p>
+                  <p className="text-muted-foreground">Belum ada mindmap.</p>
                 )}
               </CardContent>
             </Card>

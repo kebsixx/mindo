@@ -13,8 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mindo - Dari Suara Dosen Jadi Paham",
-  description: "Aplikasi pembelajaran cerdas: ubah rekaman kuliah jadi ringkasan, mindmap, flashcard, dan AI tutor.",
+  title: "Mindo - 1 Rekaman, 3 Bahan Ajar",
+  description:
+    "Ubah rekaman kuliah jadi ringkasan, mindmap, dan flashcard. Diproses di perangkat Anda, tanpa akun.",
+  icons: { icon: "/logo-mindo.png" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

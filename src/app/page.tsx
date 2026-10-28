@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Mic, Upload, Trash2, Loader2, KeyRound, Menu } from "lucide-react"
+import Image from "next/image"
+import { Mic, Upload, Trash2, Loader2, KeyRound, Menu, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
@@ -31,6 +32,8 @@ export default function BerandaPage() {
   const [apiKey, setKey] = useState("")
   const [showKey, setShowKey] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [hasStoredKey, setHasStoredKey] = useState(false)
+  const [editingKey, setEditingKey] = useState(false)
 
   const loadMaterials = useCallback(async () => {
     try {
@@ -48,9 +51,19 @@ export default function BerandaPage() {
   }, [toast])
 
   useEffect(() => {
-    setKey(getApiKey())
+    const stored = getApiKey()
+    setKey(stored)
+    setHasStoredKey(Boolean(stored))
+    setEditingKey(!stored)
     loadMaterials()
   }, [loadMaterials])
+
+  function persistKey() {
+    const trimmed = apiKey.trim()
+    setApiKey(trimmed)
+    setHasStoredKey(Boolean(trimmed))
+    if (trimmed) setEditingKey(false)
+  }
 
   function pickFile(picked: File | null) {
     if (!picked) return
@@ -69,6 +82,7 @@ export default function BerandaPage() {
     setSaving(true)
     try {
       setApiKey(apiKey.trim())
+      setHasStoredKey(true)
       const db = openDB()
       const materialId = await db.materials.add({
         title: file.name,
@@ -101,23 +115,14 @@ export default function BerandaPage() {
   }
 
   const ready = Boolean(file && apiKey.trim())
-  const reason = !file ? "Pilih atau rekam satu file dulu." : !apiKey.trim() ? "Tempel API key Groq atau OpenAI." : null
+  const reason = !file ? "Pilih atau rekam satu file dulu." : !apiKey.trim() ? "Paste API key Groq atau OpenAI." : null
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-clip">
       <header className="sticky top-0 z-40 h-[72px] border-b border-border bg-card/80 backdrop-blur">
         <div className="mx-auto flex h-full w-full max-w-[1120px] items-center justify-between px-5 sm:px-8">
-          <Link href="/" className="flex items-center gap-2">
-            <svg viewBox="0 0 24 24" className="h-6 w-6 text-accent" aria-hidden="true">
-              <path
-                d="M2 12h3l2-6 3 12 3-9 2 3h7"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image src="/logo-mindo.png" alt="" width={32} height={32} className="h-8 w-8" />
             <span className="text-xl font-semibold tracking-tight">MINDO</span>
           </Link>
 
@@ -134,10 +139,6 @@ export default function BerandaPage() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <span className="hidden items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground sm:flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
-              Penyimpanan Lokal
-            </span>
             <Link href="/settings">
               <Button size="sm" variant={apiKey ? "default" : "outline"} className="gap-2">
                 <KeyRound className="h-4 w-4" />
@@ -155,10 +156,10 @@ export default function BerandaPage() {
         <div className="grid items-start gap-10 lg:grid-cols-[1fr_minmax(420px,520px)] lg:gap-16">
           <section className="lg:pt-8">
             <h1 className="text-balance text-[clamp(2rem,5vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.03em]">
-              Dari suara dosen jadi paham, sekali klik.
+              1 rekaman, 3 bahan ajar.
             </h1>
             <p className="mt-6 max-w-[60ch] text-base leading-relaxed text-muted-foreground">
-              Ubah rekaman kuliah jadi ringkasan, peta konsep, dan flashcard. Diproses di perangkat Anda, tanpa akun.
+              Ubah rekaman kuliah jadi ringkasan, mindmap, dan flashcard. Diproses di perangkat Anda, tanpa akun.
             </p>
             <p className="mt-3 font-mono text-[0.8125rem] text-muted-foreground">
               mp3, m4a, wav, webm, mp4 &middot; maks 25 MB
@@ -203,6 +204,9 @@ export default function BerandaPage() {
                 ) : (
                   <>
                     <p className="text-sm text-muted-foreground">Taruh file audio di sini</p>
+                    <p className="text-xs text-muted-foreground">
+                      Drag &amp; drop ke sini, atau klik Pilih File
+                    </p>
                     <div className="flex flex-wrap justify-center gap-3">
                       <Button variant="outline" onClick={() => fileInput.current?.click()}>
                         <Upload className="h-4 w-4" />
@@ -225,27 +229,69 @@ export default function BerandaPage() {
               </div>
 
               <div className="mt-6 space-y-2">
-                <label htmlFor="api-key" className="text-sm font-medium">
+                <label htmlFor={editingKey ? "api-key" : undefined} className="text-sm font-medium">
                   API Key
                 </label>
-                <div className="flex gap-2">
-                  <Input
-                    id="api-key"
-                    type={showKey ? "text" : "password"}
-                    value={apiKey}
-                    onChange={(e) => setKey(e.target.value)}
-                    placeholder="Tempel API key Groq atau OpenAI"
-                    autoComplete="off"
-                    spellCheck={false}
-                    className="h-11 rounded-full"
-                  />
-                  <Button variant="outline" onClick={() => setShowKey((v) => !v)} className="shrink-0">
-                    {showKey ? "Sembunyikan" : "Lihat"}
-                  </Button>
-                </div>
+                {editingKey ? (
+                  <div className="flex gap-2">
+                    <Input
+                      id="api-key"
+                      type={showKey ? "text" : "password"}
+                      value={apiKey}
+                      onChange={(e) => setKey(e.target.value)}
+                      onBlur={persistKey}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          persistKey()
+                        }
+                      }}
+                      placeholder="Paste API key Groq atau OpenAI"
+                      autoComplete="off"
+                      spellCheck={false}
+                      className="h-11 rounded-full"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      aria-label={showKey ? "Sembunyikan API key" : "Lihat API key"}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => setShowKey((v) => !v)}
+                      className="shrink-0"
+                    >
+                      {showKey ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex h-11 items-center justify-between gap-2 rounded-full border border-border bg-secondary pl-4 pr-1.5">
+                    <span className="flex items-center gap-2 text-sm">
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
+                      API Key aktif
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setKey(getApiKey())
+                        setEditingKey(true)
+                      }}
+                    >
+                      Ganti
+                    </Button>
+                  </div>
+                )}
               </div>
 
-              <Button size="lg" className="mt-6 w-full" disabled={!ready || saving} onClick={handleStart}>
+              <Button
+                size="lg"
+                className="mt-6 w-full font-semibold text-foreground disabled:bg-primary disabled:text-foreground disabled:opacity-100"
+                disabled={!ready || saving}
+                onClick={handleStart}
+              >
                 {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
                 Mulai Proses
               </Button>
