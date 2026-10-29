@@ -6,7 +6,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Search, Play } from "lucide-react"
-import { cn } from "@/lib/utils"
 
 interface TranscriptSegment {
   start: number
@@ -47,6 +46,16 @@ export default function TranscriptPanel({ segments, onSeek }: TranscriptPanelPro
         </div>
       </CardHeader>
       <CardContent>
+        {segments.length === 0 && (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Belum ada transkrip. Proses materi ini dulu.
+          </p>
+        )}
+        {segments.length > 0 && filtered.length === 0 && (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Tidak ada segmen yang cocok dengan pencarian.
+          </p>
+        )}
         <ScrollArea className="h-[400px]">
           <div className="space-y-2">
             {filtered.map((seg, i) => (

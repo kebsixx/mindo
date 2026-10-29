@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:is(.dark *));
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -18,6 +16,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
@@ -40,6 +39,7 @@
   --popover: #ffffff;
   --popover-foreground: #111827;
   --primary: #53f16f;
+  --primary-hover: #47cd5e;
   --primary-foreground: #111827;
   --secondary: #f4f4f5;
   --secondary-foreground: #111827;
@@ -52,27 +52,6 @@
   --input: rgba(17, 24, 39, 0.08);
   --ring: #40d9ff;
   --radius: 0.875rem;
-}
-
-.dark {
-  --background: #0b0f14;
-  --foreground: #f4f4f5;
-  --card: #141a21;
-  --card-foreground: #f4f4f5;
-  --popover: #141a21;
-  --popover-foreground: #f4f4f5;
-  --primary: #53f16f;
-  --primary-foreground: #0b0f14;
-  --secondary: #1d242c;
-  --secondary-foreground: #f4f4f5;
-  --muted: #1d242c;
-  --muted-foreground: #9ca3af;
-  --accent: #40d9ff;
-  --accent-foreground: #0b0f14;
-  --destructive: #ef4444;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.14);
-  --ring: #40d9ff;
 }
 
 @layer base {

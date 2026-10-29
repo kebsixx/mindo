@@ -1,4 +1,17 @@
+import { useSyncExternalStore } from "react"
+
 export type Provider = "groq" | "openai"
+
+const EVENT = "mindo:settings"
+
+function notify(): void {
+  window.dispatchEvent(new Event(EVENT))
+}
+
+function subscribe(callback: () => void): () => void {
+  window.addEventListener(EVENT, callback)
+  return () => window.removeEventListener(EVENT, callback)
+}
 
 export function getProvider(): Provider {
   if (typeof window === "undefined") return "groq"
@@ -8,6 +21,7 @@ export function getProvider(): Provider {
 export function setProvider(provider: Provider): void {
   if (typeof window === "undefined") return
   localStorage.setItem("mindo.provider", provider)
+  notify()
 }
 
 export function getApiKey(): string {
@@ -18,6 +32,15 @@ export function getApiKey(): string {
 export function setApiKey(key: string): void {
   if (typeof window === "undefined") return
   localStorage.setItem("mindo.apiKey", key)
+  notify()
+}
+
+export function useStoredProvider(): Provider {
+  return useSyncExternalStore(subscribe, getProvider, () => "groq")
+}
+
+export function useStoredApiKey(): string {
+  return useSyncExternalStore(subscribe, getApiKey, () => "")
 }
 
 export function clearAllData(): void {
@@ -26,4 +49,5 @@ export function clearAllData(): void {
   localStorage.removeItem("mindo.apiKey")
   localStorage.removeItem("mindo.prefs")
   indexedDB.deleteDatabase("mindo")
+  notify()
 }

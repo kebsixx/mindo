@@ -4,12 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { Mic, Upload, Trash2, Loader2, KeyRound, Menu, Eye, EyeOff } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Mic, Upload, Trash2, Loader2, Menu, Eye, EyeOff, X } from "lucide-react"
+import { Button, buttonVariants } from "@/components/ui/button"
+import ApiKeyLinkIcon from "@/components/api-key-link-icon"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { openDB, type Material } from "@/lib/db"
-import { getApiKey, setApiKey } from "@/lib/storage/settings"
+import { setApiKey, useStoredApiKey } from "@/lib/storage/settings"
 
 const MAX_BYTES = 25 * 1024 * 1024
 const ACCEPT = "audio/*,video/mp4"
@@ -29,40 +30,39 @@ export default function BerandaPage() {
   const [loading, setLoading] = useState(true)
   const [dragging, setDragging] = useState(false)
   const [file, setFile] = useState<File | null>(null)
-  const [apiKey, setKey] = useState("")
+  const storedKey = useStoredApiKey()
+  const [keyDraft, setKeyDraft] = useState<string | null>(null)
   const [showKey, setShowKey] = useState(false)
+  const apiKey = keyDraft ?? storedKey
+  const hasStoredKey = Boolean(storedKey)
+  const [editingDraft, setEditingDraft] = useState<boolean | null>(null)
+  const editingKey = editingDraft ?? !hasStoredKey
   const [saving, setSaving] = useState(false)
-  const [hasStoredKey, setHasStoredKey] = useState(false)
-  const [editingKey, setEditingKey] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [showAll, setShowAll] = useState(false)
 
   const loadMaterials = useCallback(async () => {
-    try {
-      const db = openDB()
-      const rows = await db.materials.orderBy("createdAt").reverse().limit(3).toArray()
-      setMaterials(rows)
-    } catch (e) {
-      toast({
-        title: "Gagal membaca riwayat",
-        description: e instanceof Error ? e.message : "Coba muat ulang halaman.",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }, [toast])
+    const db = openDB()
+    return db.materials.orderBy("createdAt").reverse().toArray()
+  }, [])
 
   useEffect(() => {
-    const stored = getApiKey()
-    setKey(stored)
-    setHasStoredKey(Boolean(stored))
-    setEditingKey(!stored)
     loadMaterials()
-  }, [loadMaterials])
+      .then((rows) => setMaterials(rows))
+      .catch(() =>
+        toast({
+          title: "Gagal membaca riwayat",
+          description: "Muat ulang halaman untuk mencoba lagi.",
+        })
+      )
+      .finally(() => setLoading(false))
+  }, [loadMaterials, toast])
 
   function persistKey() {
     const trimmed = apiKey.trim()
     setApiKey(trimmed)
-    setHasStoredKey(Boolean(trimmed))
-    if (trimmed) setEditingKey(false)
+    setKeyDraft(trimmed)
+    if (trimmed) setEditingDraft(false)
   }
 
   function pickFile(picked: File | null) {
@@ -81,8 +81,9 @@ export default function BerandaPage() {
     if (!file || !apiKey.trim()) return
     setSaving(true)
     try {
-      setApiKey(apiKey.trim())
-      setHasStoredKey(true)
+      const trimmed = apiKey.trim()
+      setApiKey(trimmed)
+      setKeyDraft(trimmed)
       const db = openDB()
       const materialId = await db.materials.add({
         title: file.name,
@@ -91,12 +92,13 @@ export default function BerandaPage() {
         status: "pending",
         fileName: file.name,
         fileSize: file.size,
+        audio: file,
       })
       router.push(`/processing?id=${materialId}`)
-    } catch (e) {
+    } catch {
       toast({
         title: "Gagal menyiapkan materi",
-        description: e instanceof Error ? e.message : "Coba lagi.",
+        description: "Penyimpanan browser menolak data baru. Kosongkan penyimpanan lalu coba lagi.",
       })
       setSaving(false)
     }
@@ -139,17 +141,43 @@ export default function BerandaPage() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link href="/settings">
-              <Button size="sm" variant={apiKey ? "default" : "outline"} className="gap-2">
-                <KeyRound className="h-4 w-4" />
-                {apiKey ? "API Key Aktif" : "Atur API Key"}
-              </Button>
+            <Link
+              href="/settings"
+              className={buttonVariants({ variant: apiKey ? "default" : "outline", size: "sm", className: "gap-2" })}
+            >
+              <ApiKeyLinkIcon />
+              {apiKey ? "API Key Aktif" : "Atur API Key"}
             </Link>
-            <Button size="icon" variant="ghost" className="md:hidden" aria-label="Buka menu">
-              <Menu className="h-5 w-5" />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="md:hidden"
+              aria-label={menuOpen ? "Tutup menu" : "Buka menu"}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
         </div>
+        {menuOpen && (
+          <nav className="absolute inset-x-0 top-full border-b border-border bg-card px-5 py-4 md:hidden" aria-label="Menu utama">
+            <div className="flex flex-col gap-4 text-sm">
+              <a href="#cara-kerja" className="text-muted-foreground hover:text-foreground" onClick={() => setMenuOpen(false)}>
+                Cara Kerja
+              </a>
+              <a href="#privasi" className="text-muted-foreground hover:text-foreground" onClick={() => setMenuOpen(false)}>
+                Privasi
+              </a>
+              <a href="#riwayat" className="text-muted-foreground hover:text-foreground" onClick={() => setMenuOpen(false)}>
+                Riwayat
+              </a>
+              <Link href="/settings" className="text-muted-foreground hover:text-foreground" onClick={() => setMenuOpen(false)}>
+                Pengaturan
+              </Link>
+            </div>
+          </nav>
+        )}
       </header>
 
       <main className="mx-auto w-full max-w-[1120px] flex-1 px-5 py-12 sm:px-8 sm:py-16">
@@ -238,7 +266,7 @@ export default function BerandaPage() {
                       id="api-key"
                       type={showKey ? "text" : "password"}
                       value={apiKey}
-                      onChange={(e) => setKey(e.target.value)}
+                      onChange={(e) => setKeyDraft(e.target.value)}
                       onBlur={persistKey}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
@@ -276,8 +304,8 @@ export default function BerandaPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        setKey(getApiKey())
-                        setEditingKey(true)
+                        setKeyDraft(storedKey)
+                        setEditingDraft(true)
                       }}
                     >
                       Ganti
@@ -300,12 +328,18 @@ export default function BerandaPage() {
           </section>
         </div>
 
-        <section id="riwayat" className="mt-16 sm:mt-24">
+        <section id="riwayat" className="mt-16 scroll-mt-[88px] sm:mt-24">
           <div className="flex items-baseline justify-between">
             <h2 className="text-2xl font-semibold tracking-[-0.02em]">Riwayat</h2>
-            <a href="#riwayat" className="text-sm text-muted-foreground hover:text-foreground">
-              Lihat semua
-            </a>
+            {materials.length > 3 && (
+              <button
+                type="button"
+                className="text-sm text-muted-foreground hover:text-foreground"
+                onClick={() => setShowAll((v) => !v)}
+              >
+                {showAll ? "Tampilkan lebih sedikit" : "Lihat semua"}
+              </button>
+            )}
           </div>
 
           <div className="mt-6">
@@ -321,7 +355,7 @@ export default function BerandaPage() {
               </p>
             ) : (
               <ul className="space-y-3">
-                {materials.map((m) => (
+                {(showAll ? materials : materials.slice(0, 3)).map((m) => (
                   <li
                     key={m.id}
                     className="flex items-center gap-4 rounded-2xl border border-border bg-card px-5 py-4"
@@ -351,6 +385,42 @@ export default function BerandaPage() {
                 ))}
               </ul>
             )}
+          </div>
+        </section>
+
+        <section id="cara-kerja" className="mt-16 scroll-mt-[88px] sm:mt-24">
+          <div className="grid gap-6 lg:grid-cols-[280px_1fr] lg:gap-16">
+            <h2 className="text-2xl font-semibold tracking-[-0.02em]">Cara kerja</h2>
+            <ol className="space-y-4 text-muted-foreground">
+              <li>
+                <span className="font-medium text-foreground">1. Taruh rekaman.</span> Pilih file audio sampai 25 MB
+                atau rekam langsung dari browser, lalu tempel API key Groq atau OpenAI sekali.
+              </li>
+              <li>
+                <span className="font-medium text-foreground">2. Proses berjalan di perangkat Anda.</span> Transkrip,
+                ringkasan, peta konsep, dan flashcard dibuat oleh provider pilihan Anda, langsung dari browser.
+              </li>
+              <li>
+                <span className="font-medium text-foreground">3. Hasilnya tersimpan lokal.</span> Semua hasil bisa
+                dibuka lagi kapan saja dari Riwayat, tanpa akun dan tanpa unggah ulang.
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <section id="privasi" className="mt-16 scroll-mt-[88px] sm:mt-24">
+          <div className="grid gap-6 lg:grid-cols-[280px_1fr] lg:gap-16">
+            <h2 className="text-2xl font-semibold tracking-[-0.02em]">Privasi</h2>
+            <div className="space-y-4 text-muted-foreground">
+              <p>
+                Rekaman, transkrip, dan seluruh hasil tersimpan di IndexedDB browser Anda. Tidak ada server Mindo
+                yang menyimpan data: hosting hanya menyajikan file statis.
+              </p>
+              <p>
+                API key hanya dikirim langsung ke provider yang Anda pilih, tidak pernah ke domain lain. Semua ini
+                bisa Anda hapus sendiri lewat menu Pengaturan.
+              </p>
+            </div>
           </div>
         </section>
       </main>

@@ -8,6 +8,7 @@ export interface Material {
   status: string
   fileName: string
   fileSize: number
+  audio?: Blob
 }
 
 export interface TranscriptSegment {

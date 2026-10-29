@@ -2,7 +2,7 @@
 
 Spesifikasi antarmuka Mindo. Visual memakai tema Minimalist Neon / Ambient Tech. Fungsi mengikuti `PRD.md`. Struktur data mengikuti `architecture.md`.
 
-Terakhir diperbarui: 27 Oktober 2026.
+Terakhir diperbarui: 29 Oktober 2026.
 
 ---
 
@@ -26,10 +26,11 @@ Yang dijual bukan animasi, tapi waktu yang dihemat. Layar pertama harus langsung
 | Canvas | `#FCFCFC` | Latar halaman |
 | Surface | `#FFFFFF` | Kartu, panel, input |
 | Lime | `#53F16F` | CTA utama, segmen tab aktif, status sukses |
+| Lime Hover | `#47CD5E` | Latar tombol Lime saat hover (kontras cukup jelas, teks tetap Ink) |
 | Cyan | `#40D9FF` | Logo, tombol Tanya Mindo, chip timestamp |
 | Ink | `#111827` | Judul dan teks utama |
 | Muted | `#6B7280` | Teks sekunder, metadata |
-| Grid | `rgba(225, 231, 239, 0.6)` | Pola garis 16 px |
+| Grid | `rgba(225, 231, 239, 0.7)` | Pola garis 16 px |
 | Border | `rgba(17, 24, 39, 0.08)` | Garis 1 px pemisah |
 | Danger | `#DC2626` | Error, hapus data |
 | Glow Lime | `rgba(83, 241, 111, 0.35)` | Pendaran di balik hero |
@@ -80,8 +81,8 @@ Aturan pemakaian:
 
 Grid latar:
 
-- Pola garis 16 x 16 px, warna Grid, diulang penuh halaman.
-- Dipasang di `body` sebagai `background-image` linear-gradient ganda, bukan elemen tambahan.
+- Pola garis 16 x 16 px, warna Grid, hanya terlihat di dua area (pojok kiri atas dan kanan bawah) lewat `mask-image` radial; bagian tengah halaman bersih supaya konten tetap terbaca.
+- Dipasang di `body::before` sebagai `background-image` linear-gradient ganda, bukan elemen tambahan.
 
 ---
 
@@ -164,8 +165,8 @@ Hero asimetris, teks kiri, dropzone kanan. Di bawah 1024 px turun jadi satu kolo
 
 Teks:
 
-- Display: "Dari suara dosen jadi paham, sekali klik."
-- Subjudul, maks 60 karakter per baris: "Ubah rekaman kuliah jadi ringkasan, peta konsep, dan flashcard. Diproses di perangkat Anda, tanpa akun."
+- Display: "1 rekaman, 3 bahan ajar."
+- Subjudul, maks 60 karakter per baris: "Ubah rekaman kuliah jadi ringkasan, mindmap, dan flashcard. Diproses di perangkat Anda, tanpa akun."
 - Satu baris Muted kecil: format yang diterima dan batas 25 MB.
 
 Kartu dropzone:

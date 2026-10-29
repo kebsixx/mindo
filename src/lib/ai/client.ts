@@ -8,8 +8,7 @@ export function getProviderEndpoint(provider: Provider): string {
 export async function transcribeAudio(
   provider: Provider,
   apiKey: string,
-  file: Blob,
-  onProgress?: (progress: number) => void
+  file: Blob
 ): Promise<{ text: string; segments: { id: number; start: number; end: number; text: string }[]; duration: number }> {
   const endpoint = getProviderEndpoint(provider)
   const model = provider === "groq" ? "whisper-large-v3" : "whisper-1"
