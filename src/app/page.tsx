@@ -420,6 +420,10 @@ export default function BerandaPage() {
                 API key hanya dikirim langsung ke provider yang Anda pilih, tidak pernah ke domain lain. Semua ini
                 bisa Anda hapus sendiri lewat menu Pengaturan.
               </p>
+              <p>
+                Untuk mengukur kecepatan halaman, hosting memakai Vercel Analytics dan Speed Insights. Keduanya
+                mencatat kunjungan dan metrik performa tanpa cookie iklan, tanpa profil, dan tanpa isi rekaman Anda.
+              </p>
             </div>
           </div>
         </section>
