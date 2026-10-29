@@ -59,20 +59,21 @@ export default function TranscriptPanel({ segments, onSeek }: TranscriptPanelPro
         <ScrollArea className="h-[400px]">
           <div className="space-y-2">
             {filtered.map((seg, i) => (
-              <div key={i} className="flex gap-2 p-2 rounded hover:bg-accent/50">
+              <div key={i} className="flex gap-2 rounded-2xl p-2 transition-colors hover:bg-secondary">
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label={`Putar dari ${formatTime(seg.start)}`}
                   className="h-6 w-6 flex-shrink-0"
                   onClick={() => onSeek?.(seg.start)}
                 >
                   <Play className="h-3 w-3" />
                 </Button>
                 <div className="flex-1">
-                  <span className="text-xs text-muted-foreground font-mono">
+                  <span className="text-[0.8125rem] tabular-nums text-muted-foreground">
                     {formatTime(seg.start)}
                   </span>
-                  <p className="text-sm">{seg.text}</p>
+                  <p className="text-[1.0625rem] leading-[1.55]">{seg.text}</p>
                 </div>
               </div>
             ))}

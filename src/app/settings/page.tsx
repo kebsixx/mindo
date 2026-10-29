@@ -2,8 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -12,6 +10,7 @@ import { AlertCircle, CheckCircle, Loader2, Key, Eye, EyeOff, ChevronRight, Home
 import { cn } from "@/lib/utils"
 import { setProvider, setApiKey, clearAllData, useStoredProvider, useStoredApiKey } from "@/lib/storage/settings"
 import { getProviderEndpoint } from "@/lib/ai/client"
+import SiteHeader from "@/components/site-header"
 
 type Provider = "groq" | "openai" | "gemini" | "claude" | "deepseek" | "ollama"
 
@@ -84,15 +83,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-clip">
-      <header className="mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between px-5 sm:h-[72px] sm:px-8">
-        <Link href="/" className="flex items-center gap-2.5">
-          <Image src="/logo-mindo.png" alt="" width={32} height={32} className="h-8 w-8" />
-          <span className="text-xl font-semibold tracking-tight">MINDO</span>
-        </Link>
-        <Link href="/" className="text-[0.9375rem] text-muted-foreground transition-colors hover:text-foreground">
-          Beranda
-        </Link>
-      </header>
+      <SiteHeader />
 
       <main className="mx-auto w-full max-w-[720px] flex-1 px-5 pb-16 pt-8 sm:px-8 sm:pt-14">
         <h1 className="text-[clamp(2.25rem,5.4vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.03em]">Pengaturan</h1>

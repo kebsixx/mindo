@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
-import { Mic, Square, Loader2, ChevronLeft, Trash2, Save, Play, Pause, AlertTriangle, MicOff } from "lucide-react"
+import { Mic, Square, Loader2, Trash2, Save, Play, Pause, AlertTriangle, MicOff } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { openDB } from "@/lib/db"
@@ -199,63 +199,64 @@ export default function RecordingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-dvh flex-col overflow-x-clip">
       <SiteHeader />
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-        <div className="flex items-center gap-2">
-          <Link href="/" className="text-muted-foreground hover:text-foreground" aria-label="Kembali ke beranda">
-            <ChevronLeft className="h-5 w-5" />
-          </Link>
-          <h1 className="text-2xl font-bold">Rekam Langsung</h1>
-        </div>
+      <main className="mx-auto w-full max-w-[640px] flex-1 px-5 pb-16 pt-8 sm:px-8 sm:pt-14">
+        <h1 className="text-[clamp(2.25rem,5.4vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.03em]">Rekam Langsung</h1>
+        <p className="mt-3 max-w-[46ch] text-[1.0625rem] leading-[1.55] text-muted-foreground">
+          Rekam langsung dari mikrofon perangkat. Hasilnya langsung diproses setelah Anda tekan Pakai Rekaman Ini.
+        </p>
 
-        <Card>
+        <Card className="mt-10">
           <CardHeader>
-            <CardTitle>Status Rekaman</CardTitle>
+            <CardTitle className="text-lg">Status Rekaman</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Judul materi (opsional)"
+              aria-label="Judul materi"
+              className="h-11 rounded-full px-4 text-base"
             />
 
-            <div className="text-center space-y-4">
-              <div className="text-4xl font-mono font-bold tabular-nums">{formatDuration(duration)}</div>
+            <div className="space-y-4 rounded-2xl bg-secondary px-5 py-6 text-center">
+              <p className="text-[clamp(2.5rem,7vw,3.5rem)] font-semibold leading-none tabular-nums tracking-[-0.03em]">
+                {formatDuration(duration)}
+              </p>
 
               <div className="flex h-12 items-end justify-center gap-1" aria-hidden="true">
                 {volume.map((v, i) => (
                   <span
                     key={i}
-                    className={cn("w-1.5 rounded-full transition-[height] duration-75", recording ? "bg-primary" : "bg-border")}
+                    className={cn("w-1.5 rounded-full", recording ? "bg-primary" : "bg-border")}
                     style={{ height: `${Math.round(v * 100)}%` }}
                   />
                 ))}
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-[0.9375rem] text-muted-foreground">
                 {recording ? "Merekam. Bicara dengan volume normal." : audioBlob ? "Rekaman selesai." : "Mikrofon siap dipakai."}
               </p>
-
-              <div className="text-sm text-muted-foreground">
+              <p className="text-[0.9375rem] tabular-nums text-muted-foreground">
                 {audioBlob ? `${(audioBlob.size / 1024 / 1024).toFixed(2)} MB` : "Belum ada rekaman"}
-              </div>
+              </p>
             </div>
 
             {overLimit && (
-              <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+              <div className="flex items-start gap-2 rounded-2xl bg-destructive/10 p-4 text-[0.9375rem] text-destructive" role="alert">
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 <span>Rekaman melewati 20 MB. Provider menolak file di atas 25 MB, jadi potong atau rekam ulang sekarang.</span>
               </div>
             )}
 
             {micDenied && !recording && (
-              <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+              <div className="flex items-start gap-2 rounded-2xl bg-destructive/10 p-4 text-[0.9375rem] text-destructive" role="alert">
                 <MicOff className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 <span>Izin mikrofon ditolak browser. Klik ikon gembok di bilah alamat, beri izin &quot;Mikrofon&quot; untuk halaman ini, lalu muat ulang.</span>
               </div>
             )}
 
-            <div className="flex flex-wrap justify-center gap-4">
+            <div className="flex flex-wrap justify-center gap-3">
               {!recording && !audioBlob && (
                 <Button size="lg" onClick={startRecording}>
                   <Mic className="h-5 w-5" />
@@ -289,7 +290,15 @@ export default function RecordingPage() {
             <audio ref={playbackRef} onEnded={() => setPlaying(false)} className="hidden" />
           </CardContent>
         </Card>
-      </div>
+
+        <p className="mt-4 text-center text-[0.9375rem] text-muted-foreground">
+          Atau kembali ke{" "}
+          <Link href="/" className="underline decoration-1 underline-offset-4 hover:text-foreground">
+            Beranda
+          </Link>{" "}
+          untuk memilih file.
+        </p>
+      </main>
     </div>
   )
 }

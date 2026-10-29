@@ -3,11 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import Image from "next/image"
-import { Mic, Upload, Trash2, Loader2, Menu, Eye, EyeOff, X } from "lucide-react"
-import { Button, buttonVariants } from "@/components/ui/button"
-import ApiKeyLinkIcon from "@/components/api-key-link-icon"
+import { Mic, Upload, Trash2, Loader2, Eye, EyeOff } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import SiteHeader from "@/components/site-header"
 import { useToast } from "@/components/ui/use-toast"
 import { openDB, type Material } from "@/lib/db"
 import { setApiKey, useStoredApiKey } from "@/lib/storage/settings"
@@ -53,7 +52,6 @@ export default function BerandaPage() {
   const [editingDraft, setEditingDraft] = useState<boolean | null>(null)
   const editingKey = editingDraft ?? !hasStoredKey
   const [saving, setSaving] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [showAll, setShowAll] = useState(false)
 
   const loadMaterials = useCallback(async () => {
@@ -136,63 +134,7 @@ export default function BerandaPage() {
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-clip">
-      <header className="mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between px-5 sm:h-[72px] sm:px-8">
-        <Link href="/" className="flex items-center gap-2.5">
-          <Image src="/logo-mindo.png" alt="" width={32} height={32} className="h-8 w-8" />
-          <span className="text-xl font-semibold tracking-tight">MINDO</span>
-        </Link>
-
-        <nav className="hidden items-center gap-6 text-[0.9375rem] text-muted-foreground md:flex">
-          <a href="#riwayat" className="transition-colors hover:text-foreground">
-            Riwayat
-          </a>
-          <a href="#cara-kerja" className="transition-colors hover:text-foreground">
-            Cara kerja
-          </a>
-          <a href="#privasi" className="transition-colors hover:text-foreground">
-            Privasi
-          </a>
-        </nav>
-
-        <div className="flex items-center gap-2">
-          <Link
-            href="/settings"
-            className={buttonVariants({ variant: apiKey ? "default" : "outline", size: "sm", className: "gap-2" })}
-          >
-            <ApiKeyLinkIcon />
-            {apiKey ? "API Key Aktif" : "Atur API Key"}
-          </Link>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="md:hidden"
-            aria-label={menuOpen ? "Tutup menu" : "Buka menu"}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        </div>
-      </header>
-
-      {menuOpen && (
-        <nav className="mx-5 rounded-2xl bg-secondary px-4 py-3 md:hidden" aria-label="Menu utama">
-          <div className="flex flex-col gap-1 text-base">
-            <a href="#riwayat" className="py-3 text-muted-foreground hover:text-foreground" onClick={() => setMenuOpen(false)}>
-              Riwayat
-            </a>
-            <a href="#cara-kerja" className="py-3 text-muted-foreground hover:text-foreground" onClick={() => setMenuOpen(false)}>
-              Cara kerja
-            </a>
-            <a href="#privasi" className="py-3 text-muted-foreground hover:text-foreground" onClick={() => setMenuOpen(false)}>
-              Privasi
-            </a>
-            <Link href="/settings" className="py-3 text-muted-foreground hover:text-foreground" onClick={() => setMenuOpen(false)}>
-              Pengaturan
-            </Link>
-          </div>
-        </nav>
-      )}
+      <SiteHeader />
 
       <main className="w-full flex-1">
         <section className="mx-auto w-full max-w-[1120px] px-5 pb-14 pt-8 sm:px-8 sm:pb-20 sm:pt-14">

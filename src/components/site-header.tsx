@@ -17,55 +17,57 @@ export default function SiteHeader() {
 
   const onHome = pathname === "/"
   const navItems = [
-    { href: onHome ? "#cara-kerja" : "/#cara-kerja", label: "Cara Kerja" },
-    { href: onHome ? "#privasi" : "/#privasi", label: "Privasi" },
     { href: onHome ? "#riwayat" : "/#riwayat", label: "Riwayat" },
+    { href: onHome ? "#cara-kerja" : "/#cara-kerja", label: "Cara kerja" },
+    { href: onHome ? "#privasi" : "/#privasi", label: "Privasi" },
   ]
 
   return (
-    <header className="sticky top-0 z-40 h-[72px] border-b border-border bg-card/80 backdrop-blur">
-      <div className="mx-auto flex h-full w-full max-w-[1120px] items-center justify-between px-5 sm:px-8">
-        <Link href="/" className="flex items-center gap-2.5">
-          <Image src="/logo-mindo.png" alt="" width={32} height={32} className="h-8 w-8" />
-          <span className="text-xl font-semibold tracking-tight">MINDO</span>
+    <header className="relative mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between px-5 sm:h-[72px] sm:px-8">
+      <Link href="/" className="flex items-center gap-2.5">
+        <Image src="/logo-mindo.png" alt="" width={32} height={32} className="h-8 w-8" />
+        <span className="text-xl font-semibold tracking-tight">MINDO</span>
+      </Link>
+
+      <nav className="hidden items-center gap-6 text-[0.9375rem] text-muted-foreground md:flex">
+        {navItems.map((item) => (
+          <a key={item.label} href={item.href} className="transition-colors hover:text-foreground">
+            {item.label}
+          </a>
+        ))}
+      </nav>
+
+      <div className="flex items-center gap-2">
+        <Link
+          href="/settings"
+          className={buttonVariants({ variant: hasKey ? "default" : "outline", size: "sm", className: "gap-2" })}
+        >
+          <ApiKeyLinkIcon />
+          {hasKey ? "API Key Aktif" : "Atur API Key"}
         </Link>
-
-        <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-          {navItems.map((item) => (
-            <a key={item.label} href={item.href} className="transition-colors hover:text-foreground">
-              {item.label}
-            </a>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/settings"
-            className={buttonVariants({ variant: hasKey ? "default" : "outline", size: "sm", className: "gap-2" })}
-          >
-            <ApiKeyLinkIcon />
-            {hasKey ? "API Key Aktif" : "Atur API Key"}
-          </Link>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="md:hidden"
-            aria-label={menuOpen ? "Tutup menu" : "Buka menu"}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        </div>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="md:hidden"
+          aria-label={menuOpen ? "Tutup menu" : "Buka menu"}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
       </div>
+
       {menuOpen && (
-        <nav className="absolute inset-x-0 top-full border-b border-border bg-card px-5 py-4 md:hidden" aria-label="Menu utama">
-          <div className="flex flex-col gap-4 text-sm">
+        <nav
+          className="absolute inset-x-4 top-16 z-40 rounded-[28px] bg-secondary px-4 py-3 md:hidden"
+          aria-label="Menu utama"
+        >
+          <div className="flex flex-col gap-1 text-base">
             {navItems.map((item) => (
               <a
                 key={item.label}
                 href={item.href}
-                className="text-muted-foreground hover:text-foreground"
+                className="py-3 text-muted-foreground hover:text-foreground"
                 onClick={() => setMenuOpen(false)}
               >
                 {item.label}
@@ -73,7 +75,7 @@ export default function SiteHeader() {
             ))}
             <Link
               href="/settings"
-              className="text-muted-foreground hover:text-foreground"
+              className="py-3 text-muted-foreground hover:text-foreground"
               onClick={() => setMenuOpen(false)}
             >
               Pengaturan

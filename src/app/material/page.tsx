@@ -2,8 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import Link from "next/link"
-import { Loader2, ChevronLeft, FileText, MessageCircle } from "lucide-react"
+import { Loader2, FileText, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -117,7 +116,7 @@ function MaterialView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="flex min-h-dvh flex-col">
         <SiteHeader />
         <div className="flex min-h-[60vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-label="Memuat materi" />
@@ -131,21 +130,20 @@ function MaterialView() {
   )
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-dvh flex-col overflow-x-clip">
       <SiteHeader />
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/" className="text-muted-foreground hover:text-foreground" aria-label="Kembali ke beranda">
-            <ChevronLeft className="h-5 w-5" />
-          </Link>
-          <h1 className="min-w-0 flex-1 truncate text-2xl font-bold">{material?.title || "Materi"}</h1>
-          <Button size="sm" variant="outline" onClick={toggleTranscript} aria-pressed={transcriptView}>
+      <main className="mx-auto w-full max-w-[1120px] flex-1 px-5 pb-16 pt-6 sm:px-8 sm:pt-10">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="min-w-0 flex-1 truncate text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.025em]">
+            {material?.title || "Materi"}
+          </h1>
+          <Button size="sm" variant={transcriptView ? "default" : "outline"} onClick={toggleTranscript} aria-pressed={transcriptView}>
             <FileText className="h-4 w-4" />
             {transcriptView ? "Kembali ke Materi" : "Transkrip"}
           </Button>
         </div>
 
-        <div className="flex items-start gap-6">
+        <div className="mt-8 flex items-start gap-6">
           <div className="min-w-0 flex-1">
             {transcriptView ? (
               <TranscriptPanel segments={segments} onSeek={seekAudio} />
@@ -160,21 +158,21 @@ function MaterialView() {
                 <TabsContent value="summary">
                   <Card>
                     <CardHeader>
-                      <CardTitle>{summary?.title || "Ringkasan"}</CardTitle>
+                      <CardTitle className="text-lg">{summary?.title || "Ringkasan"}</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6">
                       {summary?.sections.map((section, i) => (
                         <div key={i} className="space-y-2">
-                          <h3 className="text-lg font-semibold">{section.heading}</h3>
-                          <ul className="list-disc space-y-1 pl-5">
+                          <h3 className="text-[1.0625rem] font-semibold">{section.heading}</h3>
+                          <ul className="max-w-[68ch] list-disc space-y-1 pl-5 text-[1.0625rem] leading-[1.6] text-muted-foreground">
                             {section.points.map((point, j) => (
-                              <li key={j} className="text-muted-foreground">{point}</li>
+                              <li key={j}>{point}</li>
                             ))}
                           </ul>
                           {section.keyTerms && section.keyTerms.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-2">
                               {section.keyTerms.map((term, k) => (
-                                <span key={k} className="rounded-full bg-primary/12 px-2 py-1 text-xs text-foreground">
+                                <span key={k} className="rounded-full bg-primary/12 px-2.5 py-1 text-[0.8125rem] text-foreground">
                                   {term}
                                 </span>
                               ))}
@@ -182,7 +180,7 @@ function MaterialView() {
                           )}
                         </div>
                       ))}
-                      {!summary && <p className="text-muted-foreground">Belum ada ringkasan.</p>}
+                      {!summary && <p className="text-[1.0625rem] text-muted-foreground">Belum ada ringkasan.</p>}
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -190,13 +188,13 @@ function MaterialView() {
                 <TabsContent value="mindmap">
                   <Card>
                     <CardHeader>
-                      <CardTitle>{mindmap?.title || "Mindmap"}</CardTitle>
+                      <CardTitle className="text-lg">{mindmap?.title || "Mindmap"}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       {mindmap ? (
                         <MarkmapView content={JSON.stringify(mindmap)} className="h-[500px] w-full" />
                       ) : (
-                        <p className="text-muted-foreground">Belum ada mindmap.</p>
+                        <p className="text-[1.0625rem] text-muted-foreground">Belum ada mindmap.</p>
                       )}
                     </CardContent>
                   </Card>
@@ -205,7 +203,7 @@ function MaterialView() {
                 <TabsContent value="flashcard">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Flashcard</CardTitle>
+                      <CardTitle className="text-lg">Flashcard</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <FlashcardSwiper
@@ -221,16 +219,16 @@ function MaterialView() {
             )}
           </div>
 
-          <aside className="sticky top-24 hidden w-[360px] shrink-0 lg:block" aria-label="Tanya Mindo">
+          <aside className="sticky top-6 hidden w-[360px] shrink-0 lg:block" aria-label="Tanya Mindo">
             <Card>
               <CardHeader>
-                <CardTitle>Tanya Mindo</CardTitle>
+                <CardTitle className="text-lg">Tanya Mindo</CardTitle>
               </CardHeader>
               <CardContent className="p-0">{chat}</CardContent>
             </Card>
           </aside>
         </div>
-      </div>
+      </main>
 
       <audio ref={audioRef} className="hidden" />
 
@@ -239,8 +237,8 @@ function MaterialView() {
         onClick={() => setChatOpen(true)}
         aria-label="Buka Tanya Mindo"
         className={cn(
-          "fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full",
-          "bg-accent text-accent-foreground shadow-lg transition-transform hover:scale-105 lg:hidden"
+          "fixed bottom-6 right-6 z-40 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full",
+          "bg-accent text-accent-foreground transition-transform hover:scale-105 lg:hidden"
         )}
       >
         <MessageCircle className="h-6 w-6" />

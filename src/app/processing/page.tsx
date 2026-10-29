@@ -3,9 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Check, XCircle, FileText, Brain, Network, Layers, RefreshCw, ChevronLeft } from "lucide-react"
-import Link from "next/link"
+import { Loader2, Check, XCircle, FileText, Brain, Network, Layers, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { openDB } from "@/lib/db"
 import { transcribe } from "@/lib/ai/agents/transcribe"
@@ -233,81 +231,74 @@ function ProcessingView() {
   const transcribeDone = stages.find((s) => s.id === "transcribe")?.status === "completed"
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-dvh flex-col overflow-x-clip">
       <SiteHeader />
-      <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
-        <div className="flex items-center gap-2">
-          <Link href="/" className="text-muted-foreground hover:text-foreground" aria-label="Kembali ke beranda">
-            <ChevronLeft className="h-5 w-5" />
-          </Link>
-          <h1 className="text-2xl font-bold">Memproses Materi</h1>
-        </div>
+      <main className="mx-auto w-full max-w-[640px] flex-1 px-5 pb-16 pt-8 sm:px-8 sm:pt-14">
+        <h1 className="text-[clamp(2.25rem,5.4vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.03em]">Memproses Materi</h1>
+        <p className="mt-3 max-w-[46ch] text-[1.0625rem] leading-[1.55] text-muted-foreground">
+          Transkrip dikerjakan lebih dulu, lalu ringkasan, mindmap, dan flashcard berjalan bersamaan.
+        </p>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Status Tahap</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4" aria-live="polite">
-            {stages.map((stage) => (
-              <div
-                key={stage.id}
-                className={cn(
-                  "flex flex-wrap items-center gap-4 rounded-lg border p-4",
-                  stage.status === "running" && "border-primary/50"
+        <div className="mt-10 space-y-2" aria-live="polite">
+          {stages.map((stage) => (
+            <div
+              key={stage.id}
+              className={cn(
+                "flex flex-wrap items-center gap-4 rounded-2xl px-4 py-4",
+                stage.status === "running" ? "bg-primary/12" : "bg-secondary"
+              )}
+            >
+              <div className="flex-shrink-0">
+                {stage.status === "pending" && (
+                  <span className="block h-6 w-6 rounded-full border-2 border-muted-foreground/40" aria-hidden="true" />
                 )}
-              >
-                <div className="flex-shrink-0">
-                  {stage.status === "pending" && (
-                    <span className="block h-5 w-5 rounded-full border-2 border-muted-foreground" aria-hidden="true" />
-                  )}
-                  {stage.status === "running" && (
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary" aria-hidden="true">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" />
-                    </span>
-                  )}
-                  {stage.status === "completed" && (
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary" aria-hidden="true">
-                      <Check className="h-4 w-4 text-primary-foreground" />
-                    </span>
-                  )}
-                  {stage.status === "failed" && (
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-destructive/15" aria-hidden="true">
-                      <XCircle className="h-4 w-4 text-destructive" />
-                    </span>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 font-medium">
-                    {stage.icon}
-                    {stage.label}
-                  </div>
-                  {stage.status === "running" && <p className="text-sm text-muted-foreground">Sedang diproses</p>}
-                  {stage.status === "completed" && stage.finishedAt && (
-                    <p className="text-sm text-muted-foreground">Selesai pukul {stage.finishedAt}</p>
-                  )}
-                  {stage.status === "failed" && stage.error && (
-                    <p className="text-sm text-destructive" aria-live="assertive">
-                      {stage.error}
-                    </p>
-                  )}
-                </div>
+                {stage.status === "running" && (
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary" aria-hidden="true">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" />
+                  </span>
+                )}
+                {stage.status === "completed" && (
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary" aria-hidden="true">
+                    <Check className="h-4 w-4 text-primary-foreground" />
+                  </span>
+                )}
                 {stage.status === "failed" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full sm:w-auto"
-                    onClick={() => handleRetry(stage.id)}
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Coba Lagi
-                  </Button>
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-destructive/15" aria-hidden="true">
+                    <XCircle className="h-4 w-4 text-destructive" />
+                  </span>
                 )}
               </div>
-            ))}
-          </CardContent>
-        </Card>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 font-medium">
+                  {stage.icon}
+                  {stage.label}
+                </div>
+                {stage.status === "running" && <p className="text-[0.9375rem] text-muted-foreground">Sedang diproses</p>}
+                {stage.status === "completed" && stage.finishedAt && (
+                  <p className="text-[0.9375rem] tabular-nums text-muted-foreground">Selesai pukul {stage.finishedAt}</p>
+                )}
+                {stage.status === "failed" && stage.error && (
+                  <p className="text-[0.9375rem] text-destructive" aria-live="assertive">
+                    {stage.error}
+                  </p>
+                )}
+              </div>
+              {stage.status === "failed" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full bg-card sm:w-auto"
+                  onClick={() => handleRetry(stage.id)}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Coba Lagi
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
 
-        <div className="flex gap-3">
+        <div className="mt-6 flex flex-wrap gap-3">
           <Button variant="outline" onClick={() => router.push("/")}>
             Batal
           </Button>
@@ -315,7 +306,11 @@ function ProcessingView() {
             <Button onClick={() => router.push(`/material?id=${materialId}`)}>Lihat Hasil</Button>
           )}
         </div>
-      </div>
+
+        <p className="mt-6 text-[0.9375rem] text-muted-foreground">
+          Jangan tutup tab ini sampai tahap terakhir selesai. Semua panggilan berjalan dari browser Anda.
+        </p>
+      </main>
     </div>
   )
 }

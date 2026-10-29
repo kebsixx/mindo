@@ -69,7 +69,7 @@ export default function FlashcardSwiper({ cards, onGrade }: FlashcardSwiperProps
     return (
       <div className="space-y-4 py-8 text-center">
         <p className="text-lg font-medium">Selesai {cards.length} kartu.</p>
-        <p className="font-mono text-sm text-muted-foreground tabular-nums">
+        <p className="text-[0.9375rem] tabular-nums text-muted-foreground">
           Paham {known} · Ulang {repeat}
         </p>
         <Button
@@ -89,7 +89,7 @@ export default function FlashcardSwiper({ cards, onGrade }: FlashcardSwiperProps
 
   return (
     <div className="space-y-4">
-      <div className="text-center font-mono text-sm text-muted-foreground tabular-nums">
+      <div className="text-center text-[0.9375rem] text-muted-foreground tabular-nums">
         {index + 1} / {cards.length}
       </div>
       <Card

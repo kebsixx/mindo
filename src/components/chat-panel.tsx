@@ -70,7 +70,7 @@ export default function ChatPanel({ onSend, onSeek }: ChatPanelProps) {
                 key={s}
                 type="button"
                 onClick={() => void send(s)}
-                className="rounded-full border border-border bg-primary/12 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-primary/20"
+                className="cursor-pointer rounded-full border border-border bg-primary/12 px-3 py-1.5 text-[0.8125rem] text-foreground transition-colors hover:bg-primary/20"
               >
                 {s}
               </button>
@@ -81,7 +81,7 @@ export default function ChatPanel({ onSend, onSeek }: ChatPanelProps) {
           <div
             key={i}
             className={cn(
-              "max-w-[85%] rounded-lg p-3 text-sm",
+              "max-w-[85%] rounded-2xl p-3 text-[0.9375rem] leading-[1.5]",
               msg.role === "user"
                 ? "ml-auto bg-primary text-primary-foreground"
                 : msg.notFound
@@ -93,7 +93,7 @@ export default function ChatPanel({ onSend, onSeek }: ChatPanelProps) {
               <button
                 type="button"
                 onClick={() => onSeek?.(msg.atSec!)}
-                className="mb-1.5 mr-2 inline-block rounded bg-accent/20 px-1.5 py-0.5 font-mono text-xs text-foreground"
+                className="mb-1.5 mr-2 inline-block cursor-pointer rounded-full bg-accent/20 px-2 py-0.5 text-[0.8125rem] tabular-nums text-foreground"
               >
                 {formatTime(msg.atSec)}
               </button>
