@@ -223,12 +223,12 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <div className="flex flex-col sm:flex-row gap-4 pt-4">
-          <Button onClick={goHome} size="lg" className="flex-1 gap-2">
+        <div className="flex flex-col gap-4 pt-4 sm:flex-row">
+          <Button onClick={goHome} size="lg" className="w-full gap-2 sm:flex-1">
             <Home className="h-5 w-5" />
             Kembali ke Beranda
           </Button>
-          <Button variant="outline" onClick={saveSettings} className="flex-1 sm:w-auto">
+          <Button variant="outline" onClick={saveSettings} className="w-full sm:flex-1">
             Simpan & Tetap di Sini
           </Button>
         </div>
