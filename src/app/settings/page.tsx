@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,7 +12,6 @@ import { AlertCircle, CheckCircle, Loader2, Key, Eye, EyeOff, ChevronRight, Home
 import { cn } from "@/lib/utils"
 import { setProvider, setApiKey, clearAllData, useStoredProvider, useStoredApiKey } from "@/lib/storage/settings"
 import { getProviderEndpoint } from "@/lib/ai/client"
-import SiteHeader from "@/components/site-header"
 
 type Provider = "groq" | "openai" | "gemini" | "claude" | "deepseek" | "ollama"
 
@@ -83,36 +83,44 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <SiteHeader />
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-        <div className="flex items-center gap-2">
-          <Link href="/" className="text-muted-foreground hover:text-foreground">
-            <ChevronRight className="h-5 w-5 rotate-180" />
-          </Link>
-          <h1 className="text-2xl font-bold">Pengaturan</h1>
-        </div>
+    <div className="flex min-h-dvh flex-col overflow-x-clip">
+      <header className="mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between px-5 sm:h-[72px] sm:px-8">
+        <Link href="/" className="flex items-center gap-2.5">
+          <Image src="/logo-mindo.png" alt="" width={32} height={32} className="h-8 w-8" />
+          <span className="text-xl font-semibold tracking-tight">MINDO</span>
+        </Link>
+        <Link href="/" className="text-[0.9375rem] text-muted-foreground transition-colors hover:text-foreground">
+          Beranda
+        </Link>
+      </header>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Pilih Provider AI</CardTitle>
-            <CardDescription>Pilih provider yang ingin kamu gunakan.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">                {PROVIDERS.filter(p => p.id === "groq" || p.id === "openai").map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => setProviderDraft(p.id)}
+      <main className="mx-auto w-full max-w-[720px] flex-1 px-5 pb-16 pt-8 sm:px-8 sm:pt-14">
+        <h1 className="text-[clamp(2.25rem,5.4vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.03em]">Pengaturan</h1>
+        <p className="mt-3 max-w-[46ch] text-[1.0625rem] leading-[1.55] text-muted-foreground">
+          Pilih provider, tempel API key, lalu uji koneksinya sebelum memproses rekaman.
+        </p>
+
+        <div className="mt-10 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Pilih Provider AI</CardTitle>
+              <CardDescription>Pilih provider yang ingin Anda gunakan.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">                {PROVIDERS.filter(p => p.id === "groq" || p.id === "openai").map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setProviderDraft(p.id)}
                   className={cn(
-                    "w-full text-left p-4 rounded-lg border transition-colors",
-                    provider === p.id ? "border-primary bg-primary/5" : "border-border hover:bg-accent"
+                    "w-full cursor-pointer rounded-2xl border p-4 text-left transition-colors",
+                    provider === p.id ? "border-primary bg-primary/12" : "border-border hover:bg-secondary"
                   )}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium flex items-center gap-2">
+                      <div className="flex items-center gap-2 font-medium">
                         {p.name}
-                        {p.recommended && <span className="text-xs bg-primary/12 text-foreground px-2 py-0.5 rounded-full">Direkomendasikan</span>}
+                        {p.recommended && <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-foreground">Direkomendasikan</span>}
                       </div>
                       <div className="text-sm text-muted-foreground">{p.description}</div>
                     </div>
@@ -124,7 +132,7 @@ export default function SettingsPage() {
 
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+              className="flex cursor-pointer items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
             >
               <ChevronRight className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-90")} />
               Lihat opsi lanjut
@@ -137,8 +145,8 @@ export default function SettingsPage() {
                     key={p.id}
                     onClick={() => setProviderDraft(p.id)}
                     className={cn(
-                      "w-full text-left p-4 rounded-lg border transition-colors",
-                      provider === p.id ? "border-primary bg-primary/5" : "border-border hover:bg-accent"
+                      "w-full cursor-pointer rounded-2xl border p-4 text-left transition-colors",
+                      provider === p.id ? "border-primary bg-primary/12" : "border-border hover:bg-secondary"
                     )}
                   >
                     <div className="flex items-center justify-between">
@@ -152,87 +160,89 @@ export default function SettingsPage() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>API Key</CardTitle>
-            <CardDescription>Masukkan API key dari provider yang dipilih.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="relative">
-              <Input
-                type={showKey ? "text" : "password"}
-                value={apiKey}
-                onChange={(e) => setKeyDraft(e.target.value)}
-                placeholder="sk-..."
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowKey(!showKey)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              >
-                {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={testConnection} disabled={testing || !apiKey} variant="outline">
-                {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Key className="h-4 w-4" />}
-                Uji Koneksi
-              </Button>
-            </div>
-
-            {testResult && (
-              <div className={cn(
-                "flex items-center gap-2 text-sm p-3 rounded-lg",
-                testResult.ok ? "bg-primary/12 text-foreground" : "bg-destructive/10 text-destructive"
-              )}>
-                {testResult.ok ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                {testResult.message}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">API Key</CardTitle>
+              <CardDescription>Masukkan API key dari provider yang dipilih.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Input
+                  type={showKey ? "text" : "password"}
+                  value={apiKey}
+                  onChange={(e) => setKeyDraft(e.target.value)}
+                  placeholder="sk-..."
+                  className="h-11 rounded-full pl-4 pr-11 text-base"
+                />
+                <button
+                  type="button"
+                  aria-label={showKey ? "Sembunyikan API key" : "Lihat API key"}
+                  onClick={() => setShowKey(!showKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded-full p-2 text-muted-foreground hover:text-foreground"
+                >
+                  {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
-            )}
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Batas Provider</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm space-y-2 text-muted-foreground">
-            <p>• Ukuran file STT: 25 MB</p>
-            <p>• Audio per hari: 28.800 detik (8 jam) di free tier</p>
-            <p>• Request per menit: 20 (STT), 30 (LLM)</p>
-            <p>• Token per menit: 200K</p>
-          </CardContent>
-        </Card>
+              <div className="flex gap-2">
+                <Button onClick={testConnection} disabled={testing || !apiKey} variant="outline">
+                  {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Key className="h-4 w-4" />}
+                  Uji Koneksi
+                </Button>
+              </div>
 
-        <Card className="border-destructive/50 bg-destructive/5">
-          <CardHeader>
-            <CardTitle className="text-destructive flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              Zona Bahaya
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button variant="destructive" onClick={handleClearAll}>
-              Hapus Semua Data
-            </Button>
-          </CardContent>
-        </Card>
+              {testResult && (
+                <div className={cn(
+                  "flex items-center gap-2 rounded-2xl p-3 text-sm",
+                  testResult.ok ? "bg-primary/12 text-foreground" : "bg-destructive/10 text-destructive"
+                )}>
+                  {testResult.ok ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                  {testResult.message}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        <div className="flex flex-col gap-4 pt-4 sm:flex-row">
-          <Button onClick={goHome} size="lg" className="w-full gap-2 sm:flex-1">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Batas Provider</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1.5 text-[0.9375rem] text-muted-foreground">
+              <p>Ukuran file STT: 25 MB</p>
+              <p>Audio per hari: 28.800 detik (8 jam) di free tier</p>
+              <p>Request per menit: 20 (STT), 30 (LLM)</p>
+              <p>Token per menit: 200K</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-destructive/40 bg-destructive/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg text-destructive">
+                <AlertCircle className="h-5 w-5" />
+                Zona Bahaya
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button variant="destructive" onClick={handleClearAll}>
+                Hapus Semua Data
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <Button onClick={() => { saveSettings(); goHome() }} size="lg" className="w-full gap-2 sm:flex-1">
             <Home className="h-5 w-5" />
-            Kembali ke Beranda
+            Simpan & Kembali ke Beranda
           </Button>
-          <Button variant="outline" onClick={saveSettings} className="w-full sm:flex-1">
+          <Button variant="outline" size="lg" onClick={saveSettings} className="w-full sm:flex-1">
             Simpan & Tetap di Sini
           </Button>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

@@ -136,10 +136,10 @@ export default function BerandaPage() {
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-clip">
-      <header className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between px-5 sm:h-20 sm:px-8">
+      <header className="mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between px-5 sm:h-[72px] sm:px-8">
         <Link href="/" className="flex items-center gap-2.5">
           <Image src="/logo-mindo.png" alt="" width={32} height={32} className="h-8 w-8" />
-          <span className="text-lg font-semibold tracking-tight">MINDO</span>
+          <span className="text-xl font-semibold tracking-tight">MINDO</span>
         </Link>
 
         <nav className="hidden items-center gap-6 text-[0.9375rem] text-muted-foreground md:flex">
@@ -176,7 +176,7 @@ export default function BerandaPage() {
       </header>
 
       {menuOpen && (
-        <nav className="border-y border-border bg-secondary px-5 py-4 md:hidden" aria-label="Menu utama">
+        <nav className="mx-5 rounded-2xl bg-secondary px-4 py-3 md:hidden" aria-label="Menu utama">
           <div className="flex flex-col gap-1 text-base">
             <a href="#riwayat" className="py-3 text-muted-foreground hover:text-foreground" onClick={() => setMenuOpen(false)}>
               Riwayat
@@ -195,8 +195,8 @@ export default function BerandaPage() {
       )}
 
       <main className="w-full flex-1">
-        <section className="mx-auto w-full max-w-[1200px] px-5 pb-14 pt-8 sm:px-8 sm:pb-20 sm:pt-14">
-          <h1 className="max-w-[13ch] text-balance font-display text-[clamp(3.25rem,9.4vw,8.5rem)] font-normal leading-[0.92] tracking-[-0.035em]">
+        <section className="mx-auto w-full max-w-[1120px] px-5 pb-14 pt-8 sm:px-8 sm:pb-20 sm:pt-14">
+          <h1 className="max-w-[13ch] text-balance text-[clamp(2.75rem,7.6vw,6rem)] font-semibold leading-[0.98] tracking-[-0.035em]">
             Tiga bahan ajar dari satu rekaman.
           </h1>
 
@@ -210,7 +210,7 @@ export default function BerandaPage() {
               </p>
             </div>
 
-            <div className="bg-secondary p-5 sm:p-7">
+            <div className="rounded-[28px] bg-secondary p-2.5 sm:p-3">
               <div
                 onDragOver={(e) => {
                   e.preventDefault()
@@ -222,8 +222,8 @@ export default function BerandaPage() {
                   setDragging(false)
                   pickFile(e.dataTransfer.files?.[0] ?? null)
                 }}
-                className={`flex min-h-[148px] flex-col items-start justify-center gap-3 px-4 py-5 transition-colors ${
-                  dragging ? "bg-primary/25" : "bg-background"
+                className={`flex min-h-[148px] flex-col items-start justify-center gap-3 rounded-[22px] bg-card px-5 py-6 transition-colors ${
+                  dragging ? "bg-primary/25" : ""
                 }`}
               >
                 {file ? (
@@ -241,11 +241,11 @@ export default function BerandaPage() {
                     <p className="text-[1.0625rem] font-medium">Taruh rekaman di sini</p>
                     <p className="text-[0.9375rem] text-muted-foreground">Seret dari file manager, atau:</p>
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" className="bg-background" onClick={() => fileInput.current?.click()}>
+                      <Button variant="outline" onClick={() => fileInput.current?.click()}>
                         <Upload className="h-4 w-4" />
                         Pilih file
                       </Button>
-                      <Button variant="outline" className="bg-background" onClick={() => router.push("/recording")}>
+                      <Button variant="outline" onClick={() => router.push("/recording")}>
                         <Mic className="h-4 w-4" />
                         Rekam langsung
                       </Button>
@@ -261,7 +261,7 @@ export default function BerandaPage() {
                 />
               </div>
 
-              <div className="mt-5">
+              <div className="px-2.5 pb-1 pt-5">
                 <label htmlFor={editingKey ? "api-key" : "api-key-status"} className="text-[0.9375rem] font-medium">
                   API Key
                 </label>
@@ -283,7 +283,7 @@ export default function BerandaPage() {
                       autoComplete="off"
                       spellCheck={false}
                       aria-describedby="api-key-hint"
-                      className="h-11 rounded-none border-0 bg-background text-base"
+                      className="h-11 rounded-full bg-card px-4 text-base"
                     />
                     <Button
                       variant="outline"
@@ -291,15 +291,15 @@ export default function BerandaPage() {
                       aria-label={showKey ? "Sembunyikan API key" : "Lihat API key"}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => setShowKey((v) => !v)}
-                      className="shrink-0 rounded-none bg-background"
+                      className="shrink-0"
                     >
                       {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
                 ) : (
-                  <div className="mt-2 flex h-11 items-center justify-between gap-2 bg-background pl-3 pr-1">
+                  <div className="mt-2 flex h-11 items-center justify-between gap-2 rounded-full bg-card pl-4 pr-1.5">
                     <span id="api-key-status" className="flex items-center gap-2 text-[0.9375rem]">
-                      <span className="h-1.5 w-1.5 bg-primary" aria-hidden="true" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
                       API Key aktif
                     </span>
                     <Button
@@ -322,7 +322,7 @@ export default function BerandaPage() {
 
               <Button
                 size="lg"
-                className="mt-5 w-full rounded-none font-semibold text-foreground disabled:bg-primary disabled:text-foreground disabled:opacity-100"
+                className="mt-4 w-full font-semibold text-foreground disabled:bg-primary disabled:text-foreground disabled:opacity-100"
                 disabled={!ready || saving}
                 onClick={handleStart}
               >
@@ -330,11 +330,11 @@ export default function BerandaPage() {
                 Mulai Proses
               </Button>
               {reason ? (
-                <p aria-live="polite" className="mt-3 text-[0.875rem] text-muted-foreground">
+                <p aria-live="polite" className="mt-3 px-2.5 text-center text-[0.875rem] text-muted-foreground">
                   {reason}
                 </p>
               ) : (
-                <p aria-live="polite" className="mt-3 text-[0.875rem] text-muted-foreground">
+                <p aria-live="polite" className="mt-3 px-2.5 text-center text-[0.875rem] text-muted-foreground">
                   Siap diproses.
                 </p>
               )}
@@ -342,10 +342,10 @@ export default function BerandaPage() {
           </div>
         </section>
 
-        <section id="riwayat" className="mx-auto w-full max-w-[1200px] scroll-mt-8 px-5 py-14 sm:px-8 sm:py-20">
+        <section id="riwayat" className="mx-auto w-full max-w-[1120px] scroll-mt-8 px-5 py-14 sm:px-8 sm:py-20">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
             <div>
-              <h2 className="font-display text-[clamp(2rem,3.4vw,3rem)] leading-[1.05] tracking-[-0.02em]">Riwayat</h2>
+              <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.025em]">Riwayat</h2>
               {materials.length > 3 && (
                 <button
                   type="button"
@@ -361,7 +361,7 @@ export default function BerandaPage() {
               {loading ? (
                 <div className="space-y-2" aria-hidden="true">
                   {[0, 1, 2].map((i) => (
-                    <div key={i} className="h-14 animate-pulse bg-secondary" />
+                    <div key={i} className="h-16 animate-pulse rounded-2xl bg-secondary" />
                   ))}
                 </div>
               ) : materials.length === 0 ? (
@@ -369,9 +369,12 @@ export default function BerandaPage() {
                   Belum ada materi. Rekaman pertama Anda akan muncul di sini.
                 </p>
               ) : (
-                <ul className="divide-y divide-border">
+                <ul className="space-y-2">
                   {(showAll ? materials : materials.slice(0, 3)).map((m) => (
-                    <li key={m.id} className="flex min-h-[56px] items-center gap-3 py-1">
+                    <li
+                      key={m.id}
+                      className="flex min-h-[64px] items-center gap-3 rounded-2xl bg-secondary px-4 py-1"
+                    >
                       <Link
                         href={`/material?id=${m.id}`}
                         className="min-w-0 flex-1 py-3 hover:text-muted-foreground"
@@ -404,31 +407,31 @@ export default function BerandaPage() {
           </div>
         </section>
 
-        <section id="cara-kerja" className="w-full scroll-mt-8 bg-secondary py-14 sm:py-24">
-          <div className="mx-auto w-full max-w-[1200px] px-5 sm:px-8">
-            <h2 className="max-w-[24ch] font-display text-[clamp(2rem,3.4vw,3rem)] leading-[1.05] tracking-[-0.02em]">
-              Cara kerja
-            </h2>
-            <ol className="mt-8 space-y-7 sm:mt-10 sm:space-y-8">
-              {STEPS.map((step, i) => (
-                <li
-                  key={step.title}
-                  className="grid gap-1 sm:grid-cols-[16rem_minmax(0,42ch)] sm:gap-8"
-                  style={{ marginLeft: `calc(${i} * clamp(0rem, 4vw, 5rem))` }}
-                >
-                  <p className="font-display text-[clamp(1.5rem,2.4vw,2rem)] leading-[1.15] tracking-[-0.01em]">
-                    {step.title}
-                  </p>
-                  <p className="text-[1.0625rem] leading-[1.55]">{step.body}</p>
-                </li>
-              ))}
-            </ol>
+        <section id="cara-kerja" className="w-full scroll-mt-8 py-14 sm:py-20">
+          <div className="mx-auto w-full max-w-[1120px] px-5 sm:px-8">
+            <div className="rounded-[28px] bg-secondary px-6 py-10 sm:px-12 sm:py-14">
+              <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.025em]">Cara kerja</h2>
+              <ol className="mt-8 space-y-6 sm:mt-10">
+                {STEPS.map((step, i) => (
+                  <li
+                    key={step.title}
+                    className="grid gap-1.5 rounded-2xl bg-card p-5 sm:grid-cols-[15rem_minmax(0,42ch)] sm:gap-8 sm:p-6"
+                  >
+                    <p className="text-[clamp(1.25rem,2vw,1.5rem)] font-semibold leading-[1.2] tracking-[-0.02em]">
+                      <span className="mr-2 text-muted-foreground tabular-nums">{i + 1}.</span>
+                      {step.title}
+                    </p>
+                    <p className="text-[1.0625rem] leading-[1.55]">{step.body}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
           </div>
         </section>
 
-        <section id="privasi" className="mx-auto w-full max-w-[1200px] scroll-mt-8 px-5 py-14 sm:px-8 sm:py-20">
+        <section id="privasi" className="mx-auto w-full max-w-[1120px] scroll-mt-8 px-5 py-14 sm:px-8 sm:py-20">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
-            <h2 className="font-display text-[clamp(2rem,3.4vw,3rem)] leading-[1.05] tracking-[-0.02em]">Privasi</h2>
+            <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.025em]">Privasi</h2>
             <div className="max-w-[62ch] space-y-4 text-[1.0625rem] leading-[1.6]">
               <p>
                 Rekaman, transkrip, dan seluruh hasil tersimpan di IndexedDB browser Anda. Tidak ada server Mindo yang
