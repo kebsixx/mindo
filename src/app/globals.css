@@ -5,6 +5,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-newsreader);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -44,7 +45,7 @@
   --secondary: #f4f4f5;
   --secondary-foreground: #111827;
   --muted: #f4f4f5;
-  --muted-foreground: #6b7280;
+  --muted-foreground: #666e7b;
   --accent: #40d9ff;
   --accent-foreground: #111827;
   --destructive: #dc2626;
