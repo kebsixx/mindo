@@ -260,6 +260,12 @@ export default function BerandaPage() {
                 <p id="api-key-hint" className="mt-2 text-[0.8125rem] leading-snug text-muted-foreground">
                   Kunci hanya dikirim ke provider yang Anda pilih, disimpan di browser ini.
                 </p>
+                <Link
+                  href="/settings#panduan-api-key"
+                  className="mt-1 inline-flex min-h-11 items-center text-[0.8125rem] underline decoration-1 underline-offset-4 text-muted-foreground hover:text-foreground"
+                >
+                  Belum punya key? Lihat panduan tiap provider
+                </Link>
               </div>
 
               <Button

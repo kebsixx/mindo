@@ -99,7 +99,7 @@ function MaterialView() {
   const askTutor = async (question: string): Promise<TutorReply> => {
     const apiKey = getApiKey()
     if (!apiKey) {
-      return { text: "API key belum diisi. Tempel API key di halaman beranda atau Pengaturan." }
+      return { text: "API key belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider." }
     }
     const mid = parseInt(materialId!, 10)
     const chunks = await openDB().chunks.where("materialId").equals(mid).toArray()

@@ -40,7 +40,7 @@ function nowTime(): string {
 function humanError(e: unknown): string {
   const raw = e instanceof Error ? e.message : String(e ?? "")
   if (/401|unauthorized|invalid api key|incorrect api key/i.test(raw)) {
-    return "API key ditolak provider. Periksa di menu Pengaturan."
+    return "API key ditolak provider. Periksa di menu Pengaturan, atau lihat panduan di Pengaturan > Cara mendapatkan API key."
   }
   if (/413|too large|maximum file size|file too large/i.test(raw)) {
     return "File terlalu besar untuk diproses. Batasnya 25 MB."
@@ -98,7 +98,7 @@ function ProcessingView() {
 
     updateStage("transcribe", { status: "running", error: undefined, finishedAt: undefined })
     if (!apiKey) {
-      updateStage("transcribe", { status: "failed", error: "API key belum diisi. Tempel API key di halaman beranda atau Pengaturan." })
+      updateStage("transcribe", { status: "failed", error: "API key belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider." })
       return
     }
 
@@ -199,7 +199,7 @@ function ProcessingView() {
     const provider = getProvider()
     const mid = parseInt(materialId!, 10)
     if (!apiKey) {
-      updateStage(id, { status: "failed", error: "API key belum diisi. Tempel API key di halaman beranda atau Pengaturan." })
+      updateStage(id, { status: "failed", error: "API key belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider." })
       return
     }
 

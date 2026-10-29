@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
-import { AlertCircle, CheckCircle, Loader2, Key, Eye, EyeOff, ChevronRight, Home } from "lucide-react"
+import { AlertCircle, CheckCircle, ExternalLink, Loader2, Key, Eye, EyeOff, ChevronRight, Home } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { setProvider, setApiKey, clearAllData, useStoredProvider, useStoredApiKey } from "@/lib/storage/settings"
 import { getProviderEndpoint } from "@/lib/ai/client"
@@ -14,13 +14,71 @@ import SiteHeader from "@/components/site-header"
 
 type Provider = "groq" | "openai" | "gemini" | "claude" | "deepseek" | "ollama"
 
-const PROVIDERS: { id: Provider; name: string; description: string; recommended?: boolean }[] = [
-  { id: "groq", name: "Groq", description: "Default - CORS verified, free tier cukup, Whisper large-v3", recommended: true },
-  { id: "openai", name: "OpenAI", description: "Alternatif - Butuh akun, kualitas tinggi, harga mahal" },
-  { id: "gemini", name: "Gemini 3.x", description: "Lanjutan - Butuh akun Google Cloud, config manual" },
-  { id: "claude", name: "Claude 4.x", description: "Lanjutan - Butuh akun Anthropic, config manual" },
-  { id: "deepseek", name: "DeepSeek v4", description: "Lanjutan - Butuh akun DeepSeek, config manual" },
-  { id: "ollama", name: "Ollama (Lokal)", description: "Lanjutan - Butuh Ollama terinstall di laptop" },
+const PROVIDERS: {
+  id: Provider
+  name: string
+  description: string
+  recommended?: boolean
+  keysAt: string
+  keysLabel: string
+  signup: string
+  note: string
+}[] = [
+  {
+    id: "groq",
+    name: "Groq",
+    description: "Default - CORS terverifikasi, free tier cukup, Whisper large-v3",
+    recommended: true,
+    keysAt: "https://console.groq.com/keys",
+    keysLabel: "console.groq.com/keys",
+    signup: "Daftar di console.groq.com dengan akun Google atau email. Free tier langsung aktif tanpa kartu kredit.",
+    note: "Kunci berawalan gsk_ dan hanya ditampilkan sekali saat dibuat.",
+  },
+  {
+    id: "openai",
+    name: "OpenAI",
+    description: "Alternatif - Butuh akun, kualitas tinggi, harga mahal",
+    keysAt: "https://platform.openai.com/api-keys",
+    keysLabel: "platform.openai.com/api-keys",
+    signup: "Daftar di platform.openai.com, buka Billing, lalu isi saldo minimal. Kartu kredit wajib.",
+    note: "Kunci berawalan sk- dan hanya ditampilkan sekali saat dibuat.",
+  },
+  {
+    id: "gemini",
+    name: "Gemini 3.x",
+    description: "Lanjutan - Butuh akun Google Cloud, config manual",
+    keysAt: "https://aistudio.google.com/apikey",
+    keysLabel: "aistudio.google.com/apikey",
+    signup: "Buka Google AI Studio dengan akun Google, klik Create API key, pilih project. Ada kuota gratis.",
+    note: "Batas gratis berbeda dari Groq; periksa halaman harga Google.",
+  },
+  {
+    id: "claude",
+    name: "Claude 4.x",
+    description: "Lanjutan - Butuh akun Anthropic, config manual",
+    keysAt: "https://console.anthropic.com/settings/keys",
+    keysLabel: "console.anthropic.com/settings/keys",
+    signup: "Daftar di console.anthropic.com, buka Billing, lalu isi kredit. Kartu kredit wajib.",
+    note: "Kunci berawalan sk-ant- dan hanya ditampilkan sekali.",
+  },
+  {
+    id: "deepseek",
+    name: "DeepSeek v4",
+    description: "Lanjutan - Butuh akun DeepSeek, config manual",
+    keysAt: "https://platform.deepseek.com/api_keys",
+    keysLabel: "platform.deepseek.com/api_keys",
+    signup: "Daftar di platform.deepseek.com, buka Top up, lalu isi saldo. Harga per token paling murah di daftar ini.",
+    note: "Kunci berawalan sk- dan hanya ditampilkan sekali.",
+  },
+  {
+    id: "ollama",
+    name: "Ollama (Lokal)",
+    description: "Lanjutan - Butuh Ollama terinstall di laptop",
+    keysAt: "https://ollama.com/download",
+    keysLabel: "ollama.com/download",
+    signup: "Tidak ada API key. Install Ollama, jalankan ollama pull model, lalu biarkan berjalan di localhost.",
+    note: "Tidak ada biaya dan tidak ada data yang keluar dari perangkat Anda.",
+  },
 ]
 
 export default function SettingsPage() {
@@ -98,9 +156,12 @@ export default function SettingsPage() {
               <CardDescription>Pilih provider yang ingin Anda gunakan.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">                {PROVIDERS.filter(p => p.id === "groq" || p.id === "openai").map((p) => (
+              <div role="radiogroup" aria-label="Provider AI" className="space-y-2">
+                {PROVIDERS.filter(p => p.id === "groq" || p.id === "openai").map((p) => (
                 <button
                   key={p.id}
+                  role="radio"
+                  aria-checked={provider === p.id}
                   onClick={() => setProviderDraft(p.id)}
                   className={cn(
                     "w-full cursor-pointer rounded-2xl border p-4 text-left transition-colors",
@@ -123,6 +184,7 @@ export default function SettingsPage() {
 
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
+              aria-expanded={showAdvanced}
               className="flex cursor-pointer items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
             >
               <ChevronRight className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-90")} />
@@ -130,10 +192,12 @@ export default function SettingsPage() {
             </button>
 
             {showAdvanced && (
-              <div className="space-y-2 pt-2">
+              <div role="radiogroup" aria-label="Provider AI lanjutan" className="space-y-2 pt-2">
                 {PROVIDERS.filter(p => !["groq", "openai"].includes(p.id)).map((p) => (
                   <button
                     key={p.id}
+                    role="radio"
+                    aria-checked={provider === p.id}
                     onClick={() => setProviderDraft(p.id)}
                     className={cn(
                       "w-full cursor-pointer rounded-2xl border p-4 text-left transition-colors",
@@ -154,6 +218,52 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
+          <Card id="panduan-api-key" className="scroll-mt-8">
+            <CardHeader>
+              <CardTitle className="text-lg">Cara mendapatkan API key</CardTitle>
+              <CardDescription>
+                Panduan singkat untuk setiap provider. Ikuti yang sesuai pilihan Anda di atas.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ol className="space-y-2">
+                {PROVIDERS.filter((p) => p.id === provider || !["gemini", "claude", "deepseek", "ollama"].includes(p.id) || showAdvanced).map((p) => (
+                  <li key={p.id}>
+                    <div
+                      className={cn(
+                        "rounded-2xl p-4",
+                        provider === p.id ? "bg-primary/12" : "bg-secondary"
+                      )}
+                    >
+                      <div className="flex flex-wrap items-baseline gap-2">
+                        <p className="font-medium">{p.name}</p>
+                        {p.recommended && (
+                          <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-foreground">
+                            Mulai di sini
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1.5 text-[0.9375rem] leading-[1.55]">{p.signup}</p>
+                      <p className="mt-1 text-[0.9375rem] leading-[1.55] text-muted-foreground">{p.note}</p>
+                      <a
+                        href={p.keysAt}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-[0.9375rem] underline decoration-1 underline-offset-4 hover:text-muted-foreground"
+                      >
+                        {p.keysLabel}
+                        <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span className="sr-only">(buka di tab baru)</span>
+                      </a>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-4 text-[0.9375rem] leading-[1.55] text-muted-foreground">
+                Halaman ini hanya menautkan ke situs resmi provider. Mindo tidak pernah menerima key Anda.
+              </p>
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">API Key</CardTitle>
