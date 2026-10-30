@@ -19,7 +19,7 @@ const Level3Node = z.object({
 
 const Level2Node = z.object({
   label: z.string().min(1).max(80),
-  children: z.array(Level3Node).max(4),
+  children: z.array(Level3Node).max(8),
 }).strict()
 
 const Level1Node = z.object({

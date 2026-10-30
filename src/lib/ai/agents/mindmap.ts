@@ -35,7 +35,8 @@ Aturan:
 1. Maksimal 3 level kedalaman.
 2. Buat 4 sampai 8 cabang utama yang mengikuti urutan pembahasan di rekaman.
 3. Setiap label singkat dan jelas.
-4. Balas hanya JSON sesuai skema.`
+4. Satu sub-cabang boleh punya maksimal 8 anak.
+5. Balas hanya JSON sesuai skema.`
 
   const userPrompt = `Judul: ${summaryTitle}\n\nTranskrip:\n${transcriptText}`
 
