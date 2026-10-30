@@ -143,7 +143,7 @@ export default function SettingsPage() {
     <div className="flex min-h-dvh flex-col overflow-x-clip">
       <SiteHeader />
 
-      <main className="mx-auto w-full max-w-[720px] flex-1 px-5 pb-16 pt-4 sm:px-8 sm:pt-6">
+      <main className="mx-auto w-full max-w-180 flex-1 px-5 pb-16 pt-4 sm:px-8 sm:pt-6">
         <BackLink href="/" label="Kembali ke beranda" />
         <h1 className="mt-2 text-[clamp(2.25rem,5.4vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.03em]">Pengaturan</h1>
         <p className="mt-3 max-w-[46ch] text-[1.0625rem] leading-[1.55] text-muted-foreground">

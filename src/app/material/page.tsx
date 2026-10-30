@@ -134,10 +134,10 @@ function MaterialView() {
   return (
     <div className="flex min-h-dvh flex-col overflow-x-clip">
       <SiteHeader />
-      <main className="mx-auto w-full max-w-[1120px] flex-1 px-5 pb-16 pt-4 sm:px-8 sm:pt-6">
+      <main className="mx-auto w-full max-w-280 flex-1 px-5 pb-16 pt-4 sm:px-8 sm:pt-6">
         <BackLink href="/" label="Kembali ke beranda" />
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="min-w-0 flex-1 truncate text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.025em]">
+          <h1 className="min-w-0 flex-1 truncate text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
             {material?.title || "Materi"}
           </h1>
           <Button size="sm" variant={transcriptView ? "default" : "outline"} onClick={toggleTranscript} aria-pressed={transcriptView}>
@@ -201,7 +201,7 @@ function MaterialView() {
                     </CardHeader>
                     <CardContent>
                       {mindmap ? (
-                        <MarkmapView content={JSON.stringify(mindmap)} className="h-[500px] w-full" />
+                        <MarkmapView content={JSON.stringify(mindmap)} className="h-125 w-full" />
                       ) : (
                         <p className="text-[1.0625rem] text-muted-foreground">Belum ada mindmap.</p>
                       )}
@@ -228,7 +228,7 @@ function MaterialView() {
             )}
           </div>
 
-          <aside className="sticky top-6 hidden w-[360px] shrink-0 lg:block" aria-label="Tanya Mindo">
+          <aside className="sticky top-6 hidden w-90 shrink-0 lg:block" aria-label="Tanya Mindo">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Tanya Mindo</CardTitle>

@@ -40,7 +40,7 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
   const keyLabel = hasKey ? "API Key Aktif" : "Atur API Key";
 
   return (
-    <header className="relative mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between gap-3 px-5 sm:h-[72px] sm:px-8">
+    <header className="relative mx-auto flex h-16 w-full max-w-280 items-center justify-between gap-3 px-5 sm:h-18 sm:px-8">
       <Link href="/" className="flex shrink-0 items-center gap-2.5">
         <Image
           src="/logo-mindo.png"
@@ -73,7 +73,7 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
           className={buttonVariants({
             variant: hasKey ? "default" : "outline",
             size: "sm",
-            className: "max-sm:!hidden gap-2",
+            className: "max-sm:hidden! gap-2",
           })}
         >
           <KeyRound className="h-4 w-4" aria-hidden="true" />

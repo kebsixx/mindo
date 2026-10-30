@@ -10,7 +10,7 @@ export default function DemoPage() {
   return (
     <div className="flex min-h-dvh flex-col overflow-x-clip">
       <SiteHeader />
-      <main className="mx-auto w-full max-w-[1120px] flex-1 px-5 pb-16 pt-4 sm:px-8 sm:pt-6">
+      <main className="mx-auto w-full max-w-280 flex-1 px-5 pb-16 pt-4 sm:px-8 sm:pt-6">
         <Link
           href="/"
           className="inline-flex min-h-11 items-center gap-2 text-[0.9375rem] text-muted-foreground hover:text-foreground"
@@ -20,7 +20,7 @@ export default function DemoPage() {
         </Link>
 
         <p className="mt-2 text-[0.875rem] text-muted-foreground">Contoh hasil dari rekaman demo, bukan rekaman Anda</p>
-        <h1 className="mt-2 max-w-[26ch] text-balance text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.025em]">
+        <h1 className="mt-2 max-w-[26ch] text-balance text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
           Satu rekaman, empat bahan belajar
         </h1>
 

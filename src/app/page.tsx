@@ -163,7 +163,7 @@ export default function BerandaPage() {
       <SiteHeader showHistory={hasHistory} />
 
       <main className="w-full flex-1">
-        <section className="mx-auto w-full max-w-[1120px] px-5 pb-14 pt-8 sm:px-8 sm:pb-20 sm:pt-14">
+        <section className="mx-auto w-full max-w-280 px-5 pb-14 pt-8 sm:px-8 sm:pb-20 sm:pt-14">
           <h1 className="max-w-[13ch] text-balance text-[clamp(2.75rem,7.6vw,6rem)] font-semibold leading-[0.98] tracking-[-0.035em]">
             Tiga bahan ajar dari satu rekaman.
           </h1>
@@ -191,7 +191,7 @@ export default function BerandaPage() {
                   setDragging(false);
                   pickFile(e.dataTransfer.files?.[0] ?? null);
                 }}
-                className={`flex min-h-[148px] flex-col items-start justify-center gap-3 rounded-[22px] bg-card px-5 py-6 transition-colors ${
+                className={`flex min-h-37 flex-col items-start justify-center gap-3 rounded-[22px] bg-card px-5 py-6 transition-colors ${
                   dragging ? "bg-primary/25" : ""
                 }`}
               >
@@ -365,11 +365,11 @@ export default function BerandaPage() {
         {hasHistory && (
           <section
             id="riwayat"
-            className="mx-auto w-full max-w-[1120px] scroll-mt-8 px-5 pb-14 sm:px-8 sm:pb-20"
+            className="mx-auto w-full max-w-280 scroll-mt-8 px-5 pb-14 sm:px-8 sm:pb-20"
           >
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
               <div>
-                <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.025em]">
+                <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
                   Riwayat
                 </h2>
                 {materials.length > 3 && (
@@ -389,7 +389,7 @@ export default function BerandaPage() {
                 {(showAll ? materials : materials.slice(0, 3)).map((m) => (
                   <li
                     key={m.id}
-                    className="flex min-h-[64px] items-center gap-3 rounded-2xl bg-secondary px-4 py-1"
+                    className="flex min-h-16 items-center gap-3 rounded-2xl bg-secondary px-4 py-1"
                   >
                     <Link
                       href={`/material?id=${m.id}`}
@@ -426,10 +426,10 @@ export default function BerandaPage() {
 
         <section
           id="contoh"
-          className="mx-auto w-full max-w-[1120px] scroll-mt-8 px-5 py-14 sm:px-8 sm:py-20"
+          className="mx-auto w-full max-w-280 scroll-mt-8 px-5 py-14 sm:px-8 sm:py-20"
         >
           <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.025em]">
+            <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
               Lihat hasilnya dulu
             </h2>
             <Link
@@ -449,9 +449,9 @@ export default function BerandaPage() {
         </section>
 
         <section id="cara-kerja" className="w-full scroll-mt-8 py-14 sm:py-20">
-          <div className="mx-auto w-full max-w-[1120px] px-5 sm:px-8">
+          <div className="mx-auto w-full max-w-280 px-5 sm:px-8">
             <div className="rounded-[28px] bg-secondary px-6 py-10 sm:px-12 sm:py-14">
-              <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.025em]">
+              <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
                 Cara kerja
               </h2>
               <ol className="mt-8 space-y-6 sm:mt-10">
@@ -478,10 +478,10 @@ export default function BerandaPage() {
 
         <section
           id="privasi"
-          className="mx-auto w-full max-w-[1120px] scroll-mt-8 px-5 py-14 sm:px-8 sm:py-20"
+          className="mx-auto w-full max-w-280 scroll-mt-8 px-5 py-14 sm:px-8 sm:py-20"
         >
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
-            <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.025em]">
+            <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
               Privasi
             </h2>
             <div className="max-w-[62ch] space-y-4 text-[1.0625rem] leading-[1.6]">
