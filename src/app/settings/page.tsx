@@ -334,14 +334,18 @@ export default function SettingsPage() {
           </Card>
         </div>
 
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          <Button onClick={() => { saveSettings(); goHome() }} size="lg" className="w-full gap-2 sm:flex-1">
+        <div className="mt-4 flex flex-col items-center gap-3">
+          <Button onClick={() => { saveSettings(); goHome() }} size="lg" className="w-full gap-2 sm:w-auto sm:min-w-[320px]">
             <Home className="h-5 w-5" />
             Simpan & Kembali ke Beranda
           </Button>
-          <Button variant="outline" size="lg" onClick={saveSettings} className="w-full sm:flex-1">
-            Simpan & Tetap di Sini
-          </Button>
+          <button
+            type="button"
+            onClick={saveSettings}
+            className="cursor-pointer text-[0.9375rem] text-muted-foreground underline decoration-1 underline-offset-4 hover:text-foreground"
+          >
+            Simpan tanpa kembali
+          </button>
         </div>
       </main>
     </div>

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Mic, Upload, Trash2, Loader2, Eye, EyeOff } from "lucide-react"
+import { Mic, Upload, Trash2, Loader2, Eye, EyeOff, PlayCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import SiteHeader from "@/components/site-header"
@@ -52,6 +52,7 @@ export default function BerandaPage() {
   const [editingDraft, setEditingDraft] = useState<boolean | null>(null)
   const editingKey = editingDraft ?? !hasStoredKey
   const [saving, setSaving] = useState(false)
+  const [sampleLoading, setSampleLoading] = useState(false)
   const [showAll, setShowAll] = useState(false)
 
   const loadMaterials = useCallback(async () => {
@@ -88,6 +89,22 @@ export default function BerandaPage() {
       return
     }
     setFile(picked)
+  }
+
+  async function loadSample() {
+    setSampleLoading(true)
+    try {
+      const res = await fetch("/demo.mp3")
+      if (!res.ok) throw new Error(String(res.status))
+      pickFile(new File([await res.blob()], "demo.mp3", { type: "audio/mpeg" }))
+    } catch {
+      toast({
+        title: "Rekaman contoh gagal dimuat",
+        description: "Periksa koneksi lalu coba lagi.",
+      })
+    } finally {
+      setSampleLoading(false)
+    }
   }
 
   async function handleStart() {
@@ -191,6 +208,10 @@ export default function BerandaPage() {
                         <Mic className="h-4 w-4" />
                         Rekam langsung
                       </Button>
+                      <Button variant="ghost" onClick={loadSample} disabled={sampleLoading}>
+                        {sampleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
+                        Coba rekaman contoh
+                      </Button>
                     </div>
                   </>
                 )}
@@ -259,14 +280,28 @@ export default function BerandaPage() {
                 )}
                 <p id="api-key-hint" className="mt-2 text-[0.8125rem] leading-snug text-muted-foreground">
                   Kunci hanya dikirim ke provider yang Anda pilih, disimpan di browser ini.
+                  {!hasStoredKey && (
+                    <>
+                      {" "}
+                      <Link
+                        href="/settings#panduan-api-key"
+                        className="underline decoration-1 underline-offset-4 hover:text-foreground"
+                      >
+                        Belum punya key? Lihat panduan
+                      </Link>
+                    </>
+                  )}
                 </p>
-                <Link
-                  href="/settings#panduan-api-key"
-                  className="mt-1 inline-flex min-h-11 items-center text-[0.8125rem] underline decoration-1 underline-offset-4 text-muted-foreground hover:text-foreground"
-                >
-                  Belum punya key? Lihat panduan tiap provider
-                </Link>
               </div>
+
+              {file && (
+                <p className="mt-3 px-2.5 text-center text-[0.875rem] text-muted-foreground">
+                  Ingin lihat dulu bentuk hasilnya?{" "}
+                  <Link href="/demo" className="underline decoration-1 underline-offset-4 hover:text-foreground">
+                    Lihat contoh hasil
+                  </Link>
+                </p>
+              )}
 
               <Button
                 size="lg"

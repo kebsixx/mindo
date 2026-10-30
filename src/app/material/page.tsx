@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import Link from "next/link"
 import { Loader2, FileText, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -142,6 +143,12 @@ function MaterialView() {
             {transcriptView ? "Kembali ke Materi" : "Transkrip"}
           </Button>
         </div>
+
+        <p className="mt-2 text-[0.9375rem] text-muted-foreground">
+          <Link href="/demo" className="underline decoration-1 underline-offset-4 hover:text-foreground">
+            Bandingkan dengan contoh hasil
+          </Link>
+        </p>
 
         <div className="mt-8 flex items-start gap-6">
           <div className="min-w-0 flex-1">
