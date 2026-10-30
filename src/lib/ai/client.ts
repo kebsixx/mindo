@@ -62,7 +62,7 @@ export async function chatCompletion(
   if (schema) {
     body.response_format = {
       type: "json_schema",
-      json_schema: { strict: true, schema },
+      json_schema: { name: "response", strict: true, schema },
     }
   }
 
