@@ -85,6 +85,7 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
           aria-label={menuOpen ? "Tutup menu" : "Buka menu"}
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((v) => !v)}
+          className="md:hidden"
         >
           {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
