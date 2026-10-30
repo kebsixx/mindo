@@ -7,7 +7,7 @@ export const SUMMARY_SCHEMA = z.object({
     z.object({
       heading: z.string().min(1).max(100),
       points: z.array(z.string().min(1).max(300)).min(2).max(6),
-      keyTerms: z.array(z.string().min(1).max(50)).max(8).optional(),
+      keyTerms: z.array(z.string().min(1).max(50)).max(8),
     })
   ).min(3).max(12),
 }).strict()
@@ -15,7 +15,6 @@ export const SUMMARY_SCHEMA = z.object({
 // 2. Mindmapper Schema (3 level explicit, no recursive refs)
 const Level3Node = z.object({
   label: z.string().min(1).max(80),
-  children: z.array(z.never()).default([]),
 }).strict()
 
 const Level2Node = z.object({

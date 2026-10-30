@@ -14,7 +14,6 @@ const MindmapSchema = z.object({
           children: z.array(
             z.object({
               label: z.string(),
-              children: z.array(z.never()),
             })
           ),
         })
