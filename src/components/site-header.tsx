@@ -1,40 +1,64 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { usePathname, useRouter } from "next/navigation"
-import { ArrowLeft, KeyRound, Menu, X } from "lucide-react"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-import { useStoredApiKey } from "@/lib/storage/settings"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import { ArrowLeft, KeyRound, Menu, X } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useStoredApiKey } from "@/lib/storage/settings";
+import { openDB } from "@/lib/db";
 
-export default function SiteHeader() {
-  const pathname = usePathname()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const storedKey = useStoredApiKey()
-  const hasKey = Boolean(storedKey)
+export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const storedKey = useStoredApiKey();
+  const hasKey = Boolean(storedKey);
+  const [hasMaterials, setHasMaterials] = useState(false);
 
-  const onHome = pathname === "/"
+  useEffect(() => {
+    if (showHistory !== undefined) return;
+    openDB()
+      .materials.count()
+      .then((n) => setHasMaterials(n > 0))
+      .catch(() => setHasMaterials(false));
+  }, [showHistory]);
+
+  const historyVisible = showHistory ?? hasMaterials;
+
+  const onHome = pathname === "/";
   const navItems = [
     { href: onHome ? "#contoh" : "/#contoh", label: "Contoh" },
-    { href: onHome ? "#riwayat" : "/#riwayat", label: "Riwayat" },
+    ...(historyVisible
+      ? [{ href: onHome ? "#riwayat" : "/#riwayat", label: "Riwayat" }]
+      : []),
     { href: onHome ? "#cara-kerja" : "/#cara-kerja", label: "Cara kerja" },
     { href: onHome ? "#privasi" : "/#privasi", label: "Privasi" },
-  ]
+  ];
 
-  const keyLabel = hasKey ? "API Key Aktif" : "Atur API Key"
+  const keyLabel = hasKey ? "API Key Aktif" : "Atur API Key";
 
   return (
     <header className="relative mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between gap-3 px-5 sm:h-[72px] sm:px-8">
       <Link href="/" className="flex shrink-0 items-center gap-2.5">
-        <Image src="/logo-mindo.png" alt="" width={32} height={32} className="h-8 w-8" />
+        <Image
+          src="/logo-mindo.png"
+          alt=""
+          width={32}
+          height={32}
+          className="h-8 w-8"
+        />
         <span className="text-xl font-semibold tracking-tight">MINDO</span>
       </Link>
 
       <nav className="hidden items-center gap-6 text-[0.9375rem] text-muted-foreground md:flex">
         {navItems.map((item) => (
-          <a key={item.label} href={item.href} className="transition-colors hover:text-foreground">
+          <a
+            key={item.label}
+            href={item.href}
+            className="transition-colors hover:text-foreground"
+          >
             {item.label}
           </a>
         ))}
@@ -43,7 +67,9 @@ export default function SiteHeader() {
       <div className="flex shrink-0 items-center gap-2">
         <Link
           href="/settings"
-          aria-label={hasKey ? "API Key aktif, buka Pengaturan" : "Atur API Key"}
+          aria-label={
+            hasKey ? "API Key aktif, buka Pengaturan" : "Atur API Key"
+          }
           className={buttonVariants({
             variant: hasKey ? "default" : "outline",
             size: "sm",
@@ -91,7 +117,9 @@ export default function SiteHeader() {
               href="/settings"
               className={cn(
                 "mt-1 flex items-center gap-2 rounded-2xl px-4 py-3 font-medium",
-                hasKey ? "bg-primary text-primary-foreground" : "bg-card text-foreground"
+                hasKey
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-foreground",
               )}
               onClick={() => setMenuOpen(false)}
             >
@@ -102,11 +130,11 @@ export default function SiteHeader() {
         </nav>
       )}
     </header>
-  )
+  );
 }
 
 export function BackLink({ href, label }: { href: string; label: string }) {
-  const router = useRouter()
+  const router = useRouter();
 
   return (
     <nav aria-label="Navigasi halaman">
@@ -119,5 +147,5 @@ export function BackLink({ href, label }: { href: string; label: string }) {
         {label}
       </button>
     </nav>
-  )
+  );
 }
