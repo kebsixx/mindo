@@ -54,8 +54,8 @@ function humanError(e: unknown): string {
   if (/ECONNREFUSED|ENOTFOUND|certificate/i.test(raw)) {
     return "Server provider tidak terjangkau. Coba lagi nanti."
   }
-  if (/invalid json|unexpected token|schema/i.test(raw)) {
-    return "Jawaban model tidak sesuai format. Coba lagi."
+  if (/invalid_request_error|unsupported_|json_validate_failed/i.test(raw)) {
+    return "Provider menolak permintaan karena formatnya tidak didukung. Ini masalah konfigurasi Mindo, bukan key Anda."
   }
   return "Proses gagal. Coba lagi, atau ganti API key di menu Pengaturan."
 }

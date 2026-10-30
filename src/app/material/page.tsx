@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 import { openDB, type Material, type Summary, type Mindmap, type Flashcard, type TranscriptSegment } from "@/lib/db"
 import MarkmapView from "@/components/markmap-view"
 import SiteHeader from "@/components/site-header"
+import { BackLink } from "@/components/site-header"
 import FlashcardSwiper from "@/components/flashcard-swiper"
 import TranscriptPanel from "@/components/transcript-panel"
 import ChatPanel, { type TutorReply } from "@/components/chat-panel"
@@ -133,8 +134,9 @@ function MaterialView() {
   return (
     <div className="flex min-h-dvh flex-col overflow-x-clip">
       <SiteHeader />
-      <main className="mx-auto w-full max-w-[1120px] flex-1 px-5 pb-16 pt-6 sm:px-8 sm:pt-10">
-        <div className="flex flex-wrap items-center gap-3">
+      <main className="mx-auto w-full max-w-[1120px] flex-1 px-5 pb-16 pt-4 sm:px-8 sm:pt-6">
+        <BackLink href="/" label="Kembali ke beranda" />
+        <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="min-w-0 flex-1 truncate text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.025em]">
             {material?.title || "Materi"}
           </h1>

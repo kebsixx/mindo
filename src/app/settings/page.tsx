@@ -1,16 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
-import { AlertCircle, CheckCircle, ExternalLink, Loader2, Key, Eye, EyeOff, ChevronRight, Home } from "lucide-react"
+import { AlertCircle, CheckCircle, ExternalLink, Loader2, Key, Eye, EyeOff, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { setProvider, setApiKey, clearAllData, useStoredProvider, useStoredApiKey } from "@/lib/storage/settings"
 import { getProviderEndpoint } from "@/lib/ai/client"
-import SiteHeader from "@/components/site-header"
+import SiteHeader, { BackLink } from "@/components/site-header"
 
 type Provider = "groq" | "openai" | "gemini" | "claude" | "deepseek" | "ollama"
 
@@ -82,28 +82,29 @@ const PROVIDERS: {
 ]
 
 export default function SettingsPage() {
-  const router = useRouter()
   const { toast } = useToast()
   const storedProvider = useStoredProvider()
   const storedKey = useStoredApiKey()
-  const [providerDraft, setProviderDraft] = useState<Provider | null>(null)
   const [keyDraft, setKeyDraft] = useState<string | null>(null)
-  const provider = providerDraft ?? storedProvider
+  const provider = storedProvider
   const apiKey = keyDraft ?? storedKey
   const [showKey, setShowKey] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
 
-  const goHome = () => {
-    router.push("/")
+  const chooseProvider = (next: Provider) => {
+    setProvider(next as "groq" | "openai")
+    toast({ title: "Provider disimpan", description: `${next} dipakai untuk pemrosesan berikutnya.` })
   }
 
-  const saveSettings = () => {
-    setProvider(provider as "groq" | "openai")
-    setApiKey(apiKey)
-    toast({ title: "Pengaturan disimpan", description: "API key dan provider berhasil disimpan." })
+  const commitKey = (value: string) => {
+    setKeyDraft(value)
+    if (value === storedKey) return
+    setApiKey(value.trim())
+    if (value.trim()) toast({ title: "API key disimpan" })
   }
+
   const testConnection = async () => {
     setTesting(true)
     setTestResult(null)
@@ -134,7 +135,6 @@ export default function SettingsPage() {
     if (confirm("Hapus semua data? Tindakan ini tidak bisa dibatalkan.")) {
       clearAllData()
       setKeyDraft("")
-      setProviderDraft(null)
       toast({ title: "Data dihapus", description: "Semua data berhasil dihapus." })
     }
   }
@@ -143,8 +143,9 @@ export default function SettingsPage() {
     <div className="flex min-h-dvh flex-col overflow-x-clip">
       <SiteHeader />
 
-      <main className="mx-auto w-full max-w-[720px] flex-1 px-5 pb-16 pt-8 sm:px-8 sm:pt-14">
-        <h1 className="text-[clamp(2.25rem,5.4vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.03em]">Pengaturan</h1>
+      <main className="mx-auto w-full max-w-[720px] flex-1 px-5 pb-16 pt-4 sm:px-8 sm:pt-6">
+        <BackLink href="/" label="Kembali ke beranda" />
+        <h1 className="mt-2 text-[clamp(2.25rem,5.4vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.03em]">Pengaturan</h1>
         <p className="mt-3 max-w-[46ch] text-[1.0625rem] leading-[1.55] text-muted-foreground">
           Pilih provider, tempel API key, lalu uji koneksinya sebelum memproses rekaman.
         </p>
@@ -162,7 +163,7 @@ export default function SettingsPage() {
                   key={p.id}
                   role="radio"
                   aria-checked={provider === p.id}
-                  onClick={() => setProviderDraft(p.id)}
+                  onClick={() => chooseProvider(p.id)}
                   className={cn(
                     "w-full cursor-pointer rounded-2xl border p-4 text-left transition-colors",
                     provider === p.id ? "border-primary bg-primary/12" : "border-border hover:bg-secondary"
@@ -198,7 +199,7 @@ export default function SettingsPage() {
                     key={p.id}
                     role="radio"
                     aria-checked={provider === p.id}
-                    onClick={() => setProviderDraft(p.id)}
+                    onClick={() => chooseProvider(p.id)}
                     className={cn(
                       "w-full cursor-pointer rounded-2xl border p-4 text-left transition-colors",
                       provider === p.id ? "border-primary bg-primary/12" : "border-border hover:bg-secondary"
@@ -270,22 +271,33 @@ export default function SettingsPage() {
               <CardDescription>Masukkan API key dari provider yang dipilih.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="relative">
-                <Input
-                  type={showKey ? "text" : "password"}
-                  value={apiKey}
-                  onChange={(e) => setKeyDraft(e.target.value)}
-                  placeholder="sk-..."
-                  className="h-11 rounded-full pl-4 pr-11 text-base"
-                />
-                <button
-                  type="button"
-                  aria-label={showKey ? "Sembunyikan API key" : "Lihat API key"}
-                  onClick={() => setShowKey(!showKey)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded-full p-2 text-muted-foreground hover:text-foreground"
-                >
-                  {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+              <div>
+                <label htmlFor="api-key-field" className="text-[0.9375rem] font-medium">
+                  API key {provider}
+                </label>
+                <div className="relative mt-2">
+                  <Input
+                    id="api-key-field"
+                    type={showKey ? "text" : "password"}
+                    value={apiKey}
+                    onChange={(e) => commitKey(e.target.value)}
+                    placeholder={provider === "openai" ? "sk-..." : "gsk_..."}
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="h-11 rounded-full pl-4 pr-11 text-base"
+                  />
+                  <button
+                    type="button"
+                    aria-label={showKey ? "Sembunyikan API key" : "Lihat API key"}
+                    onClick={() => setShowKey(!showKey)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded-full p-2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <p className="mt-2 text-[0.875rem] leading-snug text-muted-foreground">
+                  Tersimpan otomatis begitu Anda mengetik. Tidak ada tombol simpan yang perlu ditekan.
+                </p>
               </div>
 
               <div className="flex gap-2">
@@ -334,19 +346,12 @@ export default function SettingsPage() {
           </Card>
         </div>
 
-        <div className="mt-4 flex flex-col items-center gap-3">
-          <Button onClick={() => { saveSettings(); goHome() }} size="lg" className="w-full gap-2 sm:w-auto sm:min-w-[320px]">
-            <Home className="h-5 w-5" />
-            Simpan & Kembali ke Beranda
-          </Button>
-          <button
-            type="button"
-            onClick={saveSettings}
-            className="cursor-pointer text-[0.9375rem] text-muted-foreground underline decoration-1 underline-offset-4 hover:text-foreground"
-          >
-            Simpan tanpa kembali
-          </button>
-        </div>
+        <p className="mt-6 text-[0.9375rem] text-muted-foreground">
+          Semua perubahan langsung tersimpan.{" "}
+          <Link href="/" className="underline decoration-1 underline-offset-4 hover:text-foreground">
+            Kembali ke beranda
+          </Link>
+        </p>
       </main>
     </div>
   )

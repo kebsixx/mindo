@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Mic, Upload, Trash2, Loader2, Eye, EyeOff, PlayCircle } from "lucide-react"
+import { Mic, Upload, Trash2, Loader2, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import SiteHeader from "@/components/site-header"
+import DemoShowcase from "@/components/demo-showcase"
 import { useToast } from "@/components/ui/use-toast"
 import { openDB, type Material } from "@/lib/db"
 import { setApiKey, useStoredApiKey } from "@/lib/storage/settings"
@@ -198,21 +199,26 @@ export default function BerandaPage() {
                 ) : (
                   <>
                     <p className="text-[1.0625rem] font-medium">Taruh rekaman di sini</p>
-                    <p className="text-[0.9375rem] text-muted-foreground">Seret dari file manager, atau:</p>
+                    <p className="text-[0.9375rem] text-muted-foreground">Seret dari file manager, atau</p>
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" onClick={() => fileInput.current?.click()}>
+                      <Button onClick={() => fileInput.current?.click()}>
                         <Upload className="h-4 w-4" />
                         Pilih file
                       </Button>
                       <Button variant="outline" onClick={() => router.push("/recording")}>
                         <Mic className="h-4 w-4" />
-                        Rekam langsung
-                      </Button>
-                      <Button variant="ghost" onClick={loadSample} disabled={sampleLoading}>
-                        {sampleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
-                        Coba rekaman contoh
+                        Rekam
                       </Button>
                     </div>
+                    <button
+                      type="button"
+                      onClick={loadSample}
+                      disabled={sampleLoading}
+                      className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 text-[0.875rem] text-muted-foreground underline decoration-1 underline-offset-4 hover:text-foreground disabled:no-underline"
+                    >
+                      {sampleLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                      Belum punya rekaman? Pakai contoh 47 detik
+                    </button>
                   </>
                 )}
                 <input
@@ -294,15 +300,6 @@ export default function BerandaPage() {
                 </p>
               </div>
 
-              {file && (
-                <p className="mt-3 px-2.5 text-center text-[0.875rem] text-muted-foreground">
-                  Ingin lihat dulu bentuk hasilnya?{" "}
-                  <Link href="/demo" className="underline decoration-1 underline-offset-4 hover:text-foreground">
-                    Lihat contoh hasil
-                  </Link>
-                </p>
-              )}
-
               <Button
                 size="lg"
                 className="mt-4 w-full font-semibold text-foreground disabled:bg-primary disabled:text-foreground disabled:opacity-100"
@@ -322,6 +319,23 @@ export default function BerandaPage() {
                 </p>
               )}
             </div>
+          </div>
+        </section>
+
+        <section id="contoh" className="mx-auto w-full max-w-[1120px] scroll-mt-8 px-5 py-14 sm:px-8 sm:py-20">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.025em]">
+              Lihat hasilnya dulu
+            </h2>
+            <Link href="/demo" className="text-[0.9375rem] text-muted-foreground underline decoration-1 underline-offset-4 hover:text-foreground">
+              Buka halaman penuh
+            </Link>
+          </div>
+          <p className="mt-3 max-w-[52ch] text-[1.0625rem] leading-[1.55] text-muted-foreground">
+            Hasil asli dari satu rekaman berita 47 detik. Belum perlu API key
+          </p>
+          <div className="mt-8">
+            <DemoShowcase />
           </div>
         </section>
 
