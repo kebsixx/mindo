@@ -2,42 +2,12 @@
 
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
+import { markmapRoot } from "@/lib/mindmap"
 import type { Markmap as MarkmapInstance } from "markmap-view"
 
 interface MarkmapViewProps {
   content: string
   className?: string
-}
-
-interface RawMindmapNode {
-  label?: string
-  children?: RawMindmapNode[]
-}
-
-interface RawMindmap {
-  title?: string
-  children?: RawMindmapNode[]
-}
-
-// Bentuk minimum yang diterima Markmap.create (IPureNode): konten HTML + anak.
-interface MapNode {
-  content: string
-  children: MapNode[]
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-}
-
-function toMapNode(node: RawMindmapNode): MapNode {
-  return {
-    content: escapeHtml(node.label ?? ""),
-    children: (node.children ?? []).map(toMapNode),
-  }
 }
 
 export default function MarkmapView({ content, className }: MarkmapViewProps) {
@@ -62,14 +32,7 @@ export default function MarkmapView({ content, className }: MarkmapViewProps) {
         const { Markmap } = await import("markmap-view")
         if (cancelled) return
 
-        // Format tersimpan di IndexedDB (title/label) bukan format markmap
-        // (content/children), dan Transformer hanya memproses markdown,
-        // jadi pohonnya dibangun langsung di sini.
-        const parsed = JSON.parse(content) as RawMindmap
-        const root: MapNode = {
-          content: escapeHtml(parsed.title ?? ""),
-          children: (parsed.children ?? []).map(toMapNode),
-        }
+        const root = markmapRoot(content)
 
         if (!containerRef.current) return
         container.innerHTML = ""

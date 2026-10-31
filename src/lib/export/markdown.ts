@@ -1,4 +1,11 @@
-import type { Summary, TranscriptSegment, Mindmap, Flashcard } from "@/lib/db"
+import type { Summary, TranscriptSegment, Flashcard } from "@/lib/db"
+
+export function formatTimestamp(seconds: number): string {
+  const total = Math.max(0, Math.floor(seconds))
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+}
 
 export function summaryToMarkdown(summary: Summary): string {
   let md = `# ${summary.title}\n\n`
@@ -15,38 +22,26 @@ export function summaryToMarkdown(summary: Summary): string {
   return md
 }
 
-export function flashcardsToMarkdown(cards: Flashcard[]): string {
-  let md = "# Flashcard\n\n"
-  for (const card of cards) {
-    md += `## ${card.question}\n\n`
-    md += `${card.answer}\n\n`
-    md += `> Tingkat: ${card.difficulty} | Ref: ${Math.floor(card.timestampRef / 60)}:${String(Math.floor(card.timestampRef % 60)).padStart(2, "0")}\n\n`
-    md += "---\n\n"
-  }
-  return md
+export function transcriptToText(segments: TranscriptSegment[]): string {
+  return segments
+    .map((seg) => `[${formatTimestamp(seg.start)}] ${seg.text}`)
+    .join("\n")
 }
 
-export function transcriptToMarkdown(segments: TranscriptSegment[]): string {
-  let md = "# Transkrip\n\n"
-  for (const seg of segments) {
-    const m = Math.floor(seg.start / 60)
-    const s = Math.floor(seg.start % 60)
-    md += `[${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}] ${seg.text}\n`
-  }
-  return md
+function csvField(value: string | number): string {
+  const text = String(value).replace(/\r?\n/g, " ")
+  return `"${text.replace(/"/g, '""')}"`
 }
 
-export function mindmapToMarkdown(mindmap: Mindmap): string {
-  let md = `# ${mindmap.title}\n\n`
-  function walk(node: { label: string; children: { label: string; children: unknown[] }[] }, depth: number) {
-    const indent = "  ".repeat(depth)
-    md += `${indent}- ${node.label}\n`
-    for (const child of node.children) {
-      walk(child as { label: string; children: { label: string; children: unknown[] }[] }, depth + 1)
-    }
-  }
-  for (const child of mindmap.children) {
-    walk(child, 0)
-  }
-  return md
+// Kolom Pertanyaan/Jawaban dikenali Anki dan Quizlet saat impor CSV.
+export function flashcardsToCsv(cards: Flashcard[]): string {
+  const rows = cards.map((card) =>
+    [
+      csvField(card.question),
+      csvField(card.answer),
+      csvField(card.difficulty),
+      csvField(formatTimestamp(card.timestampRef)),
+    ].join(","),
+  )
+  return ["Pertanyaan,Jawaban,Kesulitan,Waktu", ...rows].join("\r\n")
 }

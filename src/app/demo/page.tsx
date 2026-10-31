@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import SiteHeader from "@/components/site-header"
-import DemoShowcase from "@/components/demo-showcase"
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import SiteHeader from "@/components/site-header";
+import DemoShowcase from "@/components/demo-showcase";
 
 export default function DemoPage() {
   return (
@@ -19,7 +19,9 @@ export default function DemoPage() {
           Kembali ke beranda
         </Link>
 
-        <p className="mt-2 text-[0.875rem] text-muted-foreground">Contoh hasil dari rekaman demo, bukan rekaman Anda</p>
+        <p className="mt-2 text-[0.875rem] text-muted-foreground">
+          Contoh hasil dari rekaman demo, bukan rekaman Anda
+        </p>
         <h1 className="mt-2 max-w-[26ch] text-balance text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
           Satu rekaman, empat bahan belajar
         </h1>
@@ -33,8 +35,8 @@ export default function DemoPage() {
             Rekaman Anda akan menghasilkan ini juga.
           </h2>
           <p className="mt-2 max-w-[52ch] text-[1.0625rem] leading-[1.55] text-muted-foreground">
-            Tempel API key sekali, lalu unggah rekaman kuliah. Empat tahap berjalan di browser dan hasilnya tersimpan
-            lokal.
+            Tempel API key sekali, lalu unggah rekaman kuliah. Empat tahap
+            berjalan di browser dan hasilnya tersimpan lokal.
           </p>
           <Button asChild className="mt-5">
             <Link href="/">Proses rekaman saya</Link>
@@ -42,5 +44,5 @@ export default function DemoPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }

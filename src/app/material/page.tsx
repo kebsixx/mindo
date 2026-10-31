@@ -1,29 +1,40 @@
-"use client"
+"use client";
 
-import { Suspense, useEffect, useRef, useState } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import Link from "next/link"
-import { Loader2, FileText, MessageCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
-import { openDB, type Material, type Summary, type Mindmap, type Flashcard, type TranscriptSegment } from "@/lib/db"
-import MarkmapView from "@/components/markmap-view"
-import SiteHeader from "@/components/site-header"
-import { BackLink } from "@/components/site-header"
-import FlashcardSwiper from "@/components/flashcard-swiper"
-import TranscriptPanel from "@/components/transcript-panel"
-import ChatPanel, { type TutorReply } from "@/components/chat-panel"
-import { tutor } from "@/lib/ai/agents/tutor"
-import { getApiKey, getProvider } from "@/lib/storage/settings"
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { Loader2, FileText, MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import {
+  openDB,
+  type Material,
+  type Summary,
+  type Mindmap,
+  type Flashcard,
+  type TranscriptSegment,
+} from "@/lib/db";
+import MarkmapView from "@/components/markmap-view";
+import SiteHeader from "@/components/site-header";
+import { BackLink } from "@/components/site-header";
+import FlashcardSwiper from "@/components/flashcard-swiper";
+import TranscriptPanel from "@/components/transcript-panel";
+import ExportDialog from "@/components/export-dialog";
+import ChatPanel, { type TutorReply } from "@/components/chat-panel";
+import { tutor } from "@/lib/ai/agents/tutor";
+import { getApiKey, getProvider } from "@/lib/storage/settings";
 
 export default function MaterialPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-dvh items-center justify-center" aria-live="polite">
+        <div
+          className="flex min-h-dvh items-center justify-center"
+          aria-live="polite"
+        >
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           <span className="sr-only">Memuat materi</span>
         </div>
@@ -31,105 +42,119 @@ export default function MaterialPage() {
     >
       <MaterialView />
     </Suspense>
-  )
+  );
 }
 
 function MaterialView() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const materialId = searchParams.get("id")
-  const [material, setMaterial] = useState<Material | null>(null)
-  const [summary, setSummary] = useState<Summary | null>(null)
-  const [mindmap, setMindmap] = useState<Mindmap | null>(null)
-  const [flashcards, setFlashcards] = useState<Flashcard[]>([])
-  const [segments, setSegments] = useState<TranscriptSegment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("summary")
-  const [chatOpen, setChatOpen] = useState(false)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const materialId = searchParams.get("id");
+  const [material, setMaterial] = useState<Material | null>(null);
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [mindmap, setMindmap] = useState<Mindmap | null>(null);
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [segments, setSegments] = useState<TranscriptSegment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("summary");
+  const [chatOpen, setChatOpen] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const transcriptView = searchParams.get("view") === "transcript"
+  const transcriptView = searchParams.get("view") === "transcript";
 
   const loadData = async () => {
-    const db = openDB()
-    const mid = parseInt(materialId!, 10)
+    const db = openDB();
+    const mid = parseInt(materialId!, 10);
     const [mat, sum, mm, cards, trans] = await Promise.all([
       db.materials.get(mid),
       db.summaries.get(mid),
       db.mindmaps.get(mid),
       db.flashcards.where("materialId").equals(mid).toArray(),
       db.transcripts.get(mid),
-    ])
-    return { mat, sum, mm, cards, trans }
-  }
+    ]);
+    return { mat, sum, mm, cards, trans };
+  };
 
   useEffect(() => {
-    if (!materialId) return
+    if (!materialId) return;
     loadData()
       .then(({ mat, sum, mm, cards, trans }) => {
-        setMaterial(mat || null)
-        setSummary(sum || null)
-        setMindmap(mm || null)
-        setFlashcards(cards)
-        setSegments(trans?.segments || [])
+        setMaterial(mat || null);
+        setSummary(sum || null);
+        setMindmap(mm || null);
+        setFlashcards(cards);
+        setSegments(trans?.segments || []);
       })
       .catch((e) => console.error(e))
-      .finally(() => setLoading(false))
+      .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [materialId])
+  }, [materialId]);
 
   const toggleTranscript = () => {
-    router.replace(`/material?id=${materialId}${transcriptView ? "" : "&view=transcript"}`)
-  }
+    router.replace(
+      `/material?id=${materialId}${transcriptView ? "" : "&view=transcript"}`,
+    );
+  };
 
   const seekAudio = (seconds: number) => {
-    const el = audioRef.current
-    if (!el || !material?.audio) return
-    if (!el.src) el.src = URL.createObjectURL(material.audio)
-    el.currentTime = seconds
-    void el.play().catch(() => {})
-  }
+    const el = audioRef.current;
+    if (!el || !material?.audio) return;
+    if (!el.src) el.src = URL.createObjectURL(material.audio);
+    el.currentTime = seconds;
+    void el.play().catch(() => {});
+  };
 
-  const handleGrade = async (id: number, grade: "known" | "repeat" | "unknown") => {
+  const handleGrade = async (
+    id: number,
+    grade: "known" | "repeat" | "unknown",
+  ) => {
     try {
-      await openDB().flashcards.update(id, { grade })
+      await openDB().flashcards.update(id, { grade });
     } catch {
       // nilai tetap terlihat selama sesi; penyimpanan bisa dicoba lagi
     }
-  }
+  };
 
   const askTutor = async (question: string): Promise<TutorReply> => {
-    const apiKey = getApiKey()
+    const apiKey = getApiKey();
     if (!apiKey) {
-      return { text: "API key belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider." }
+      return {
+        text: "API key belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider.",
+      };
     }
-    const mid = parseInt(materialId!, 10)
-    const chunks = await openDB().chunks.where("materialId").equals(mid).toArray()
+    const mid = parseInt(materialId!, 10);
+    const chunks = await openDB()
+      .chunks.where("materialId")
+      .equals(mid)
+      .toArray();
     if (chunks.length === 0) {
-      return { text: "Transkrip belum tersedia. Jalankan ulang tahap Transkrip di halaman Pemrosesan." }
+      return {
+        text: "Transkrip belum tersedia. Jalankan ulang tahap Transkrip di halaman Pemrosesan.",
+      };
     }
-    const result = await tutor(getProvider(), apiKey, question, chunks)
+    const result = await tutor(getProvider(), apiKey, question, chunks);
     if (!result.found) {
-      return { text: "Tidak dibahas dalam rekaman ini.", notFound: true }
+      return { text: "Tidak dibahas dalam rekaman ini.", notFound: true };
     }
-    const atSec = result.citations.length > 0 ? Math.min(...result.citations) : undefined
-    return { text: result.answer, atSec }
-  }
+    const atSec =
+      result.citations.length > 0 ? Math.min(...result.citations) : undefined;
+    return { text: result.answer, atSec };
+  };
 
   if (loading) {
     return (
       <div className="flex min-h-dvh flex-col">
         <SiteHeader />
         <div className="flex min-h-[60vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-label="Memuat materi" />
+          <Loader2
+            className="h-8 w-8 animate-spin text-muted-foreground"
+            aria-label="Memuat materi"
+          />
         </div>
       </div>
-    )
+    );
   }
 
-  const chat = (
-    <ChatPanel onSend={askTutor} onSeek={seekAudio} />
-  )
+  const chat = <ChatPanel onSend={askTutor} onSeek={seekAudio} />;
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-clip">
@@ -140,14 +165,23 @@ function MaterialView() {
           <h1 className="min-w-0 flex-1 truncate text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
             {material?.title || "Materi"}
           </h1>
-          <Button size="sm" variant={transcriptView ? "default" : "outline"} onClick={toggleTranscript} aria-pressed={transcriptView}>
+          <Button
+            size="sm"
+            variant={transcriptView ? "default" : "outline"}
+            onClick={toggleTranscript}
+            aria-pressed={transcriptView}
+          >
             <FileText className="h-4 w-4" />
             {transcriptView ? "Kembali ke Materi" : "Transkrip"}
           </Button>
+          <ExportDialog materialIds={[Number(materialId)]} />
         </div>
 
         <p className="mt-2 text-[0.9375rem] text-muted-foreground">
-          <Link href="/demo" className="underline decoration-1 underline-offset-4 hover:text-foreground">
+          <Link
+            href="/demo"
+            className="underline decoration-1 underline-offset-4 hover:text-foreground"
+          >
             Bandingkan dengan contoh hasil
           </Link>
         </p>
@@ -167,12 +201,16 @@ function MaterialView() {
                 <TabsContent value="summary">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">{summary?.title || "Ringkasan"}</CardTitle>
+                      <CardTitle className="text-lg">
+                        {summary?.title || "Ringkasan"}
+                      </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
                       {summary?.sections.map((section, i) => (
                         <div key={i} className="space-y-2">
-                          <h3 className="text-[1.0625rem] font-semibold">{section.heading}</h3>
+                          <h3 className="text-[1.0625rem] font-semibold">
+                            {section.heading}
+                          </h3>
                           <ul className="max-w-[68ch] list-disc space-y-1 pl-5 text-[1.0625rem] leading-[1.6] text-muted-foreground">
                             {section.points.map((point, j) => (
                               <li key={j}>{point}</li>
@@ -181,7 +219,10 @@ function MaterialView() {
                           {section.keyTerms && section.keyTerms.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-2">
                               {section.keyTerms.map((term, k) => (
-                                <span key={k} className="rounded-full bg-primary/12 px-2.5 py-1 text-[0.8125rem] text-foreground">
+                                <span
+                                  key={k}
+                                  className="rounded-full bg-primary/12 px-2.5 py-1 text-[0.8125rem] text-foreground"
+                                >
                                   {term}
                                 </span>
                               ))}
@@ -189,7 +230,11 @@ function MaterialView() {
                           )}
                         </div>
                       ))}
-                      {!summary && <p className="text-[1.0625rem] text-muted-foreground">Belum ada ringkasan.</p>}
+                      {!summary && (
+                        <p className="text-[1.0625rem] text-muted-foreground">
+                          Belum ada ringkasan.
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -197,13 +242,20 @@ function MaterialView() {
                 <TabsContent value="mindmap">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">{mindmap?.title || "Mindmap"}</CardTitle>
+                      <CardTitle className="text-lg">
+                        {mindmap?.title || "Mindmap"}
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       {mindmap ? (
-                        <MarkmapView content={JSON.stringify(mindmap)} className="h-125 w-full" />
+                        <MarkmapView
+                          content={JSON.stringify(mindmap)}
+                          className="h-125 w-full"
+                        />
                       ) : (
-                        <p className="text-[1.0625rem] text-muted-foreground">Belum ada mindmap.</p>
+                        <p className="text-[1.0625rem] text-muted-foreground">
+                          Belum ada mindmap.
+                        </p>
                       )}
                     </CardContent>
                   </Card>
@@ -228,7 +280,10 @@ function MaterialView() {
             )}
           </div>
 
-          <aside className="sticky top-6 hidden w-90 shrink-0 lg:block" aria-label="Tanya Mindo">
+          <aside
+            className="sticky top-6 hidden w-90 shrink-0 lg:block"
+            aria-label="Tanya Mindo"
+          >
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Tanya Mindo</CardTitle>
@@ -247,7 +302,7 @@ function MaterialView() {
         aria-label="Buka Tanya Mindo"
         className={cn(
           "fixed bottom-6 right-6 z-40 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full",
-          "bg-accent text-accent-foreground transition-transform hover:scale-105 lg:hidden"
+          "bg-accent text-accent-foreground transition-transform hover:scale-105 lg:hidden",
         )}
       >
         <MessageCircle className="h-6 w-6" />
@@ -260,5 +315,5 @@ function MaterialView() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
