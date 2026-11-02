@@ -13,6 +13,7 @@ import { flashcard } from "@/lib/ai/agents/flashcard"
 import { chunkTranscript } from "@/lib/retrieval/chunk"
 import { getApiKey, getProvider } from "@/lib/storage/settings"
 import SiteHeader from "@/components/site-header"
+import { Mascot } from "@/components/mascot"
 import type { Provider } from "@/lib/ai/client"
 
 type StageStatus = "pending" | "running" | "completed" | "failed"
@@ -234,7 +235,15 @@ function ProcessingView() {
     <div className="flex min-h-dvh flex-col overflow-x-clip">
       <SiteHeader />
       <main className="mx-auto w-full max-w-[640px] flex-1 px-5 pb-16 pt-8 sm:px-8 sm:pt-14">
-        <h1 className="text-[clamp(2.25rem,5.4vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.03em]">Memproses Materi</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="min-w-0 flex-1 text-[clamp(2.25rem,5.4vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.03em]">Memproses Materi</h1>
+          <Mascot
+            directions="/mascots/mindo-directions.webp"
+            reactions="/mascots/mindo-reactions.webp"
+            label="maskot Mindo"
+            size={96}
+          />
+        </div>
         <p className="mt-3 max-w-[46ch] text-[1.0625rem] leading-[1.55] text-muted-foreground">
           Transkrip dikerjakan lebih dulu, lalu ringkasan, mindmap, dan flashcard berjalan bersamaan.
         </p>

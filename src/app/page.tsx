@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
 import { Mic, Upload, Trash2, Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import SiteHeader from "@/components/site-header";
 import DemoShowcase from "@/components/demo-showcase";
+import { Mascot } from "@/components/mascot";
 import { useToast } from "@/components/ui/use-toast";
 import { openDB, type Material } from "@/lib/db";
 import { setApiKey, useStoredApiKey } from "@/lib/storage/settings";
@@ -177,6 +179,13 @@ export default function BerandaPage() {
               <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
                 mp3, m4a, wav, webm, mp4 &middot; maksimal 25 MB
               </p>
+              <Mascot
+                directions="/mascots/mindo-directions.webp"
+                reactions="/mascots/mindo-reactions.webp"
+                label="maskot Mindo"
+                size={240}
+                className="mt-10 hidden lg:block"
+              />
             </div>
 
             <div className="rounded-[28px] bg-secondary p-2.5 sm:p-3">
