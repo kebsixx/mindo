@@ -104,7 +104,23 @@ export default function ChatPanel({ onSend, onSeek }: ChatPanelProps) {
           </div>
         )}
       </div>
-      <div className="flex gap-2 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      {/* Chip selalu di atas input, satu baris yang bisa digeser horizontal. */}
+      {!loading && (
+        <div className="flex gap-2 overflow-x-auto border-t px-4 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {SUGGESTIONS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => void send(s)}
+              className="shrink-0 cursor-pointer rounded-full border border-border bg-primary/12 px-3 py-1.5 text-[0.8125rem] text-foreground transition-colors hover:bg-primary/20"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-2 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -121,22 +137,6 @@ export default function ChatPanel({ onSend, onSeek }: ChatPanelProps) {
           <Send className="h-4 w-4" />
         </Button>
       </div>
-
-      {/* Selalu terlihat: pengguna kerap tidak tahu harus bertanya apa. */}
-      {!loading && (
-        <div className="flex flex-wrap gap-2 border-t px-4 py-3">
-          {SUGGESTIONS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => void send(s)}
-              className="cursor-pointer rounded-full border border-border bg-primary/12 px-3 py-1.5 text-[0.8125rem] text-foreground transition-colors hover:bg-primary/20"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }

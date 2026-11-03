@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, FileText, MessageCircle } from "lucide-react";
+import { Loader2, FileText, MessageCircle, PanelRightClose } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -57,6 +57,7 @@ function MaterialView() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("summary");
   const [chatOpen, setChatOpen] = useState(false);
+  const [chatCollapsed, setChatCollapsed] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const transcriptView = searchParams.get("view") === "transcript";
@@ -280,17 +281,45 @@ function MaterialView() {
             )}
           </div>
 
-          <aside
-            className="sticky top-6 hidden w-[480px] shrink-0 lg:block"
-            aria-label="Tanya Mindo"
-          >
-            <Card className="flex h-[clamp(400px,60vh,640px)] flex-col">
-              <CardHeader className="shrink-0">
-                <CardTitle className="text-lg">Tanya Mindo</CardTitle>
-              </CardHeader>
-              <CardContent className="min-h-0 flex-1 p-0">{chat}</CardContent>
-            </Card>
-          </aside>
+          {!chatCollapsed && (
+            <aside
+              className="sticky top-6 hidden w-[480px] shrink-0 lg:block"
+              aria-label="Tanya Mindo"
+            >
+              <Card className="flex h-[clamp(400px,60vh,640px)] flex-col">
+                <CardHeader className="flex shrink-0 flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-lg">Tanya Mindo</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setChatCollapsed(true)}
+                    aria-label="Sembunyikan Tanya Mindo"
+                    aria-expanded={true}
+                    title="Sembunyikan"
+                  >
+                    <PanelRightClose className="h-4 w-4" />
+                  </Button>
+                </CardHeader>
+                <CardContent className="min-h-0 flex-1 p-0">{chat}</CardContent>
+              </Card>
+            </aside>
+          )}
+
+          {chatCollapsed && (
+            <div className="sticky top-6 hidden shrink-0 lg:block">
+              <Button
+                variant="outline"
+                onClick={() => setChatCollapsed(false)}
+                aria-label="Tampilkan Tanya Mindo"
+                aria-expanded={false}
+                title="Tampilkan Tanya Mindo"
+                className="h-11 rounded-full px-3"
+              >
+                <MessageCircle className="h-4 w-4" />
+                <span className="ml-2 text-[0.875rem]">Tanya Mindo</span>
+              </Button>
+            </div>
+          )}
         </div>
       </main>
 
