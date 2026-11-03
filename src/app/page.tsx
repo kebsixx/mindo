@@ -13,6 +13,7 @@ import { Mascot } from "@/components/mascot";
 import { useToast } from "@/components/ui/use-toast";
 import { openDB, type Material } from "@/lib/db";
 import { setApiKey, useStoredApiKey } from "@/lib/storage/settings";
+import { cn } from "@/lib/utils";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const ACCEPT = "audio/*,video/mp4";
@@ -383,7 +384,12 @@ export default function BerandaPage() {
 
               <Button
                 size="lg"
-                className="mt-4 w-full font-semibold text-foreground disabled:bg-primary disabled:text-foreground disabled:opacity-100"
+                className={cn(
+                  "mt-4 w-full font-semibold disabled:opacity-100",
+                  ready
+                    ? "text-foreground"
+                    : "cursor-not-allowed border border-input bg-secondary text-muted-foreground hover:bg-secondary",
+                )}
                 disabled={!ready || saving}
                 onClick={handleStart}
               >
