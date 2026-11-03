@@ -166,9 +166,19 @@ export default function BerandaPage() {
 
       <main className="w-full flex-1">
         <section className="mx-auto w-full max-w-280 px-5 pb-14 pt-8 sm:px-8 sm:pb-20 sm:pt-14">
-          <h1 className="max-w-[13ch] text-balance text-[clamp(2.75rem,7.6vw,6rem)] font-semibold leading-[0.98] tracking-[-0.035em]">
-            Tiga bahan ajar dari satu rekaman.
-          </h1>
+          <div className="flex items-end gap-6 lg:items-center">
+            <h1 className="max-w-[13ch] text-balance text-[clamp(2.75rem,7.6vw,6rem)] font-semibold leading-[0.98] tracking-[-0.035em]">
+              Tiga bahan ajar dari satu rekaman.
+            </h1>
+            <div className="hidden shrink-0 lg:block">
+              <Mascot
+                directions="/mascots/mindo-directions.webp"
+                reactions="/mascots/mindo-reactions.webp"
+                label="maskot Mindo"
+                size={132}
+              />
+            </div>
+          </div>
 
           <div className="mt-10 grid gap-10 sm:mt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:items-start lg:gap-16">
             <div className="max-w-[46ch] lg:pt-2">
@@ -179,13 +189,14 @@ export default function BerandaPage() {
               <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
                 mp3, m4a, wav, webm, mp4 &middot; maksimal 25 MB
               </p>
-              <Mascot
-                directions="/mascots/mindo-directions.webp"
-                reactions="/mascots/mindo-reactions.webp"
-                label="maskot Mindo"
-                size={240}
-                className="mt-10 hidden lg:block"
-              />
+              <div className="mt-10 lg:hidden">
+                <Mascot
+                  directions="/mascots/mindo-directions.webp"
+                  reactions="/mascots/mindo-reactions.webp"
+                  label="maskot Mindo"
+                  size={132}
+                />
+              </div>
             </div>
 
             <div className="rounded-[28px] bg-secondary p-2.5 sm:p-3">

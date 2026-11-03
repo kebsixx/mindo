@@ -28,7 +28,7 @@
     "fflate": "^0.8.3",
     "html-to-image": "^1.11.13",
     "lucide-react": "^1.61.0",
-    "markmap-lib": "^0.18.12",
+    "markmap-lib": "^0.8.1",
     "markmap-view": "^0.18.12",
     "next": "16.4.2",
     "page-mascot": "^0.1.0",
@@ -43,8 +43,8 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.4.2",
+    "eslint": "^10.14.0",
+    "eslint-config-next": "^16.4.4",
     "typescript": "^5"
   }
 }
