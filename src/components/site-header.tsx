@@ -118,28 +118,20 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
               href="/settings"
               aria-current={onSettings ? "page" : undefined}
               className={cn(
-                "mt-1 flex items-center gap-2 rounded-2xl px-4 py-3 font-medium transition-colors",
+                "mt-1 flex items-center gap-2 rounded-2xl px-4 py-3 transition-colors",
                 onSettings
-                  ? "text-muted-foreground"
-                  : "text-foreground hover:bg-primary/12",
+                  ? "bg-card font-medium text-foreground"
+                  : "text-muted-foreground hover:bg-primary/12 hover:text-foreground",
               )}
               onClick={() => setMenuOpen(false)}
             >
-              <Settings className="h-4 w-4" aria-hidden="true" />
               Pengaturan
-              <span className="ml-auto flex items-center gap-2">
-                {hasKey && (
-                  <span
-                    className="size-2 rounded-full bg-primary"
-                    aria-label="API key aktif"
-                  />
-                )}
-                {onSettings && (
-                  <span className="text-xs font-normal text-muted-foreground">
-                    Halaman ini
-                  </span>
-                )}
-              </span>
+              {hasKey && (
+                <span
+                  className="ml-auto size-2 rounded-full bg-primary"
+                  aria-label="API key aktif"
+                />
+              )}
             </Link>
           </div>
         </nav>
