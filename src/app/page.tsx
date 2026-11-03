@@ -13,7 +13,6 @@ import { Mascot } from "@/components/mascot";
 import { useToast } from "@/components/ui/use-toast";
 import { openDB, type Material } from "@/lib/db";
 import { setApiKey, useStoredApiKey } from "@/lib/storage/settings";
-import { cn } from "@/lib/utils";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const ACCEPT = "audio/*,video/mp4";
@@ -382,20 +381,26 @@ export default function BerandaPage() {
                 </p>
               </div>
 
-              <Button
-                size="lg"
-                className={cn(
-                  "mt-4 w-full font-semibold disabled:opacity-100",
-                  ready
-                    ? "text-foreground"
-                    : "cursor-not-allowed border border-input bg-secondary text-muted-foreground hover:bg-secondary",
-                )}
-                disabled={!ready || saving}
-                onClick={handleStart}
-              >
-                {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
-                Mulai Proses
-              </Button>
+              {file && !apiKey.trim() ? (
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="mt-4 w-full font-semibold"
+                >
+                  <Link href="/settings">Isi API key untuk mulai</Link>
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  className="mt-4 w-full font-semibold text-foreground"
+                  disabled={!ready || saving}
+                  onClick={handleStart}
+                >
+                  {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+                  Mulai Proses
+                </Button>
+              )}
               <p
                 aria-live="polite"
                 className="mt-3 px-2.5 text-center text-[0.875rem] text-muted-foreground"
