@@ -28,6 +28,7 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
   const historyVisible = showHistory ?? hasMaterials;
 
   const onHome = pathname === "/";
+  const onSettings = pathname === "/settings";
   const navItems = [
     { href: onHome ? "#contoh" : "/#contoh", label: "Contoh" },
     ...(historyVisible
@@ -68,10 +69,11 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
         <Link
           href="/settings"
           aria-label="Buka Pengaturan"
+          aria-current={onSettings ? "page" : undefined}
           className={buttonVariants({
-            variant: hasKey ? "default" : "outline",
+            variant: hasKey && !onSettings ? "default" : "outline",
             size: "sm",
-            className: "max-sm:hidden! gap-2",
+            className: "max-md:hidden! gap-2",
           })}
         >
           <Settings className="h-4 w-4" aria-hidden="true" />
@@ -99,7 +101,7 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
               <a
                 key={item.label}
                 href={item.href}
-                className="rounded-2xl px-4 py-3 text-muted-foreground hover:bg-card hover:text-foreground"
+                className="rounded-2xl px-4 py-3 text-muted-foreground transition-colors hover:bg-primary/12 hover:text-foreground"
                 onClick={() => setMenuOpen(false)}
               >
                 {item.label}
@@ -107,23 +109,37 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
             ))}
             <Link
               href="/demo"
-              className="rounded-2xl px-4 py-3 text-muted-foreground hover:bg-card hover:text-foreground"
+              className="rounded-2xl px-4 py-3 text-muted-foreground transition-colors hover:bg-primary/12 hover:text-foreground"
               onClick={() => setMenuOpen(false)}
             >
               Contoh hasil
             </Link>
             <Link
               href="/settings"
+              aria-current={onSettings ? "page" : undefined}
               className={cn(
-                "mt-1 flex items-center gap-2 rounded-2xl px-4 py-3 font-medium",
-                hasKey
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-foreground",
+                "mt-1 flex items-center gap-2 rounded-2xl px-4 py-3 font-medium transition-colors",
+                onSettings
+                  ? "text-muted-foreground"
+                  : "text-foreground hover:bg-primary/12",
               )}
               onClick={() => setMenuOpen(false)}
             >
               <Settings className="h-4 w-4" aria-hidden="true" />
-              {keyLabel}
+              Pengaturan
+              <span className="ml-auto flex items-center gap-2">
+                {hasKey && (
+                  <span
+                    className="size-2 rounded-full bg-primary"
+                    aria-label="API key aktif"
+                  />
+                )}
+                {onSettings && (
+                  <span className="text-xs font-normal text-muted-foreground">
+                    Halaman ini
+                  </span>
+                )}
+              </span>
             </Link>
           </div>
         </nav>
