@@ -21,7 +21,6 @@ import {
   Key,
   Eye,
   EyeOff,
-  ChevronRight,
   Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -38,7 +37,7 @@ import {
 import { getProviderEndpoint } from "@/lib/ai/client";
 import SiteHeader, { BackLink } from "@/components/site-header";
 
-type Provider = "groq" | "openai" | "gemini" | "claude" | "deepseek" | "ollama";
+type Provider = "groq" | "openai";
 
 const PROVIDERS: {
   id: Provider;
@@ -72,46 +71,6 @@ const PROVIDERS: {
       "Daftar di platform.openai.com, buka Billing, lalu isi saldo minimal. Kartu kredit wajib.",
     note: "Kunci berawalan sk- dan hanya ditampilkan sekali saat dibuat.",
   },
-  {
-    id: "gemini",
-    name: "Gemini 3.x",
-    description: "Lanjutan - Butuh akun Google Cloud, config manual",
-    keysAt: "https://aistudio.google.com/apikey",
-    keysLabel: "aistudio.google.com/apikey",
-    signup:
-      "Buka Google AI Studio dengan akun Google, klik Create API key, pilih project. Ada kuota gratis.",
-    note: "Batas gratis berbeda dari Groq; periksa halaman harga Google.",
-  },
-  {
-    id: "claude",
-    name: "Claude 4.x",
-    description: "Lanjutan - Butuh akun Anthropic, config manual",
-    keysAt: "https://console.anthropic.com/settings/keys",
-    keysLabel: "console.anthropic.com/settings/keys",
-    signup:
-      "Daftar di console.anthropic.com, buka Billing, lalu isi kredit. Kartu kredit wajib.",
-    note: "Kunci berawalan sk-ant- dan hanya ditampilkan sekali.",
-  },
-  {
-    id: "deepseek",
-    name: "DeepSeek v4",
-    description: "Lanjutan - Butuh akun DeepSeek, config manual",
-    keysAt: "https://platform.deepseek.com/api_keys",
-    keysLabel: "platform.deepseek.com/api_keys",
-    signup:
-      "Daftar di platform.deepseek.com, buka Top up, lalu isi saldo. Harga per token paling murah di daftar ini.",
-    note: "Kunci berawalan sk- dan hanya ditampilkan sekali.",
-  },
-  {
-    id: "ollama",
-    name: "Ollama (Lokal)",
-    description: "Lanjutan - Butuh Ollama terinstall di laptop",
-    keysAt: "https://ollama.com/download",
-    keysLabel: "ollama.com/download",
-    signup:
-      "Tidak ada API key. Install Ollama, jalankan ollama pull model, lalu biarkan berjalan di localhost.",
-    note: "Tidak ada biaya dan tidak ada data yang keluar dari perangkat Anda.",
-  },
 ];
 
 export default function SettingsPage() {
@@ -127,7 +86,6 @@ export default function SettingsPage() {
     ok: boolean;
     message: string;
   } | null>(null);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [materialIds, setMaterialIds] = useState<number[]>([]);
   const [importing, setImporting] = useState(false);
 
@@ -144,7 +102,7 @@ export default function SettingsPage() {
   }, []);
 
   const chooseProvider = (next: Provider) => {
-    setProvider(next as "groq" | "openai");
+    setProvider(next);
     toast({
       title: "Provider disimpan",
       description: `${next} dipakai untuk pemrosesan berikutnya.`,
@@ -162,7 +120,7 @@ export default function SettingsPage() {
     setTesting(true);
     setTestResult(null);
     try {
-      const endpoint = getProviderEndpoint(provider as "groq" | "openai");
+      const endpoint = getProviderEndpoint(provider);
       const startedAt = performance.now();
       const res = await fetch(`${endpoint}/models`, {
         headers: { Authorization: `Bearer ${apiKey}` },
@@ -299,57 +257,6 @@ export default function SettingsPage() {
                   </button>
                 ))}
               </div>
-
-              <button
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                aria-expanded={showAdvanced}
-                className="flex cursor-pointer items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-              >
-                <ChevronRight
-                  className={cn(
-                    "h-4 w-4 transition-transform",
-                    showAdvanced && "rotate-90",
-                  )}
-                />
-                Lihat opsi lanjut
-              </button>
-
-              {showAdvanced && (
-                <div
-                  role="radiogroup"
-                  aria-label="Provider AI lanjutan"
-                  className="space-y-2 pt-2"
-                >
-                  {PROVIDERS.filter(
-                    (p) => !["groq", "openai"].includes(p.id),
-                  ).map((p) => (
-                    <button
-                      key={p.id}
-                      role="radio"
-                      aria-checked={provider === p.id}
-                      onClick={() => chooseProvider(p.id)}
-                      className={cn(
-                        "w-full cursor-pointer rounded-2xl border p-4 text-left transition-colors",
-                        provider === p.id
-                          ? "border-primary bg-primary/12"
-                          : "border-border hover:bg-secondary",
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{p.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {p.description}
-                          </div>
-                        </div>
-                        {provider === p.id && (
-                          <CheckCircle className="h-5 w-5 text-foreground" />
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -365,14 +272,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <ol className="space-y-2">
-                {PROVIDERS.filter(
-                  (p) =>
-                    p.id === provider ||
-                    !["gemini", "claude", "deepseek", "ollama"].includes(
-                      p.id,
-                    ) ||
-                    showAdvanced,
-                ).map((p) => (
+                {PROVIDERS.map((p) => (
                   <li key={p.id}>
                     <div
                       className={cn(

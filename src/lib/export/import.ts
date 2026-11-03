@@ -11,17 +11,17 @@ const nodeSchema: z.ZodType<MindmapNode> = z.lazy(() =>
 )
 
 const dataSchema = z.object({
-  version: z.literal(1),
-  exportedAt: z.string(),
+  version: z.number().optional(),
+  exportedAt: z.string().optional(),
   materials: z.array(
     z.object({
       id: z.number().int(),
-      title: z.string(),
-      createdAt: z.string(),
-      duration: z.number(),
-      status: z.string(),
-      fileName: z.string(),
-      fileSize: z.number(),
+      title: z.string().catch("Materi tanpa judul"),
+      createdAt: z.string().catch(() => new Date().toISOString()),
+      duration: z.number().catch(0),
+      status: z.string().catch("completed"),
+      fileName: z.string().catch("audio"),
+      fileSize: z.number().catch(0),
       audioType: z.string().optional(),
       audio: z.string().optional(),
     }),
@@ -59,9 +59,9 @@ const dataSchema = z.object({
       materialId: z.number().int(),
       question: z.string(),
       answer: z.string(),
-      difficulty: z.enum(["easy", "medium", "hard"]),
-      timestampRef: z.number(),
-      grade: z.enum(["unknown", "repeat", "known"]),
+      difficulty: z.enum(["easy", "medium", "hard"]).catch("medium"),
+      timestampRef: z.number().catch(0),
+      grade: z.enum(["unknown", "repeat", "known"]).catch("unknown"),
     }),
   ),
   chunks: z.array(
@@ -91,7 +91,12 @@ function parseZip(buffer: ArrayBuffer): ImportedData {
     throw new Error("File tidak bisa dibuka sebagai .zip. Pastikan file hasil ekspor Mindo.")
   }
 
-  const raw = entries["mindo-data.json"]
+  // Finder/Explorer kadang menaruh file di subfolder, atau zip menyertakan
+  // folder pembungkus. Cari namanya, bukan hanya di akar arsip.
+  const key = Object.keys(entries).find(
+    (name) => name === "mindo-data.json" || name.endsWith("/mindo-data.json"),
+  )
+  const raw = key ? entries[key] : undefined
   if (!raw) {
     throw new Error(
       "Arsip ini hanya berisi hasil (ringkasan, transkrip, flashcard, mindmap). Untuk pindah perangkat, ekspor ulang dengan mode “Pindah perangkat”.",
@@ -107,8 +112,10 @@ function parseZip(buffer: ArrayBuffer): ImportedData {
 
   const parsed = dataSchema.safeParse(json)
   if (!parsed.success) {
+    const issue = parsed.error.issues[0]
+    const where = issue?.path.join(".") || "isi file"
     throw new Error(
-      "Isi mindo-data.json tidak dikenali. Ekspor ulang memakai versi Mindo yang sama dengan pengimpor.",
+      `Isi mindo-data.json tidak dikenali di bagian "${where}". Ekspor ulang memakai versi Mindo yang sama dengan pengimpor.`,
     )
   }
   return parsed.data

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { Check, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -20,23 +21,54 @@ interface FlashcardSwiperProps {
 }
 
 export default function FlashcardSwiper({ cards, onGrade }: FlashcardSwiperProps) {
-  const [index, setIndex] = useState(0)
+  const [queue, setQueue] = useState<Flashcard[]>(cards)
+  const [pos, setPos] = useState(0)
   const [flipped, setFlipped] = useState(false)
-  const [grades, setGrades] = useState<Record<number, Grade>>({})
+  const [wrong, setWrong] = useState<Flashcard[]>([])
+  const [round, setRound] = useState(1)
   const [done, setDone] = useState(false)
+  const [sessionKey, setSessionKey] = useState(() =>
+    cards.map((c) => c.id).join(","),
+  )
 
-  const card = cards[index]
+  const card = queue[pos]
+
+  // Kartu datang dari IndexedDB secara asinkron dan array baru dibuat tiap render
+  // induk. Bandingkan id-nya, bukan identitas array, supaya sesi tidak ter-reset.
+  const cardsKey = cards.map((c) => c.id).join(",")
+  if (sessionKey !== cardsKey) {
+    setSessionKey(cardsKey)
+    setQueue(cards)
+    setPos(0)
+    setWrong([])
+    setRound(1)
+    setDone(false)
+    setFlipped(false)
+  }
 
   function handleGrade(grade: Grade) {
     if (!card || done) return
     onGrade?.(card.id, grade)
-    setGrades((prev) => ({ ...prev, [card.id]: grade }))
+    if (grade === "repeat") {
+      setWrong((prev) =>
+        prev.some((c) => c.id === card.id) ? prev : [...prev, card],
+      )
+    }
     setFlipped(false)
-    if (index < cards.length - 1) {
-      setIndex(index + 1)
+    if (pos < queue.length - 1) {
+      setPos(pos + 1)
     } else {
       setDone(true)
     }
+  }
+
+  function restart(next: Flashcard[]) {
+    setQueue(next)
+    setPos(0)
+    setWrong([])
+    setRound((r) => r + 1)
+    setDone(false)
+    setFlipped(false)
   }
 
   useEffect(() => {
@@ -64,33 +96,58 @@ export default function FlashcardSwiper({ cards, onGrade }: FlashcardSwiperProps
   }
 
   if (done) {
-    const known = Object.values(grades).filter((g) => g === "known").length
-    const repeat = cards.length - known
+    const known = queue.length - wrong.length
     return (
-      <div className="space-y-4 py-8 text-center">
-        <p className="text-lg font-medium">Selesai {cards.length} kartu.</p>
-        <p className="text-[0.9375rem] tabular-nums text-muted-foreground">
-          Paham {known} · Ulang {repeat}
-        </p>
-        <Button
-          onClick={() => {
-            const firstWrong = cards.findIndex((c) => grades[c.id] !== "known")
-            setIndex(firstWrong === -1 ? 0 : firstWrong)
-            setGrades({})
-            setDone(false)
-            setFlipped(false)
-          }}
-        >
-          Ulangi yang salah
-        </Button>
+      <div className="space-y-5 py-6">
+        <div className="text-center">
+          <p className="text-lg font-medium">Sesi {round} selesai.</p>
+          <p className="mt-1 text-[0.9375rem] tabular-nums text-muted-foreground">
+            Paham {known} · Perlu diulang {wrong.length}
+          </p>
+        </div>
+
+        {wrong.length > 0 && (
+          <div className="rounded-[28px] bg-secondary p-5">
+            <p className="text-sm font-medium">Pertanyaan yang harus diulang</p>
+            <ul className="mt-3 space-y-2">
+              {wrong.map((item, i) => (
+                <li key={item.id} className="flex gap-2 text-[0.9375rem] leading-snug">
+                  <span className="tabular-nums text-muted-foreground">{i + 1}.</span>
+                  <span>{item.question}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+          {wrong.length > 0 && (
+            <Button onClick={() => restart(wrong)} className="gap-2">
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
+              Ulangi {wrong.length} pertanyaan
+            </Button>
+          )}
+          {wrong.length < queue.length && (
+            <Button variant="outline" onClick={() => restart(cards)}>
+              Ulangi semua {cards.length} kartu
+            </Button>
+          )}
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-4">
-      <div className="text-center text-[0.9375rem] text-muted-foreground tabular-nums">
-        {index + 1} / {cards.length}
+      <div className="flex items-center justify-between text-[0.9375rem] text-muted-foreground tabular-nums">
+        <span>
+          {pos + 1} / {queue.length}
+        </span>
+        {round > 1 && (
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-foreground">
+            Putaran {round}
+          </span>
+        )}
       </div>
       <Card
         className={cn("min-h-[200px] cursor-pointer transition-colors", flipped && "border-primary bg-primary/8")}
@@ -116,14 +173,16 @@ export default function FlashcardSwiper({ cards, onGrade }: FlashcardSwiperProps
         </CardContent>
       </Card>
       <p className="text-center text-xs text-muted-foreground">
-        Ketuk kartu untuk membalik · panah kiri Ulang, panah kanan Paham
+        Ketuk kartu untuk melihat jawaban · panah kiri Ulangi nanti, panah kanan Sudah paham
       </p>
       <div className="flex justify-center gap-3">
-        <Button variant="outline" onClick={() => handleGrade("repeat")}>
-          Ulang
+        <Button variant="outline" onClick={() => handleGrade("repeat")} className="gap-2">
+          <RotateCcw className="h-4 w-4" aria-hidden="true" />
+          Ulangi nanti
         </Button>
-        <Button onClick={() => handleGrade("known")}>
-          Paham
+        <Button onClick={() => handleGrade("known")} className="gap-2">
+          <Check className="h-4 w-4" aria-hidden="true" />
+          Sudah paham
         </Button>
       </div>
     </div>

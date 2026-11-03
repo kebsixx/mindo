@@ -16,6 +16,15 @@ import { setApiKey, useStoredApiKey } from "@/lib/storage/settings";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const ACCEPT = "audio/*,video/mp4";
+const AUDIO_TYPES: Record<string, string> = {
+  mp3: "audio/mpeg",
+  m4a: "audio/mp4",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
+  webm: "audio/webm",
+  flac: "audio/flac",
+  mp4: "video/mp4",
+};
 
 const STEPS = [
   {
@@ -90,6 +99,15 @@ export default function BerandaPage() {
         description: "Maksimal 25 MB. Rekam langsung atau kompres dulu.",
       });
       return;
+    }
+    // Safari kadang memberi MIME kosong untuk mp3. Whisper butuh tipe yang jelas.
+    if (!picked.type) {
+      const ext = picked.name.split(".").pop()?.toLowerCase() ?? "";
+      const type = AUDIO_TYPES[ext];
+      if (type) {
+        setFile(new File([picked], picked.name, { type }));
+        return;
+      }
     }
     setFile(picked);
   }

@@ -15,7 +15,9 @@ function subscribe(callback: () => void): () => void {
 
 export function getProvider(): Provider {
   if (typeof window === "undefined") return "groq"
-  return (localStorage.getItem("mindo.provider") as Provider) || "groq"
+  // Nilai lama (gemini/claude/deepseek/ollama) pernah tersimpan walau tidak
+  // didukung. Jangan teruskan ke endpoint yang salah.
+  return localStorage.getItem("mindo.provider") === "openai" ? "openai" : "groq"
 }
 
 export function setProvider(provider: Provider): void {

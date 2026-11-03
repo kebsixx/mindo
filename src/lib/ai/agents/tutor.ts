@@ -53,6 +53,11 @@ Aturan:
 
   const raw = await chatCompletion(provider, apiKey, systemPrompt, userPrompt, schema, { temperature: 0.3 })
 
-  const parsed = JSON.parse(raw)
-  return TutorSchema.parse(parsed)
+  const cleaned = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim()
+  try {
+    return TutorSchema.parse(JSON.parse(cleaned))
+  } catch {
+    // Model kadang membalas teks biasa. Jawaban tetap berguna, jadi pakai apa adanya.
+    return { found: true, answer: cleaned, citations: [] }
+  }
 }

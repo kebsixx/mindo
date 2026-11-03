@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, KeyRound, Menu, X } from "lucide-react";
+import { ArrowLeft, Menu, Settings, X } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useStoredApiKey } from "@/lib/storage/settings";
@@ -37,7 +37,7 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
     { href: onHome ? "#privasi" : "/#privasi", label: "Privasi" },
   ];
 
-  const keyLabel = hasKey ? "API Key Aktif" : "Atur API Key";
+  const keyLabel = "Pengaturan";
 
   return (
     <header className="relative mx-auto flex h-16 w-full max-w-280 items-center justify-between gap-3 px-5 sm:h-18 sm:px-8">
@@ -67,16 +67,14 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
       <div className="flex shrink-0 items-center gap-2">
         <Link
           href="/settings"
-          aria-label={
-            hasKey ? "API Key aktif, buka Pengaturan" : "Atur API Key"
-          }
+          aria-label="Buka Pengaturan"
           className={buttonVariants({
             variant: hasKey ? "default" : "outline",
             size: "sm",
             className: "max-sm:hidden! gap-2",
           })}
         >
-          <KeyRound className="h-4 w-4" aria-hidden="true" />
+          <Settings className="h-4 w-4" aria-hidden="true" />
           {keyLabel}
         </Link>
         <Button
@@ -124,7 +122,7 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
               )}
               onClick={() => setMenuOpen(false)}
             >
-              <KeyRound className="h-4 w-4" aria-hidden="true" />
+              <Settings className="h-4 w-4" aria-hidden="true" />
               {keyLabel}
             </Link>
           </div>

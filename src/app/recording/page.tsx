@@ -54,7 +54,18 @@ export default function RecordingPage() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus", audioBitsPerSecond: 24000 })
+      // Safari tidak mendukung webm. Pilih kontainer pertama yang didukung.
+      const candidates = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+        "audio/ogg;codecs=opus",
+      ]
+      const mimeType = candidates.find((type) => MediaRecorder.isTypeSupported(type))
+      const mediaRecorder = new MediaRecorder(stream, {
+        ...(mimeType ? { mimeType } : {}),
+        audioBitsPerSecond: 24000,
+      })
       mediaRecorderRef.current = mediaRecorder
       chunksRef.current = []
       totalBytesRef.current = 0
@@ -69,7 +80,9 @@ export default function RecordingPage() {
       }
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" })
+        const blob = new Blob(chunksRef.current, {
+          type: mediaRecorder.mimeType || "audio/webm",
+        })
         setAudioBlob(blob)
         stream.getTracks().forEach((t) => t.stop())
         audioCtxRef.current?.close().catch(() => {})
@@ -171,13 +184,23 @@ export default function RecordingPage() {
     try {
       const finalTitle = title.trim() || `Rekaman ${new Date().toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}`
 
+      const mime = audioBlob.type.split(";")[0]
+      const ext =
+        mime === "audio/mp4"
+          ? "m4a"
+          : mime === "audio/ogg"
+            ? "ogg"
+            : mime === "audio/mpeg"
+              ? "mp3"
+              : "webm"
+
       const db = openDB()
       const materialId = await db.materials.add({
         title: finalTitle,
         createdAt: new Date().toISOString(),
         duration,
         status: "pending",
-        fileName: `recording-${Date.now()}.webm`,
+        fileName: `recording-${Date.now()}.${ext}`,
         fileSize: audioBlob.size,
         audio: audioBlob,
       })

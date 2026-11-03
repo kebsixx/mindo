@@ -47,10 +47,16 @@ export default function ChatPanel({ onSend, onSeek }: ChatPanelProps) {
         ...prev,
         { role: "assistant", content: reply.text, notFound: reply.notFound, atSec: reply.atSec },
       ])
-    } catch {
+    } catch (e) {
+      const detail = e instanceof Error ? e.message.slice(0, 160) : ""
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "Jawaban gagal dibuat. Coba lagi sebentar lagi." },
+        {
+          role: "assistant",
+          content: detail
+            ? `Jawaban gagal dibuat. ${detail}`
+            : "Jawaban gagal dibuat. Coba lagi sebentar lagi.",
+        },
       ])
     } finally {
       setLoading(false)
