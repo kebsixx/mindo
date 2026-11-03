@@ -173,7 +173,7 @@ export default function FlashcardSwiper({ cards, onGrade }: FlashcardSwiperProps
         </CardContent>
       </Card>
       <p className="text-center text-xs text-muted-foreground">
-        Ketuk kartu untuk melihat jawaban · panah kiri Ulangi nanti, panah kanan Sudah paham
+        Ketuk kartu untuk melihat jawaban. Pilih tombol setelah menilai jawaban.
       </p>
       <div className="flex justify-center gap-3">
         <Button variant="outline" onClick={() => handleGrade("repeat")} className="gap-2">
