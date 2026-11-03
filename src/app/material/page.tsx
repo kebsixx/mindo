@@ -7,7 +7,7 @@ import { Loader2, FileText, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import ChatSheet from "@/components/chat-sheet";
 import { cn } from "@/lib/utils";
 import {
   openDB,
@@ -281,14 +281,14 @@ function MaterialView() {
           </div>
 
           <aside
-            className="sticky top-6 hidden w-90 shrink-0 lg:block"
+            className="sticky top-6 hidden w-[480px] shrink-0 lg:block"
             aria-label="Tanya Mindo"
           >
-            <Card>
-              <CardHeader>
+            <Card className="flex h-[clamp(400px,60vh,640px)] flex-col">
+              <CardHeader className="shrink-0">
                 <CardTitle className="text-lg">Tanya Mindo</CardTitle>
               </CardHeader>
-              <CardContent className="p-0">{chat}</CardContent>
+              <CardContent className="min-h-0 flex-1 p-0">{chat}</CardContent>
             </Card>
           </aside>
         </div>
@@ -308,12 +308,13 @@ function MaterialView() {
         <MessageCircle className="h-6 w-6" />
       </button>
 
-      <Dialog open={chatOpen} onOpenChange={setChatOpen}>
-        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
-          <DialogTitle className="px-4 pt-4">Tanya Mindo</DialogTitle>
-          <div className="max-h-[85vh]">{chat}</div>
-        </DialogContent>
-      </Dialog>
+      <ChatSheet
+        open={chatOpen}
+        onOpenChange={setChatOpen}
+        title="Tanya Mindo"
+      >
+        {chat}
+      </ChatSheet>
     </div>
   );
 }

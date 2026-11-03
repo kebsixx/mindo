@@ -67,7 +67,7 @@ export default function ChatPanel({ onSend, onSeek }: ChatPanelProps) {
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`
 
   return (
-    <div className="flex h-[400px] flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <div className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
         {messages.length === 0 && !loading && (
           <p className="text-[0.9375rem] text-muted-foreground">
@@ -104,7 +104,7 @@ export default function ChatPanel({ onSend, onSeek }: ChatPanelProps) {
           </div>
         )}
       </div>
-      <div className="flex gap-2 border-t p-4">
+      <div className="flex gap-2 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
