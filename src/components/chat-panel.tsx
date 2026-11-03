@@ -70,18 +70,9 @@ export default function ChatPanel({ onSend, onSeek }: ChatPanelProps) {
     <div className="flex h-[400px] flex-col">
       <div className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
         {messages.length === 0 && !loading && (
-          <div className="flex flex-wrap gap-2">
-            {SUGGESTIONS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => void send(s)}
-                className="cursor-pointer rounded-full border border-border bg-primary/12 px-3 py-1.5 text-[0.8125rem] text-foreground transition-colors hover:bg-primary/20"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+          <p className="text-[0.9375rem] text-muted-foreground">
+            Mulai dari salah satu pertanyaan di bawah, atau tulis sendiri.
+          </p>
         )}
         {messages.map((msg, i) => (
           <div
@@ -130,6 +121,22 @@ export default function ChatPanel({ onSend, onSeek }: ChatPanelProps) {
           <Send className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* Selalu terlihat: pengguna kerap tidak tahu harus bertanya apa. */}
+      {!loading && (
+        <div className="flex flex-wrap gap-2 border-t px-4 py-3">
+          {SUGGESTIONS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => void send(s)}
+              className="cursor-pointer rounded-full border border-border bg-primary/12 px-3 py-1.5 text-[0.8125rem] text-foreground transition-colors hover:bg-primary/20"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
