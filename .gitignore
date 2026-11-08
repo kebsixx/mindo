@@ -46,3 +46,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .taste-skill/
+
+# Local tooling / agent skills (not part of the app)
+.agents/
+.codex/
+.superpowers/
+AGENTS.md
+characters/
+skills-lock.json
