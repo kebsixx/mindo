@@ -5,8 +5,9 @@ import type { MindmapNode } from "@/lib/db"
 
 const nodeSchema: z.ZodType<MindmapNode> = z.lazy(() =>
   z.object({
-    label: z.string(),
-    children: z.array(nodeSchema),
+    label: z.string().catch(""),
+    // Leaf nodes omit `children`; the export writer doesn't emit an empty array.
+    children: z.array(nodeSchema).default([]),
   }),
 )
 
@@ -50,7 +51,7 @@ const dataSchema = z.object({
   mindmaps: z.array(
     z.object({
       materialId: z.number().int(),
-      title: z.string(),
+      title: z.string().catch("Mindmap"),
       children: z.array(nodeSchema),
     }),
   ),
@@ -114,8 +115,9 @@ function parseZip(buffer: ArrayBuffer): ImportedData {
   if (!parsed.success) {
     const issue = parsed.error.issues[0]
     const where = issue?.path.join(".") || "isi file"
+    const detail = issue?.message ? ` (${issue.message})` : ""
     throw new Error(
-      `Isi mindo-data.json tidak dikenali di bagian "${where}". Ekspor ulang memakai versi Mindo yang sama dengan pengimpor.`,
+      `Isi mindo-data.json tidak dikenali di bagian "${where}"${detail}. Cek apakah file hasil ekspor Mindo, atau ekspor ulang dengan mode “Pindah perangkat”.`,
     )
   }
   return parsed.data

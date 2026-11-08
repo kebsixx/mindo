@@ -161,19 +161,19 @@ export default function ExportDialog({
               aria-pressed={includeAudio}
               onClick={() => { setIncludeAudio(!includeAudio); setEstimate(null) }}
               className={cn(
-                "mt-3 flex w-full cursor-pointer items-center justify-between gap-3 rounded-full border px-4 py-3 text-left text-sm transition-colors",
+                "mt-3 flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border px-5 py-4 text-left text-sm transition-colors",
                 includeAudio
                   ? "border-primary bg-primary/12"
                   : "border-border hover:bg-secondary",
               )}
             >
-              <span>
-                Sertakan audio asli
-                <span className="block text-muted-foreground">
+              <div className="min-w-0">
+                <div className="font-medium">Sertakan audio asli</div>
+                <div className="text-muted-foreground">
                   Tanpa audio, hasil tetap lengkap tetapi tidak bisa diputar
                   ulang.
-                </span>
-              </span>
+                </div>
+              </div>
               <span
                 aria-hidden="true"
                 className={cn(

@@ -20,7 +20,7 @@ export async function mindmapToPng(content: string): Promise<Blob> {
   // isinya ikut tergeser dan hasilnya kosong. Jadi tetap di 0,0, disembunyikan
   // di belakang halaman saja.
   host.style.cssText =
-    "position:fixed;left:0;top:0;background:#FCFCFC;z-index:-1;pointer-events:none"
+    "position:fixed;left:-100000px;top:-100000px;background:#FCFCFC;pointer-events:none;opacity:0"
   document.body.appendChild(host)
 
   try {
