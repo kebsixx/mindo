@@ -198,7 +198,7 @@ export default function SettingsPage() {
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-180 flex-1 px-5 pb-16 pt-4 sm:px-8 sm:pt-6">
-        <BackLink href="/" label="Kembali ke beranda" />
+        <BackLink label="Kembali" />
         <h1 className="mt-2 text-[clamp(2.25rem,5.4vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.03em]">
           Pengaturan
         </h1>

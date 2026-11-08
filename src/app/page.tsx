@@ -229,8 +229,10 @@ export default function BerandaPage() {
                   setDragging(false);
                   pickFile(e.dataTransfer.files?.[0] ?? null);
                 }}
-                className={`flex min-h-37 flex-col items-start justify-center gap-3 rounded-[22px] bg-card px-5 py-6 transition-colors ${
-                  dragging ? "bg-primary/25" : ""
+                className={`flex min-h-37 flex-col items-start justify-center gap-3 rounded-[22px] border-2 border-dashed bg-card px-5 py-6 transition-colors ${
+                  dragging
+                    ? "border-primary bg-primary/12"
+                    : "border-foreground/20"
                 }`}
               >
                 {file ? (
@@ -252,10 +254,10 @@ export default function BerandaPage() {
                 ) : (
                   <>
                     <p className="text-[1.0625rem] font-medium">
-                      Taruh rekaman di sini
+                      Seret file rekaman ke sini
                     </p>
                     <p className="text-[0.9375rem] text-muted-foreground">
-                      Seret file ke sini, atau
+                      atau pilih dari perangkat
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <Button onClick={() => fileInput.current?.click()}>

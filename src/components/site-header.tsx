@@ -38,8 +38,6 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
     { href: onHome ? "#privasi" : "/#privasi", label: "Privasi" },
   ];
 
-  const keyLabel = "Pengaturan";
-
   return (
     <header className="relative mx-auto flex h-16 w-full max-w-280 items-center justify-between gap-3 px-5 sm:h-18 sm:px-8">
       <Link href="/" className="flex shrink-0 items-center gap-2.5">
@@ -69,15 +67,15 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
         <Link
           href="/settings"
           aria-label="Buka Pengaturan"
+          title="Pengaturan"
           aria-current={onSettings ? "page" : undefined}
           className={buttonVariants({
-            variant: hasKey && !onSettings ? "default" : "outline",
-            size: "sm",
-            className: "max-md:hidden! gap-2",
+            variant: "ghost",
+            size: "icon",
+            className: "max-md:hidden! text-muted-foreground hover:text-foreground",
           })}
         >
-          <Settings className="h-4 w-4" aria-hidden="true" />
-          {keyLabel}
+          <Settings className="h-5 w-5" aria-hidden="true" />
         </Link>
         <Button
           size="icon"
@@ -140,18 +138,26 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
   );
 }
 
-export function BackLink({ href, label }: { href: string; label: string }) {
+export function BackLink({ href, label }: { href?: string; label?: string }) {
   const router = useRouter();
 
   return (
     <nav aria-label="Navigasi halaman">
       <button
         type="button"
-        onClick={() => router.push(href)}
+        onClick={() => {
+          if (href) {
+            router.push(href);
+          } else if (window.history.length > 1) {
+            router.back();
+          } else {
+            router.push("/");
+          }
+        }}
         className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-[0.9375rem] text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        {label}
+        {label ?? "Kembali"}
       </button>
     </nav>
   );
