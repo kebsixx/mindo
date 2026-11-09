@@ -30,9 +30,11 @@ import ExportDialog from "@/components/export-dialog";
 import {
   setProvider,
   setApiKey,
+  setSaveMode,
   clearAllData,
   useStoredProvider,
   useStoredApiKey,
+  useStoredSaveMode,
 } from "@/lib/storage/settings";
 import { getProviderEndpoint } from "@/lib/ai/client";
 import SiteHeader, { BackLink } from "@/components/site-header";
@@ -77,6 +79,8 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const storedProvider = useStoredProvider();
   const storedKey = useStoredApiKey();
+  const storedSaveMode = useStoredSaveMode();
+  const [saveMode, setSaveModeState] = useState<"local" | "session">(storedSaveMode);
   const [keyDraft, setKeyDraft] = useState<string | null>(null);
   const provider = storedProvider;
   const apiKey = keyDraft ?? storedKey;
@@ -106,6 +110,18 @@ export default function SettingsPage() {
     toast({
       title: "Provider disimpan",
       description: `${next} dipakai untuk pemrosesan berikutnya.`,
+    });
+  };
+
+  const chooseSaveMode = (next: "local" | "session") => {
+    setSaveModeState(next);
+    setSaveMode(next);
+    toast({
+      title: next === "local" ? "Key disimpan permanen" : "Key hanya sesi ini",
+      description:
+        next === "local"
+          ? "Key tersimpan di browser dan bertahan ditutup browser."
+          : "Key hilang saat tab/browser ditutup. Isi kembali saat perlu.",
     });
   };
 
@@ -362,6 +378,37 @@ export default function SettingsPage() {
                   Tersimpan otomatis begitu Anda mengetik. Tidak ada tombol
                   simpan yang perlu ditekan.
                 </p>
+              </div>
+
+              <div className="flex items-start justify-between gap-3 rounded-2xl border p-4">
+                <div className="min-w-0">
+                  <div className="text-[0.9375rem] font-medium">
+                    Simpan di browser ini
+                  </div>
+                  <div className="mt-0.5 text-[0.875rem] leading-snug text-muted-foreground">
+                    {saveMode === "local"
+                      ? "Disimpan permanen di browser ini dan bertahan sampai key dihapus. Bisa dilihat lewat DevTools."
+                      : "Hanya disimpan untuk sesi ini. Hilang saat tab/browser ditutup, maka harus diisi lagi."}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={saveMode === "local"}
+                  aria-label="Simpan API key di browser"
+                  onClick={() => chooseSaveMode(saveMode === "local" ? "session" : "local")}
+                  className={cn(
+                    "relative h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors",
+                    saveMode === "local" ? "bg-primary" : "bg-border",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "absolute top-1 h-4 w-4 rounded-full bg-card transition-all",
+                      saveMode === "local" ? "left-6" : "left-1",
+                    )}
+                  />
+                </button>
               </div>
 
               <div className="flex gap-2">
