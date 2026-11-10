@@ -14,20 +14,6 @@ export function ProviderDetail({ provider }: ProviderDetailProps) {
     <dl className="text-[0.9375rem] leading-[1.55]">
       <Row term="Biaya" value={`${p.billing}. ${p.billingNote}`} />
       <Row term="Data" value={`${p.data}. ${p.dataNote}`} />
-      <Row
-        term="Akses"
-        value={
-          p.keyless ? `Tanpa key. ${p.note}` : `Butuh key. ${p.signup}`
-        }
-      />
-      <Row
-        term="Transkripsi"
-        value={
-          p.stt
-            ? `Tersedia lewat model ${p.stt}.`
-            : "Belum tersedia di Mindo. Hanya ringkasan, mindmap, flashcard, dan tutor."
-        }
-      />
       {p.limits.length > 0 && <Row term="Batas" value={p.limits.join(". ")} />}
     </dl>
   );

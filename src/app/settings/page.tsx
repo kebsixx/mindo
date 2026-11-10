@@ -5,6 +5,12 @@ import type { ChangeEvent } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -53,6 +59,7 @@ export default function SettingsPage() {
   const saveMode = useStoredSaveMode();
   const [materialIds, setMaterialIds] = useState<number[]>([]);
   const [importing, setImporting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const keyProviders = stt === llm ? [stt] : [stt, llm];
   const needsAnyKey = keyProviders.some((p) => !PROVIDERS[p].keyless);
@@ -93,13 +100,12 @@ export default function SettingsPage() {
   };
 
   const handleClearAll = () => {
-    if (confirm("Hapus semua data? Tindakan ini tidak bisa dibatalkan.")) {
-      clearAllData();
-      toast({
-        title: "Data dihapus",
-        description: "Semua data berhasil dihapus.",
-      });
-    }
+    clearAllData();
+    setConfirmOpen(false);
+    toast({
+      title: "Data dihapus",
+      description: "Semua data berhasil dihapus.",
+    });
   };
 
   const handleImport = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -130,7 +136,7 @@ export default function SettingsPage() {
     <div className="flex min-h-dvh flex-col overflow-x-clip">
       <SiteHeader />
 
-      <main className="mx-auto w-full max-w-[1080px] flex-1 px-5 pb-16 pt-4 sm:px-8 sm:pt-6">
+      <main className="mx-auto w-full max-w-280 flex-1 px-5 pb-16 pt-4 sm:px-8 sm:pt-6">
         <BackLink label="Kembali" />
         <h1 className="mt-2 text-[clamp(1.75rem,3vw,2.25rem)] font-semibold leading-[1.1] tracking-[-0.02em]">
           Pengaturan
@@ -154,9 +160,9 @@ export default function SettingsPage() {
             />
           </div>
 
-          <div className="lg:sticky lg:top-24 lg:self-start">
+          <div className="space-y-4">
             <Card>
-              <div className="p-5 sm:p-6">
+              <div className="p-5 sm:p-8">
                 <h2 className="text-lg font-semibold">API Key</h2>
                 <p className="mt-1 text-[0.875rem] leading-snug text-muted-foreground">
                   {needsAnyKey
@@ -226,22 +232,29 @@ export default function SettingsPage() {
                 </p>
               </div>
             </Card>
+
+            <section id="panduan-api-key" className="scroll-mt-6">
+              <Card>
+                <div className="p-5 sm:p-8">
+                  <h2 className="text-lg font-semibold">
+                    Cara mendapatkan API key
+                  </h2>
+                  <p className="mt-1 text-[0.9375rem] leading-snug text-muted-foreground">
+                    Panduan singkat per provider. Mindo hanya menautkan ke situs
+                    resmi.
+                  </p>
+                  <div className="mt-2">
+                    {GUIDED_PROVIDERS.map((provider) => (
+                      <GuideItem key={provider} provider={provider} />
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            </section>
           </div>
         </div>
 
-        <section id="panduan-api-key" className="mt-10 scroll-mt-24">
-          <h2 className="text-lg font-semibold">Cara mendapatkan API key</h2>
-          <p className="mt-1 text-[0.9375rem] leading-snug text-muted-foreground">
-            Panduan singkat per provider. Mindo hanya menautkan ke situs resmi.
-          </p>
-          <div className="mt-3 rounded-[28px] border border-border bg-card px-5 py-1 sm:px-6">
-            {GUIDED_PROVIDERS.map((provider) => (
-              <GuideItem key={provider} provider={provider} />
-            ))}
-          </div>
-        </section>
-
-        <div className="mt-4 space-y-3">
+        <div className="mt-8 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-[28px] border border-border bg-card px-5 py-4">
             <div className="min-w-0">
               <p className="text-[0.9375rem] font-medium">Data</p>
@@ -295,13 +308,39 @@ export default function SettingsPage() {
             </div>
             <Button
               variant="outline"
-              onClick={handleClearAll}
+              onClick={() => setConfirmOpen(true)}
               className="border-destructive/40 text-destructive hover:bg-destructive/5"
             >
               Hapus semua data
             </Button>
           </div>
         </div>
+
+        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <DialogContent className="gap-0 rounded-[28px] p-6 sm:max-w-md">
+            <DialogTitle className="text-xl">Hapus semua data?</DialogTitle>
+            <DialogDescription className="mt-2 leading-relaxed">
+              Yang hilang dari browser ini:
+            </DialogDescription>
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-[0.9375rem] leading-[1.55]">
+              <li>API key semua provider</li>
+              <li>Riwayat, audio, dan transkrip materi</li>
+              <li>Ringkasan, peta konsep, dan flashcard</li>
+              <li>Pilihan provider dan cara penyimpanan key</li>
+            </ul>
+            <p className="mt-3 text-[0.875rem] leading-snug text-muted-foreground">
+              Tindakan ini tidak bisa dibatalkan.
+            </p>
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+                Batal
+              </Button>
+              <Button variant="destructive" onClick={handleClearAll}>
+                Hapus semua data
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <p className="mt-6 text-[0.875rem] text-muted-foreground">
           Semua perubahan langsung tersimpan.{" "}
@@ -352,11 +391,13 @@ function GuideItem({ provider }: { provider: Provider }) {
   return (
     <details className="group border-b border-border last:border-b-0">
       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-[0.9375rem] font-medium [&::-webkit-details-marker]:hidden">
-        <span>{p.label}</span>
-        <span className="flex items-center gap-2 text-[0.8125rem] font-normal text-muted-foreground">
-          {p.keyless ? "tanpa key" : p.keysLabel}
+        <span className="min-w-0 truncate">{p.label}</span>
+        <span className="flex min-w-0 items-center gap-2 text-[0.8125rem] font-normal text-muted-foreground">
+          <span className="truncate">
+            {p.keyless ? "tanpa key" : p.keysLabel}
+          </span>
           <ChevronDown
-            className="h-4 w-4 transition-transform group-open:rotate-180"
+            className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180"
             aria-hidden="true"
           />
         </span>

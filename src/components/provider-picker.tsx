@@ -24,11 +24,11 @@ export function ProviderPicker({ role, value, onChange }: ProviderPickerProps) {
           <label
             key={id}
             className={cn(
-              "flex cursor-pointer flex-col gap-1 rounded-2xl border p-3.5 transition-colors",
+              "flex cursor-pointer flex-col gap-1 rounded-[16px] border p-4 transition-colors",
               "has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-[3px] has-[:focus-visible]:outline-ring",
               selected
                 ? "border-foreground bg-card"
-                : "border-border hover:bg-secondary",
+                : "border-foreground/20 hover:bg-secondary",
             )}
           >
             <input
@@ -50,8 +50,7 @@ export function ProviderPicker({ role, value, onChange }: ProviderPickerProps) {
               {p.description}
             </span>
             <span className="text-[0.8125rem] text-muted-foreground">
-              {p.billing} · data {p.data} ·{" "}
-              {p.keyless ? "tanpa key" : "butuh key"}
+              {p.billing} · {p.keyless ? "tanpa key" : "butuh key"}
             </span>
           </label>
         );
