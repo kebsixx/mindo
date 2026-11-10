@@ -1,8 +1,12 @@
-export type Provider = "groq" | "openai"
+import { PROVIDERS } from "./providers"
+import type { Provider } from "./providers"
 
-export function getProviderEndpoint(provider: Provider): string {
-  if (provider === "groq") return "https://api.groq.com/openai/v1"
-  return "https://api.openai.com/v1"
+export type { Provider } from "./providers"
+
+function authHeaders(provider: Provider, apiKey: string): Record<string, string> {
+  const key = apiKey.trim()
+  if (!key || PROVIDERS[provider].keyless) return {}
+  return { Authorization: `Bearer ${key}` }
 }
 
 const AUDIO_MIME: Record<string, string> = {
@@ -39,22 +43,24 @@ export async function transcribeAudio(
   apiKey: string,
   file: Blob
 ): Promise<{ text: string; segments: { id: number; start: number; end: number; text: string }[]; duration: number }> {
-  const endpoint = getProviderEndpoint(provider)
-  const model = provider === "groq" ? "whisper-large-v3" : "whisper-1"
+  const info = PROVIDERS[provider]
+  if (!info.stt) {
+    throw new Error(
+      `${info.label} belum mendukung transkripsi audio. Pilih Groq atau OpenAI di Pengaturan.`
+    )
+  }
 
   const formData = new FormData()
   formData.append("file", toProviderAudio(file))
-  formData.append("model", model)
+  formData.append("model", info.stt)
   formData.append("language", "id")
   formData.append("response_format", "verbose_json")
   formData.append("timestamp_granularities[]", "segment")
   formData.append("temperature", "0")
 
-  const res = await fetch(`${endpoint}/audio/transcriptions`, {
+  const res = await fetch(`${info.baseUrl}/audio/transcriptions`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-    },
+    headers: authHeaders(provider, apiKey),
     body: formData,
   })
 
@@ -81,11 +87,10 @@ export async function chatCompletion(
   schema?: Record<string, unknown>,
   options?: { temperature?: number; maxTokens?: number }
 ): Promise<string> {
-  const endpoint = getProviderEndpoint(provider)
-  const model = provider === "groq" ? "openai/gpt-oss-120b" : "gpt-4o-mini"
+  const info = PROVIDERS[provider]
 
   const body: Record<string, unknown> = {
-    model,
+    model: info.llm,
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
@@ -109,25 +114,38 @@ export async function chatCompletion(
         },
       }
     }
-    return fetch(`${endpoint}/chat/completions`, {
+    return fetch(`${info.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        ...authHeaders(provider, apiKey),
       },
       body: JSON.stringify(payload),
     })
   }
 
-  let res = await send(Boolean(schema))
+  let useSchema = Boolean(schema)
+  let res = await send(useSchema)
 
   // Sebagian model/akun menolak structured output. Ulangi tanpa itu; prompt
   // semua agen sudah meminta JSON murni, jadi hasilnya tetap bisa diparse.
-  if (!res.ok && schema && (res.status === 400 || res.status === 422)) {
+  if (!res.ok && useSchema && (res.status === 400 || res.status === 422)) {
     const firstError = await res.clone().text()
     if (/json_schema|response_format|structured/i.test(firstError)) {
+      useSchema = false
       res = await send(false)
     }
+  }
+
+  // Rate limit: satu percobaan ulang, hormati retry-after, jangan menggantung.
+  if (res.status === 429) {
+    const retryAfter = Number(res.headers.get("retry-after"))
+    const waitMs = Math.min(
+      Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 1000,
+      10_000
+    )
+    await new Promise((resolve) => setTimeout(resolve, waitMs))
+    res = await send(useSchema)
   }
 
   if (!res.ok) {

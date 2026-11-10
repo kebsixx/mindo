@@ -7,14 +7,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, Menu, Settings, X } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useStoredApiKey } from "@/lib/storage/settings";
+import { useStoredApiKey, useStoredProvider } from "@/lib/storage/settings";
+import { PROVIDERS } from "@/lib/ai/providers";
 import { openDB } from "@/lib/db";
 
 export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const storedKey = useStoredApiKey();
-  const hasKey = Boolean(storedKey);
+  const provider = useStoredProvider();
+  const hasKey = Boolean(storedKey) || PROVIDERS[provider].keyless;
   const [hasMaterials, setHasMaterials] = useState(false);
 
   useEffect(() => {

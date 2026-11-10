@@ -12,6 +12,7 @@ import { mindmap } from "@/lib/ai/agents/mindmap"
 import { flashcard } from "@/lib/ai/agents/flashcard"
 import { chunkTranscript } from "@/lib/retrieval/chunk"
 import { getApiKey, getProvider } from "@/lib/storage/settings"
+import { PROVIDERS } from "@/lib/ai/providers"
 import SiteHeader from "@/components/site-header"
 import { Mascot } from "@/components/mascot"
 import type { Provider } from "@/lib/ai/client"
@@ -96,9 +97,17 @@ function ProcessingView() {
     const db = openDB()
     const apiKey = getApiKey()
     const provider = getProvider()
+    const providerInfo = PROVIDERS[provider]
 
     updateStage("transcribe", { status: "running", error: undefined, finishedAt: undefined })
-    if (!apiKey) {
+    if (!providerInfo.stt) {
+      updateStage("transcribe", {
+        status: "failed",
+        error: `${providerInfo.label} belum mendukung transkripsi audio. Pilih Groq atau OpenAI di Pengaturan.`,
+      })
+      return
+    }
+    if (!apiKey && !providerInfo.keyless) {
       updateStage("transcribe", { status: "failed", error: "API key belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider." })
       return
     }
@@ -199,7 +208,7 @@ function ProcessingView() {
     const apiKey = getApiKey()
     const provider = getProvider()
     const mid = parseInt(materialId!, 10)
-    if (!apiKey) {
+    if (!apiKey && !PROVIDERS[provider].keyless) {
       updateStage(id, { status: "failed", error: "API key belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider." })
       return
     }

@@ -12,7 +12,8 @@ import DemoShowcase from "@/components/demo-showcase";
 import { Mascot } from "@/components/mascot";
 import { useToast } from "@/components/ui/use-toast";
 import { openDB, type Material } from "@/lib/db";
-import { setApiKey, useStoredApiKey } from "@/lib/storage/settings";
+import { setApiKey, useStoredApiKey, useStoredProvider } from "@/lib/storage/settings";
+import { PROVIDERS } from "@/lib/ai/providers";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const ACCEPT = "audio/*,video/mp4";
@@ -29,11 +30,11 @@ const AUDIO_TYPES: Record<string, string> = {
 const STEPS = [
   {
     title: "Siapkan rekaman.",
-    body: "Pilih file audio sampai 25 MB atau rekam langsung dari browser, lalu tempel API key Groq atau OpenAI. Cukup sekali.",
+    body: "Pilih file audio sampai 25 MB atau rekam langsung dari browser, lalu tempel API key provider di Pengaturan. Cukup sekali.",
   },
   {
     title: "Provider Anda yang memproses.",
-    body: "Browser mengirim rekaman langsung ke Groq atau OpenAI, tanpa lewat server Mindo. Dari sana keluar transkrip, ringkasan, mindmap, dan flashcard.",
+    body: "Browser mengirim rekaman langsung ke provider pilihan Anda, tanpa lewat server Mindo. Dari sana keluar transkrip, ringkasan, mindmap, dan flashcard.",
   },
   {
     title: "Hasil disimpan di browser.",
@@ -57,10 +58,14 @@ export default function BerandaPage() {
   const [dragging, setDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const storedKey = useStoredApiKey();
+  const provider = useStoredProvider();
+  const providerInfo = PROVIDERS[provider];
+  const keyless = providerInfo.keyless;
+  const canTranscribe = Boolean(providerInfo.stt);
   const [keyDraft, setKeyDraft] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
   const apiKey = keyDraft ?? storedKey;
-  const hasStoredKey = Boolean(storedKey);
+  const hasStoredKey = Boolean(storedKey) || keyless;
   const [editingDraft, setEditingDraft] = useState<boolean | null>(null);
   const editingKey = editingDraft ?? !hasStoredKey;
   const [saving, setSaving] = useState(false);
@@ -131,7 +136,7 @@ export default function BerandaPage() {
   }
 
   async function handleStart() {
-    if (!file || !apiKey.trim()) return;
+    if (!file || !canTranscribe || (!keyless && !apiKey.trim())) return;
     setSaving(true);
     try {
       const trimmed = apiKey.trim();
@@ -170,12 +175,15 @@ export default function BerandaPage() {
     setMaterials((prev) => prev.filter((m) => m.id !== id));
   }
 
-  const ready = Boolean(file && apiKey.trim());
+  const ready =
+    Boolean(file) && canTranscribe && (keyless || Boolean(apiKey.trim()));
   const reason = !file
     ? "Pilih file atau rekam dulu."
-    : !apiKey.trim()
-      ? "Tempel API key Groq atau OpenAI."
-      : null;
+    : !canTranscribe
+      ? `${providerInfo.label} belum mendukung transkripsi audio. Pilih Groq atau OpenAI di Pengaturan.`
+      : !keyless && !apiKey.trim()
+        ? `Tempel API key ${providerInfo.label}.`
+        : null;
   const hasHistory = !loading && materials.length > 0;
 
   return (
@@ -295,95 +303,116 @@ export default function BerandaPage() {
               </div>
 
               <div className="px-2.5 pb-1 pt-5">
-                <label
-                  htmlFor={editingKey ? "api-key" : "api-key-status"}
-                  className="text-[0.9375rem] font-medium"
-                >
-                  API Key
-                </label>
-                {editingKey ? (
-                  <div className="mt-2 flex gap-2">
-                    <Input
-                      id="api-key"
-                      type={showKey ? "text" : "password"}
-                      value={apiKey}
-                      onChange={(e) => setKeyDraft(e.target.value)}
-                      onBlur={persistKey}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          persistKey();
-                        }
-                      }}
-                      placeholder="Tempel API key Groq atau OpenAI"
-                      autoComplete="off"
-                      spellCheck={false}
-                      aria-describedby="api-key-hint"
-                      className="h-11 rounded-full bg-card px-4 text-base"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      aria-label={
-                        showKey ? "Sembunyikan API key" : "Lihat API key"
-                      }
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => setShowKey((v) => !v)}
-                      className="shrink-0"
-                    >
-                      {showKey ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="mt-2 flex h-11 items-center justify-between gap-2 rounded-full bg-card pl-4 pr-1.5">
-                    <span
-                      id="api-key-status"
-                      className="flex items-center gap-2 text-[0.9375rem]"
-                    >
+                {keyless ? (
+                  <>
+                    <p className="text-[0.9375rem] font-medium">API Key</p>
+                    <div className="mt-2 flex min-h-11 items-center gap-2 rounded-full bg-card px-4">
                       <span
                         className="h-1.5 w-1.5 rounded-full bg-primary"
                         aria-hidden="true"
                       />
-                      API Key aktif
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      aria-label="Ganti API key"
-                      onClick={() => {
-                        setKeyDraft(storedKey);
-                        setEditingDraft(true);
-                      }}
+                      <span className="text-[0.9375rem]">
+                        {providerInfo.label} lokal, tanpa key
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[0.8125rem] leading-snug text-muted-foreground">
+                      Teks tidak dikirim ke server pihak ketiga. Server{" "}
+                      {providerInfo.label} harus berjalan di komputer ini.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <label
+                      htmlFor={editingKey ? "api-key" : "api-key-status"}
+                      className="text-[0.9375rem] font-medium"
                     >
-                      Ganti
-                    </Button>
-                  </div>
+                      API Key
+                    </label>
+                    {editingKey ? (
+                      <div className="mt-2 flex gap-2">
+                        <Input
+                          id="api-key"
+                          type={showKey ? "text" : "password"}
+                          value={apiKey}
+                          onChange={(e) => setKeyDraft(e.target.value)}
+                          onBlur={persistKey}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              persistKey();
+                            }
+                          }}
+                          placeholder={providerInfo.placeholder}
+                          autoComplete="off"
+                          spellCheck={false}
+                          aria-describedby="api-key-hint"
+                          className="h-11 rounded-full bg-card px-4 text-base"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          aria-label={
+                            showKey ? "Sembunyikan API key" : "Lihat API key"
+                          }
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => setShowKey((v) => !v)}
+                          className="shrink-0"
+                        >
+                          {showKey ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="mt-2 flex h-11 items-center justify-between gap-2 rounded-full bg-card pl-4 pr-1.5">
+                        <span
+                          id="api-key-status"
+                          className="flex items-center gap-2 text-[0.9375rem]"
+                        >
+                          <span
+                            className="h-1.5 w-1.5 rounded-full bg-primary"
+                            aria-hidden="true"
+                          />
+                          API Key aktif
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label="Ganti API key"
+                          onClick={() => {
+                            setKeyDraft(storedKey);
+                            setEditingDraft(true);
+                          }}
+                        >
+                          Ganti
+                        </Button>
+                      </div>
+                    )}
+                    <p
+                      id="api-key-hint"
+                      className="mt-2 text-[0.8125rem] leading-snug text-muted-foreground"
+                    >
+                      Kunci hanya dikirim ke {providerInfo.label}, disimpan di
+                      browser ini.
+                      {!hasStoredKey && (
+                        <>
+                          {" "}
+                          <Link
+                            href="/settings#panduan-api-key"
+                            className="underline decoration-1 underline-offset-4 hover:text-foreground"
+                          >
+                            Cara mendapatkan API key
+                          </Link>
+                        </>
+                      )}
+                    </p>
+                  </>
                 )}
-                <p
-                  id="api-key-hint"
-                  className="mt-2 text-[0.8125rem] leading-snug text-muted-foreground"
-                >
-                  Kunci hanya dikirim ke provider yang Anda pilih, disimpan di
-                  browser ini.
-                  {!hasStoredKey && (
-                    <>
-                      {" "}
-                      <Link
-                        href="/settings#panduan-api-key"
-                        className="underline decoration-1 underline-offset-4 hover:text-foreground"
-                      >
-                        Cara mendapatkan API key
-                      </Link>
-                    </>
-                  )}
-                </p>
               </div>
 
-              {file && !apiKey.trim() ? (
+              {!keyless && file && !apiKey.trim() ? (
                 <Button
                   asChild
                   size="lg"

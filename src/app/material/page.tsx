@@ -26,6 +26,7 @@ import ExportDialog from "@/components/export-dialog";
 import ChatPanel, { type TutorReply } from "@/components/chat-panel";
 import { tutor } from "@/lib/ai/agents/tutor";
 import { getApiKey, getProvider } from "@/lib/storage/settings";
+import { PROVIDERS } from "@/lib/ai/providers";
 
 export default function MaterialPage() {
   return (
@@ -116,8 +117,9 @@ function MaterialView() {
   };
 
   const askTutor = async (question: string): Promise<TutorReply> => {
-    const apiKey = getApiKey();
-    if (!apiKey) {
+    const provider = getProvider();
+    const apiKey = getApiKey(provider);
+    if (!apiKey && !PROVIDERS[provider].keyless) {
       return {
         text: "API key belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider.",
       };
@@ -132,7 +134,7 @@ function MaterialView() {
         text: "Transkrip belum tersedia. Jalankan ulang tahap Transkrip di halaman Pemrosesan.",
       };
     }
-    const result = await tutor(getProvider(), apiKey, question, chunks);
+    const result = await tutor(provider, apiKey, question, chunks);
     if (!result.found) {
       return { text: "Tidak dibahas dalam rekaman ini.", notFound: true };
     }

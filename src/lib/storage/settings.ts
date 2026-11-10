@@ -1,11 +1,19 @@
 import { useCallback, useSyncExternalStore } from "react"
+import {
+  DEFAULT_PROVIDER,
+  isProvider,
+} from "@/lib/ai/providers"
+import type { Provider } from "@/lib/ai/providers"
 
-export type Provider = "groq" | "openai"
+export type { Provider } from "@/lib/ai/providers"
 
 export type SaveMode = "local" | "session"
 
 const EVENT = "mindo:settings"
 const SAVE_MODE_KEY = "mindo.saveMode"
+const PROVIDER_KEY = "mindo.provider"
+const KEYS_KEY = "mindo.apiKeys"
+const LEGACY_KEY = "mindo.apiKey"
 
 function notify(): void {
   window.dispatchEvent(new Event(EVENT))
@@ -16,13 +24,48 @@ function subscribe(callback: () => void): () => void {
   return () => window.removeEventListener(EVENT, callback)
 }
 
-function readApiKey(): string {
-  const mode = getSaveMode()
-  const storage = mode === "session" ? window.sessionStorage : window.localStorage
+function storageFor(mode: SaveMode): Storage {
+  return mode === "session" ? window.sessionStorage : window.localStorage
+}
+
+function readKeyMap(storage: Storage): Partial<Record<Provider, string>> {
+  const map: Partial<Record<Provider, string>> = {}
   try {
-    return storage.getItem("mindo.apiKey") || ""
+    const raw = storage.getItem(KEYS_KEY)
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw)
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        for (const [id, value] of Object.entries(parsed)) {
+          if (isProvider(id) && typeof value === "string" && value) {
+            map[id] = value
+          }
+        }
+      }
+    }
+
+    // Satu key lama untuk provider aktif. Pindahkan sekali, lalu buang.
+    const legacy = storage.getItem(LEGACY_KEY)
+    if (legacy) {
+      const active = getProvider()
+      if (!map[active]) map[active] = legacy
+      storage.setItem(KEYS_KEY, JSON.stringify(map))
+      storage.removeItem(LEGACY_KEY)
+    }
   } catch {
-    return ""
+    // storage tidak bisa dibaca atau JSON rusak
+  }
+  return map
+}
+
+function writeKeyMap(
+  storage: Storage,
+  map: Partial<Record<Provider, string>>
+): void {
+  try {
+    storage.setItem(KEYS_KEY, JSON.stringify(map))
+    storage.removeItem(LEGACY_KEY)
+  } catch {
+    // ignore
   }
 }
 
@@ -44,41 +87,51 @@ export function setSaveMode(mode: SaveMode): void {
 }
 
 export function getProvider(): Provider {
-  if (typeof window === "undefined") return "groq"
-  // Nilai lama (gemini/claude/deepseek/ollama) pernah tersimpan walau tidak
-  // didukung. Jangan teruskan ke endpoint yang salah.
-  return localStorage.getItem("mindo.provider") === "openai" ? "openai" : "groq"
+  if (typeof window === "undefined") return DEFAULT_PROVIDER
+  try {
+    const raw = localStorage.getItem(PROVIDER_KEY)
+    return raw && isProvider(raw) ? raw : DEFAULT_PROVIDER
+  } catch {
+    return DEFAULT_PROVIDER
+  }
 }
 
 export function setProvider(provider: Provider): void {
   if (typeof window === "undefined") return
-  localStorage.setItem("mindo.provider", provider)
-  notify()
-}
-
-export function getApiKey(): string {
-  if (typeof window === "undefined") return ""
-  return readApiKey()
-}
-
-export function setApiKey(key: string): void {
-  if (typeof window === "undefined") return
-  const mode = getSaveMode()
-  const storage = mode === "session" ? window.sessionStorage : window.localStorage
   try {
-    storage.setItem("mindo.apiKey", key)
+    localStorage.setItem(PROVIDER_KEY, provider)
   } catch {
     // ignore
   }
   notify()
 }
 
-export function useStoredProvider(): Provider {
-  return useSyncExternalStore(subscribe, getProvider, () => "groq")
+export function getApiKey(provider: Provider = getProvider()): string {
+  if (typeof window === "undefined") return ""
+  return readKeyMap(storageFor(getSaveMode()))[provider] ?? ""
 }
 
-export function useStoredApiKey(): string {
-  return useSyncExternalStore(subscribe, getApiKey, () => "")
+export function setApiKey(key: string, provider: Provider = getProvider()): void {
+  if (typeof window === "undefined") return
+  const storage = storageFor(getSaveMode())
+  const map = readKeyMap(storage)
+  const trimmed = key.trim()
+  if (trimmed) {
+    map[provider] = trimmed
+  } else {
+    delete map[provider]
+  }
+  writeKeyMap(storage, map)
+  notify()
+}
+
+export function useStoredProvider(): Provider {
+  return useSyncExternalStore(subscribe, getProvider, () => DEFAULT_PROVIDER)
+}
+
+export function useStoredApiKey(provider?: Provider): string {
+  const read = useCallback(() => getApiKey(provider), [provider])
+  return useSyncExternalStore(subscribe, read, () => "")
 }
 
 export function useStoredSaveMode(): SaveMode {
@@ -99,12 +152,18 @@ export function useStoredSetSaveMode(): (mode: SaveMode) => void {
 
 export function clearAllData(): void {
   if (typeof window === "undefined") return
-  localStorage.removeItem("mindo.provider")
-  localStorage.removeItem("mindo.apiKey")
-  localStorage.removeItem("mindo.prefs")
-  localStorage.removeItem(SAVE_MODE_KEY)
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    try {
+      storage.removeItem(PROVIDER_KEY)
+      storage.removeItem(KEYS_KEY)
+      storage.removeItem(LEGACY_KEY)
+    } catch {
+      // ignore
+    }
+  }
   try {
-    sessionStorage.removeItem("mindo.apiKey")
+    localStorage.removeItem("mindo.prefs")
+    localStorage.removeItem(SAVE_MODE_KEY)
   } catch {
     // ignore
   }

@@ -10,7 +10,8 @@ import { Mic, Square, Loader2, Trash2, Save, Play, Pause, AlertTriangle, MicOff,
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { openDB } from "@/lib/db"
-import { setApiKey, useStoredApiKey } from "@/lib/storage/settings"
+import { setApiKey, useStoredApiKey, useStoredProvider } from "@/lib/storage/settings"
+import { PROVIDERS } from "@/lib/ai/providers"
 import SiteHeader from "@/components/site-header"
 
 const WARN_BYTES = 20 * 1024 * 1024
@@ -29,11 +30,14 @@ export default function RecordingPage() {
   const [volume, setVolume] = useState<number[]>(() => new Array(24).fill(0.06))
 
   const storedKey = useStoredApiKey()
+  const provider = useStoredProvider()
+  const providerInfo = PROVIDERS[provider]
+  const keyless = providerInfo.keyless
   const [keyDraft, setKeyDraft] = useState<string | null>(null)
   const [showKey, setShowKey] = useState(false)
   const [editingDraft, setEditingDraft] = useState(false)
   const apiKey = keyDraft ?? storedKey
-  const hasStoredKey = Boolean(storedKey)
+  const hasStoredKey = Boolean(storedKey) || keyless
   const editingKey = editingDraft ?? !hasStoredKey
 
   function persistKey() {
@@ -41,7 +45,7 @@ export default function RecordingPage() {
     setApiKey(trimmed)
     setKeyDraft(trimmed)
     setEditingDraft(false)
-    if (trimmed) toast({ title: "API key disimpan" })
+    if (trimmed && !keyless) toast({ title: "API key disimpan" })
   }
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -198,11 +202,11 @@ export default function RecordingPage() {
     if (!audioBlob) return
 
     const trimmedKey = apiKey.trim()
-    if (!trimmedKey) {
+    if (!keyless && !trimmedKey) {
       setEditingDraft(true)
       toast({
         title: "API key diperlukan",
-        description: "Tempel API key Groq atau OpenAI untuk memproses rekaman.",
+        description: `Tempel API key ${providerInfo.label} untuk memproses rekaman.`,
       })
       return
     }
@@ -309,6 +313,12 @@ export default function RecordingPage() {
 
             {audioBlob && !recording && (
               <div className="rounded-2xl border border-border bg-card p-4">
+                {keyless ? (
+                  <p className="text-[0.9375rem] leading-snug text-muted-foreground">
+                    {providerInfo.label} berjalan lokal. Tidak perlu API key.
+                  </p>
+                ) : (
+                  <>
                 <label
                   htmlFor={editingKey ? "rec-api-key" : "rec-api-key-status"}
                   className="text-[0.9375rem] font-medium"
@@ -329,7 +339,7 @@ export default function RecordingPage() {
                           persistKey()
                         }
                       }}
-                      placeholder="Tempel API key Groq atau OpenAI"
+                      placeholder={providerInfo.placeholder}
                       autoComplete="off"
                       spellCheck={false}
                       aria-describedby="rec-api-key-hint"
@@ -376,6 +386,8 @@ export default function RecordingPage() {
                     Cara dapat key
                   </Link>
                 </div>
+                  </>
+                )}
               </div>
             )}
 
