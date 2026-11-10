@@ -160,10 +160,38 @@ export const PROVIDERS = {
 
 export type Provider = keyof typeof PROVIDERS;
 
+export type ProviderRole = "stt" | "llm";
+
+export const ROLE_LABELS = {
+  stt: {
+    title: "Transkripsi",
+    short: "transkripsi",
+    description:
+      "Mengubah rekaman jadi teks. Audio hanya dikirim ke provider ini.",
+  },
+  llm: {
+    title: "Ringkasan & teks",
+    short: "ringkasan",
+    description:
+      "Mengolah transkrip jadi ringkasan, mindmap, flashcard, dan jawaban tutor.",
+  },
+} as const;
+
 export const PROVIDER_IDS = Object.keys(PROVIDERS) as Provider[];
 
-export const DEFAULT_PROVIDER: Provider = "groq";
+export const DEFAULT_PROVIDERS: Record<ProviderRole, Provider> = {
+  stt: "groq",
+  llm: "groq",
+};
 
 export function isProvider(value: string): value is Provider {
   return Object.prototype.hasOwnProperty.call(PROVIDERS, value);
+}
+
+export function supportsRole(provider: Provider, role: ProviderRole): boolean {
+  return role === "stt" ? PROVIDERS[provider].stt !== null : Boolean(PROVIDERS[provider].llm);
+}
+
+export function providerIdsFor(role: ProviderRole): Provider[] {
+  return PROVIDER_IDS.filter((id) => supportsRole(id, role));
 }

@@ -117,7 +117,7 @@ function MaterialView() {
   };
 
   const askTutor = async (question: string): Promise<TutorReply> => {
-    const provider = getProvider();
+    const provider = getProvider("llm");
     const apiKey = getApiKey(provider);
     if (!apiKey && !PROVIDERS[provider].keyless) {
       return {

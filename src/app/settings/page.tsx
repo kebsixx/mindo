@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ChangeEvent, ReactNode } from "react";
+import type { ChangeEvent } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import { openDB } from "@/lib/db";
 import { importBundle } from "@/lib/export/import";
 import ExportDialog from "@/components/export-dialog";
+import { ProviderDetail } from "@/components/provider-detail";
+import { ProviderPicker } from "@/components/provider-picker";
 import {
   setProvider,
   setApiKey,
@@ -37,40 +39,25 @@ import {
   useStoredSaveMode,
 } from "@/lib/storage/settings";
 import {
-  DEFAULT_PROVIDER,
-  PROVIDER_IDS,
   PROVIDERS,
+  providerIdsFor,
+  ROLE_LABELS,
 } from "@/lib/ai/providers";
-import type { Provider } from "@/lib/ai/providers";
+import type { Provider, ProviderRole } from "@/lib/ai/providers";
 import SiteHeader, { BackLink } from "@/components/site-header";
-
-function Badge({ children }: { children: ReactNode }) {
-  return (
-    <span className="rounded-full bg-card px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-      {children}
-    </span>
-  );
-}
 
 export default function SettingsPage() {
   const { toast } = useToast();
-  const storedProvider = useStoredProvider();
-  const storedKey = useStoredApiKey();
-  const storedSaveMode = useStoredSaveMode();
-  const [saveMode, setSaveModeState] = useState<"local" | "session">(storedSaveMode);
-  const [keyDraft, setKeyDraft] = useState<string | null>(null);
-  const provider = storedProvider;
-  const active = PROVIDERS[provider];
-  const keyless = active.keyless;
-  const apiKey = keyDraft ?? storedKey;
-  const [showKey, setShowKey] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{
-    ok: boolean;
-    message: string;
-  } | null>(null);
+  const stt = useStoredProvider("stt");
+  const llm = useStoredProvider("llm");
+  const saveMode = useStoredSaveMode();
   const [materialIds, setMaterialIds] = useState<number[]>([]);
   const [importing, setImporting] = useState(false);
+
+  const sttInfo = PROVIDERS[stt];
+  const needsAnyKey = [stt, llm].some(
+    (p) => !PROVIDERS[p].keyless,
+  );
 
   const refreshMaterialIds = () => {
     openDB()
@@ -84,91 +71,32 @@ export default function SettingsPage() {
     refreshMaterialIds();
   }, []);
 
-  const chooseProvider = (next: Provider) => {
-    if (next === provider) return;
-    setProvider(next);
-    setKeyDraft(null);
-    setTestResult(null);
-    setShowKey(false);
+  const chooseProvider = (role: ProviderRole, next: Provider) => {
+    const current = role === "stt" ? stt : llm;
+    if (next === current) return;
+    setProvider(role, next);
     toast({
       title: "Provider disimpan",
-      description: `${PROVIDERS[next].label} dipakai untuk pemrosesan berikutnya.`,
+      description: `${PROVIDERS[next].label} dipakai untuk ${
+        role === "stt" ? "transkripsi" : "ringkasan & teks"
+      } berikutnya.`,
     });
   };
 
   const chooseSaveMode = (next: "local" | "session") => {
-    setSaveModeState(next);
     setSaveMode(next);
     toast({
       title: next === "local" ? "Key disimpan permanen" : "Key hanya sesi ini",
       description:
         next === "local"
           ? "Key tersimpan di browser dan bertahan ditutup browser."
-          : "Key hilang saat tab/browser ditutup. Isi kembali saat perlu.",
+          : "Key hilang saat tab/browser ditutup, maka harus diisi kembali.",
     });
-  };
-
-  const commitKey = (value: string) => {
-    setKeyDraft(value);
-    if (value.trim() === storedKey) return;
-    setApiKey(value);
-    if (value.trim()) toast({ title: "API key disimpan" });
-  };
-
-  const testConnection = async () => {
-    setTesting(true);
-    setTestResult(null);
-    try {
-      const headers: Record<string, string> = {};
-      if (!keyless && apiKey.trim()) {
-        headers.Authorization = `Bearer ${apiKey.trim()}`;
-      }
-      const startedAt = performance.now();
-      const res = await fetch(`${active.baseUrl}/models`, { headers });
-      const elapsed = Math.round(performance.now() - startedAt);
-      if (res.ok) {
-        setTestResult({
-          ok: true,
-          message: `Koneksi berhasil, respons ${elapsed} ms.`,
-        });
-      } else if (res.status === 401 || res.status === 403) {
-        setTestResult({
-          ok: false,
-          message: "API key ditolak provider. Periksa kembali kuncinya.",
-        });
-      } else if (res.status === 429) {
-        setTestResult({
-          ok: false,
-          message: "Terlalu banyak permintaan. Coba lagi sebentar lagi.",
-        });
-      } else if (res.status === 404) {
-        setTestResult({
-          ok: false,
-          message:
-            "Provider tidak menyediakan endpoint daftar model. Koneksi belum bisa diuji dari sini.",
-        });
-      } else {
-        setTestResult({
-          ok: false,
-          message: `Provider menolak permintaan (kode ${res.status}).`,
-        });
-      }
-    } catch {
-      setTestResult({
-        ok: false,
-        message: keyless
-          ? `Tidak bisa menghubungi ${active.label}. Pastikan servernya berjalan di komputer ini.`
-          : "Jaringan gagal menghubungi provider. Periksa koneksi internet Anda.",
-      });
-    } finally {
-      setTesting(false);
-    }
   };
 
   const handleClearAll = () => {
     if (confirm("Hapus semua data? Tindakan ini tidak bisa dibatalkan.")) {
       clearAllData();
-      setKeyDraft("");
       toast({
         title: "Data dihapus",
         description: "Semua data berhasil dihapus.",
@@ -210,8 +138,8 @@ export default function SettingsPage() {
           Pengaturan
         </h1>
         <p className="mt-3 max-w-[46ch] text-[1.0625rem] leading-[1.55] text-muted-foreground">
-          Pilih provider, tempel API key, lalu uji koneksinya sebelum memproses
-          rekaman.
+          Pilih provider transkripsi dan provider ringkasan, tempel API key,
+          lalu uji koneksinya sebelum memproses rekaman.
         </p>
 
         <div className="mt-10 space-y-4">
@@ -219,82 +147,59 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="text-lg">Pilih Provider AI</CardTitle>
               <CardDescription>
-                Satu provider untuk transkripsi dan teks. Tidak ada perpindahan
-                otomatis.
+                Transkripsi audio dan ringkasan teks bisa pakai provider
+                beda. Tidak ada perpindahan otomatis.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div
-                role="radiogroup"
-                aria-label="Provider AI"
-                className="space-y-2"
-              >
-                {PROVIDER_IDS.map((id) => {
-                  const p = PROVIDERS[id];
-                  const selected = provider === id;
-                  return (
-                    <button
-                      key={id}
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() => chooseProvider(id)}
-                      className={cn(
-                        "w-full cursor-pointer rounded-2xl border p-4 text-left transition-colors",
-                        selected
-                          ? "border-primary bg-primary/12"
-                          : "border-border hover:bg-secondary",
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2 font-medium">
-                            {p.label}
-                            {id === DEFAULT_PROVIDER && <Badge>Default</Badge>}
-                          </div>
-                          <div className="mt-0.5 text-sm text-muted-foreground">
-                            {p.description}
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            <Badge>{p.billing}</Badge>
-                            <Badge>
-                              {p.stt ? "Bisa transkripsi" : "Teks saja"}
-                            </Badge>
-                            <Badge>{p.data}</Badge>
-                          </div>
-                        </div>
-                        {selected && (
-                          <CheckCircle className="h-5 w-5 shrink-0 text-foreground" />
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
+            <CardContent className="space-y-6">
+              <div className="space-y-3 rounded-2xl bg-secondary p-4">
+                <p className="text-[0.9375rem] font-medium">
+                  {ROLE_LABELS.stt.title}
+                </p>
+                <p className="text-[0.9375rem] leading-[1.55] text-muted-foreground">
+                  {ROLE_LABELS.stt.description}
+                </p>
+                <ProviderPicker
+                  role="stt"
+                  value={stt}
+                  onChange={(next) => chooseProvider("stt", next)}
+                />
               </div>
 
-              <div className="space-y-2 rounded-2xl bg-secondary p-4 text-[0.9375rem] leading-[1.55]">
-                <p>
-                  <span className="font-medium">Biaya:</span> {active.billing}.{" "}
-                  {active.billingNote}
+              <div className="space-y-3 rounded-2xl bg-secondary p-4">
+                <p className="text-[0.9375rem] font-medium">
+                  {ROLE_LABELS.llm.title}
                 </p>
-                <p>
-                  <span className="font-medium">Data:</span> {active.data}.{" "}
-                  {active.dataNote}
+                <p className="text-[0.9375rem] leading-[1.55] text-muted-foreground">
+                  {ROLE_LABELS.llm.description}
                 </p>
-                <p>
-                  <span className="font-medium">Transkripsi:</span>{" "}
-                  {active.stt
-                    ? `tersedia lewat ${active.stt}.`
-                    : "belum tersedia di Mindo. Hanya ringkasan, mindmap, flashcard, dan tutor yang bisa dipakai."}
-                </p>
+                <ProviderPicker
+                  role="llm"
+                  value={llm}
+                  onChange={(next) => chooseProvider("llm", next)}
+                />
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="space-y-2 rounded-2xl bg-secondary p-4">
+                  <p className="text-[0.8125rem] font-medium uppercase tracking-wide text-muted-foreground">
+                    Provider Transkripsi
+                  </p>
+                  <ProviderDetail provider={stt} />
+                </div>
+                <div className="space-y-2 rounded-2xl bg-secondary p-4">
+                  <p className="text-[0.8125rem] font-medium uppercase tracking-wide text-muted-foreground">
+                    Provider Ringkasan
+                  </p>
+                  <ProviderDetail provider={llm} />
+                </div>
               </div>
             </CardContent>
           </Card>
 
           <Card id="panduan-api-key" className="scroll-mt-8">
             <CardHeader>
-              <CardTitle className="text-lg">
-                Cara mendapatkan API key
-              </CardTitle>
+              <CardTitle className="text-lg">Cara mendapatkan API key</CardTitle>
               <CardDescription>
                 Panduan singkat untuk setiap provider. Ikuti yang sesuai pilihan
                 Anda di atas.
@@ -302,52 +207,12 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <ol className="space-y-2">
-                {PROVIDER_IDS.map((id) => {
-                  const p = PROVIDERS[id];
-                  return (
-                    <li key={id}>
-                      <div
-                        className={cn(
-                          "rounded-2xl p-4",
-                          provider === id ? "bg-primary/12" : "bg-secondary",
-                        )}
-                      >
-                        <div className="flex flex-wrap items-baseline gap-2">
-                          <p className="font-medium">{p.label}</p>
-                          {id === DEFAULT_PROVIDER && (
-                            <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-foreground">
-                              Mulai di sini
-                            </span>
-                          )}
-                          {p.keyless && (
-                            <span className="text-xs text-muted-foreground">
-                              tanpa key
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-1.5 text-[0.9375rem] leading-[1.55]">
-                          {p.signup}
-                        </p>
-                        <p className="mt-1 text-[0.9375rem] leading-[1.55] text-muted-foreground">
-                          {p.note}
-                        </p>
-                        <a
-                          href={p.keysUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-[0.9375rem] underline decoration-1 underline-offset-4 hover:text-muted-foreground"
-                        >
-                          {p.keysLabel}
-                          <ExternalLink
-                            className="h-3.5 w-3.5"
-                            aria-hidden="true"
-                          />
-                          <span className="sr-only">(buka di tab baru)</span>
-                        </a>
-                      </div>
-                    </li>
-                  );
-                })}
+                {providerIdsFor("stt").map((id) => (
+                  <GuideItem key={`stt-${id}`} provider={id} />
+                ))}
+                {providerIdsFor("llm").map((id) => (
+                  <GuideItem key={`llm-${id}`} provider={id} />
+                ))}
               </ol>
               <p className="mt-4 text-[0.9375rem] leading-[1.55] text-muted-foreground">
                 Halaman ini hanya menautkan ke situs resmi provider. Mindo tidak
@@ -355,65 +220,21 @@ export default function SettingsPage() {
               </p>
             </CardContent>
           </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">API Key</CardTitle>
               <CardDescription>
-                {keyless
-                  ? `${active.label} berjalan di komputer Anda dan tidak memakai API key.`
-                  : `Masukkan API key ${active.label}. Key tiap provider disimpan terpisah.`}
+                {needsAnyKey
+                  ? stt === llm
+                    ? `Masukkan API key ${sttInfo.label}. Key tiap provider disimpan terpisah.`
+                    : "Masukkan API key untuk provider transkripsi dan provider ringkasan. Key tiap provider disimpan terpisah."
+                  : "Provider transkripsi dan ringkasan Anda berjalan di komputer ini tanpa API key."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {keyless ? (
-                <p className="rounded-2xl bg-secondary p-4 text-[0.9375rem] leading-[1.55] text-muted-foreground">
-                  Tidak ada key yang dikirim. Pastikan {active.label} sudah
-                  terpasang dan servernya berjalan di{" "}
-                  <code className="text-foreground">localhost:11434</code>.
-                </p>
-              ) : (
-                <div>
-                  <label
-                    htmlFor="api-key-field"
-                    className="text-[0.9375rem] font-medium"
-                  >
-                    API key {active.label}
-                  </label>
-                  <div className="relative mt-2">
-                    <Input
-                      id="api-key-field"
-                      type={showKey ? "text" : "password"}
-                      value={apiKey}
-                      onChange={(e) => commitKey(e.target.value)}
-                      placeholder={active.placeholder}
-                      autoComplete="off"
-                      spellCheck={false}
-                      className="h-11 rounded-full pl-4 pr-11 text-base"
-                    />
-                    <button
-                      type="button"
-                      aria-label={
-                        showKey ? "Sembunyikan API key" : "Lihat API key"
-                      }
-                      onClick={() => setShowKey(!showKey)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded-full p-2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showKey ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                  <p className="mt-2 text-[0.875rem] leading-snug text-muted-foreground">
-                    Tersimpan otomatis begitu Anda mengetik. Tidak ada tombol
-                    simpan yang perlu ditekan.
-                  </p>
-                </div>
-              )}
-
-              {!keyless && (
-                <div className="flex items-start justify-between gap-3 rounded-2xl border p-4">
+              {needsAnyKey && (
+                <div className="flex items-start justify-between gap-3 rounded-2xl bg-secondary p-4">
                   <div className="min-w-0">
                     <div className="text-[0.9375rem] font-medium">
                       Simpan di browser ini
@@ -447,49 +268,23 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              <div className="flex gap-2">
-                <Button
-                  onClick={testConnection}
-                  disabled={testing || (!keyless && !apiKey.trim())}
-                  variant="outline"
-                >
-                  {testing ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Key className="h-4 w-4" />
-                  )}
-                  Uji Koneksi
-                </Button>
+              <div className="space-y-2">
+                {stt === llm ? (
+                  <KeyCard provider={stt} role="stt" />
+                ) : (
+                  <>
+                    <KeyCard provider={stt} role="stt" />
+                    <KeyCard provider={llm} role="llm" />
+                  </>
+                )}
               </div>
 
-              {testResult && (
-                <div
-                  className={cn(
-                    "flex items-center gap-2 rounded-2xl p-3 text-sm",
-                    testResult.ok
-                      ? "bg-primary/12 text-foreground"
-                      : "bg-destructive/10 text-destructive",
-                  )}
-                >
-                  {testResult.ok ? (
-                    <CheckCircle className="h-4 w-4" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4" />
-                  )}
-                  {testResult.message}
+              {!needsAnyKey && (
+                <div className="rounded-2xl bg-secondary p-4 text-[0.9375rem] leading-[1.55] text-muted-foreground">
+                  Provider transkripsi dan ringkasan Anda berjalan di komputer
+                  ini tanpa API key.
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Batas {active.label}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1.5 text-[0.9375rem] text-muted-foreground">
-              {active.limits.map((line) => (
-                <p key={line}>{line}</p>
-              ))}
             </CardContent>
           </Card>
 
@@ -565,6 +360,215 @@ export default function SettingsPage() {
           </Link>
         </p>
       </main>
+    </div>
+  );
+}
+
+function GuideItem({ provider }: { provider: Provider }) {
+  const p = PROVIDERS[provider];
+  const usedForStt = providerIdsFor("stt").includes(provider);
+  const usedForLlm = providerIdsFor("llm").includes(provider);
+
+  return (
+    <li>
+      <div className="rounded-2xl bg-secondary p-4">
+        <div className="flex flex-wrap items-baseline gap-2">
+          <p className="font-medium">{p.label}</p>
+          {p.keyless && (
+            <span className="text-xs text-muted-foreground">tanpa key</span>
+          )}
+        </div>
+        <p className="mt-1.5 text-[0.9375rem] leading-[1.55]">
+          {p.signup}
+        </p>
+        <p className="mt-1 text-[0.9375rem] leading-[1.55] text-muted-foreground">
+          {p.note}
+        </p>
+        <a
+          href={p.keysUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-[0.9375rem] underline decoration-1 underline-offset-4 hover:text-muted-foreground"
+        >
+          {p.keysLabel}
+          <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+          <span className="sr-only">(buka di tab baru)</span>
+        </a>
+        <p className="mt-2 text-[0.8125rem] text-muted-foreground">
+          {usedForStt && usedForLlm
+            ? "Dipakai untuk transkripsi dan ringkasan."
+            : usedForStt
+              ? "Dipakai untuk transkripsi audio."
+              : "Dipakai untuk ringkasan, mindmap, flashcard, dan tutor."}
+        </p>
+      </div>
+    </li>
+  );
+}
+
+function KeyCard({
+  provider,
+  role,
+}: {
+  provider: Provider;
+  role: ProviderRole;
+}) {
+  const info = PROVIDERS[provider];
+  const stored = useStoredApiKey(provider);
+  const [draft, setDraft] = useState<string | null>(null);
+  const [show, setShow] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
+  const value = draft ?? stored;
+
+  const commit = (next: string) => {
+    setDraft(next);
+    setApiKey(next, provider);
+  };
+
+  const testConnection = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const headers: Record<string, string> = {};
+      if (info.keyless) {
+        // keyless provider tidak butuh header auth
+      } else if (stored.trim()) {
+        headers.Authorization = `Bearer ${stored.trim()}`;
+      }
+      const startedAt = performance.now();
+      const res = await fetch(`${info.baseUrl}/models`, { headers });
+      const elapsed = Math.round(performance.now() - startedAt);
+      if (res.ok) {
+        setTestResult({
+          ok: true,
+          message: `Koneksi berhasil, respons ${elapsed} ms.`,
+        });
+      } else if (res.status === 401 || res.status === 403) {
+        setTestResult({
+          ok: false,
+          message: "API key ditolak provider. Periksa kembali kuncinya.",
+        });
+      } else if (res.status === 429) {
+        setTestResult({
+          ok: false,
+          message: "Terlalu banyak permintaan. Coba lagi sebentar lagi.",
+        });
+      } else if (res.status === 404) {
+        setTestResult({
+          ok: false,
+          message:
+            "Provider tidak menyediakan endpoint daftar model. Koneksi belum bisa diuji dari sini.",
+        });
+      } else {
+        setTestResult({
+          ok: false,
+          message: `Provider menolak permintaan (kode ${res.status}).`,
+        });
+      }
+    } catch {
+      setTestResult({
+        ok: false,
+        message: info.keyless
+          ? `Tidak bisa menghubungi ${info.label}. Pastikan servernya berjalan di komputer ini.`
+          : "Jaringan gagal menghubungi provider. Periksa koneksi internet Anda.",
+      });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const title =
+    role === "stt"
+      ? info.keyless
+        ? "Transkripsi"
+        : `Transkripsi · ${info.label}`
+      : info.keyless
+        ? "Ringkasan & teks"
+        : `Ringkasan · ${info.label}`;
+
+  return (
+    <div className="rounded-2xl bg-secondary p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[0.9375rem] font-medium">{title}</p>
+        {info.keyless ? (
+          <span className="text-[0.8125rem] text-muted-foreground">
+            tanpa key
+          </span>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={testConnection}
+            disabled={testing || !value.trim()}
+          >
+            {testing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Key className="h-4 w-4" />
+            )}
+            Uji Koneksi
+          </Button>
+        )}
+      </div>
+
+      {info.keyless ? (
+        <p className="mt-2 text-[0.9375rem] leading-[1.55] text-muted-foreground">
+          Provider ini berjalan di komputer Anda dan tidak memakai API key.
+        </p>
+      ) : (
+        <div className="mt-2 space-y-2">
+          <div className="relative">
+            <Input
+              type={show ? "text" : "password"}
+              value={value}
+              onChange={(e) => commit(e.target.value)}
+              placeholder={info.placeholder}
+              aria-label={`API key ${info.label}`}
+              autoComplete="off"
+              spellCheck={false}
+              className="h-11 rounded-full bg-card pr-12 pl-4 text-base"
+            />
+            <button
+              type="button"
+              aria-label={show ? "Sembunyikan API key" : "Lihat API key"}
+              onClick={() => setShow((v) => !v)}
+              className="absolute right-0 top-0 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
+            >
+              {show ? (
+                <EyeOff className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Eye className="h-4 w-4" aria-hidden="true" />
+              )}
+            </button>
+          </div>
+          <p className="text-[0.875rem] leading-snug text-muted-foreground">
+            Tersimpan otomatis begitu Anda mengetik. Tidak ada tombol simpan
+            yang perlu ditekan.
+          </p>
+        </div>
+      )}
+
+      {testResult && (
+        <div
+          className={cn(
+            "mt-3 flex items-center gap-2 rounded-2xl p-3 text-sm",
+            testResult.ok
+              ? "bg-primary/12 text-foreground"
+              : "bg-destructive/10 text-destructive",
+          )}
+        >
+          {testResult.ok ? (
+            <CheckCircle className="h-4 w-4" />
+          ) : (
+            <AlertCircle className="h-4 w-4" />
+          )}
+          {testResult.message}
+        </div>
+      )}
     </div>
   );
 }

@@ -4,15 +4,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import { Mic, Upload, Trash2, Loader2, Eye, EyeOff } from "lucide-react";
+import { Mic, Upload, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import SiteHeader from "@/components/site-header";
 import DemoShowcase from "@/components/demo-showcase";
 import { Mascot } from "@/components/mascot";
 import { useToast } from "@/components/ui/use-toast";
 import { openDB, type Material } from "@/lib/db";
-import { setApiKey, useStoredApiKey, useStoredProvider } from "@/lib/storage/settings";
+import { useStoredApiKey, useStoredProvider } from "@/lib/storage/settings";
+import ProviderKeyList from "@/components/provider-key-list";
 import { PROVIDERS } from "@/lib/ai/providers";
 
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -30,11 +30,11 @@ const AUDIO_TYPES: Record<string, string> = {
 const STEPS = [
   {
     title: "Siapkan rekaman.",
-    body: "Pilih file audio sampai 25 MB atau rekam langsung dari browser, lalu tempel API key provider di Pengaturan. Cukup sekali.",
+    body: "Pilih file audio sampai 25 MB atau rekam langsung dari browser.",
   },
   {
     title: "Provider Anda yang memproses.",
-    body: "Browser mengirim rekaman langsung ke provider pilihan Anda, tanpa lewat server Mindo. Dari sana keluar transkrip, ringkasan, mindmap, dan flashcard.",
+    body: "Rekaman dikirim ke provider transkripsi Anda, teks transkrip ke provider ringkasan Anda. Tidak lewat server Mindo. Dari sana keluar transkrip, ringkasan, mindmap, dan flashcard.",
   },
   {
     title: "Hasil disimpan di browser.",
@@ -57,17 +57,15 @@ export default function BerandaPage() {
   const [loading, setLoading] = useState(true);
   const [dragging, setDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const storedKey = useStoredApiKey();
-  const provider = useStoredProvider();
-  const providerInfo = PROVIDERS[provider];
-  const keyless = providerInfo.keyless;
-  const canTranscribe = Boolean(providerInfo.stt);
-  const [keyDraft, setKeyDraft] = useState<string | null>(null);
-  const [showKey, setShowKey] = useState(false);
-  const apiKey = keyDraft ?? storedKey;
-  const hasStoredKey = Boolean(storedKey) || keyless;
-  const [editingDraft, setEditingDraft] = useState<boolean | null>(null);
-  const editingKey = editingDraft ?? !hasStoredKey;
+  const stt = useStoredProvider("stt");
+  const llm = useStoredProvider("llm");
+  const sttKey = useStoredApiKey(stt);
+  const llmKey = useStoredApiKey(llm);
+  const sttInfo = PROVIDERS[stt];
+  const llmInfo = PROVIDERS[llm];
+  const canTranscribe = Boolean(sttInfo.stt);
+  const sttReady = sttInfo.keyless || Boolean(sttKey.trim());
+  const llmReady = llmInfo.keyless || Boolean(llmKey.trim());
   const [saving, setSaving] = useState(false);
   const [sampleLoading, setSampleLoading] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -77,31 +75,13 @@ export default function BerandaPage() {
     return db.materials.orderBy("createdAt").reverse().toArray();
   }, []);
 
-  useEffect(() => {
-    loadMaterials()
-      .then((rows) => setMaterials(rows))
-      .catch(() =>
-        toast({
-          title: "Gagal membaca riwayat",
-          description: "Muat ulang halaman untuk mencoba lagi.",
-        }),
-      )
-      .finally(() => setLoading(false));
-  }, [loadMaterials, toast]);
-
-  function persistKey() {
-    const trimmed = apiKey.trim();
-    setApiKey(trimmed);
-    setKeyDraft(trimmed);
-    if (trimmed) setEditingDraft(false);
-  }
-
   function pickFile(picked: File | null) {
     if (!picked) return;
     if (picked.size > MAX_BYTES) {
       toast({
         title: "File terlalu besar",
-        description: "Maksimal 25 MB. Rekam langsung atau kompres dulu.",
+        description:
+          "Maksimal 25 MB. Rekam langsung atau kompres dulu.",
       });
       return;
     }
@@ -116,6 +96,18 @@ export default function BerandaPage() {
     }
     setFile(picked);
   }
+
+  useEffect(() => {
+    loadMaterials()
+      .then((rows) => setMaterials(rows))
+      .catch(() =>
+        toast({
+          title: "Gagal membaca riwayat",
+          description: "Muat ulang halaman untuk mencoba lagi.",
+        }),
+      )
+      .finally(() => setLoading(false));
+  }, [loadMaterials, toast]);
 
   async function loadSample() {
     setSampleLoading(true);
@@ -136,12 +128,9 @@ export default function BerandaPage() {
   }
 
   async function handleStart() {
-    if (!file || !canTranscribe || (!keyless && !apiKey.trim())) return;
+    if (!file || !canTranscribe || !sttReady || !llmReady) return;
     setSaving(true);
     try {
-      const trimmed = apiKey.trim();
-      setApiKey(trimmed);
-      setKeyDraft(trimmed);
       const db = openDB();
       const materialId = await db.materials.add({
         title: file.name,
@@ -175,15 +164,20 @@ export default function BerandaPage() {
     setMaterials((prev) => prev.filter((m) => m.id !== id));
   }
 
-  const ready =
-    Boolean(file) && canTranscribe && (keyless || Boolean(apiKey.trim()));
+  const ready = Boolean(file) && canTranscribe && sttReady && llmReady;
   const reason = !file
     ? "Pilih file atau rekam dulu."
     : !canTranscribe
-      ? `${providerInfo.label} belum mendukung transkripsi audio. Pilih Groq atau OpenAI di Pengaturan.`
-      : !keyless && !apiKey.trim()
-        ? `Tempel API key ${providerInfo.label}.`
-        : null;
+      ? `${sttInfo.label} belum mendukung transkripsi audio. Pilih Groq atau OpenAI di Pengaturan.`
+      : !sttReady
+        ? sttInfo.keyless
+          ? "Provider transkripsi berjalan di komputer ini tanpa key."
+          : `Tempel API key ${sttInfo.label} untuk transkripsi.`
+        : !llmReady
+          ? llmInfo.keyless
+            ? "Provider ringkasan berjalan di komputer ini tanpa key."
+            : `Tempel API key ${llmInfo.label} untuk ringkasan.`
+          : null;
   const hasHistory = !loading && materials.length > 0;
 
   return (
@@ -303,116 +297,10 @@ export default function BerandaPage() {
               </div>
 
               <div className="px-2.5 pb-1 pt-5">
-                {keyless ? (
-                  <>
-                    <p className="text-[0.9375rem] font-medium">API Key</p>
-                    <div className="mt-2 flex min-h-11 items-center gap-2 rounded-full bg-card px-4">
-                      <span
-                        className="h-1.5 w-1.5 rounded-full bg-primary"
-                        aria-hidden="true"
-                      />
-                      <span className="text-[0.9375rem]">
-                        {providerInfo.label} lokal, tanpa key
-                      </span>
-                    </div>
-                    <p className="mt-2 text-[0.8125rem] leading-snug text-muted-foreground">
-                      Teks tidak dikirim ke server pihak ketiga. Server{" "}
-                      {providerInfo.label} harus berjalan di komputer ini.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <label
-                      htmlFor={editingKey ? "api-key" : "api-key-status"}
-                      className="text-[0.9375rem] font-medium"
-                    >
-                      API Key
-                    </label>
-                    {editingKey ? (
-                      <div className="mt-2 flex gap-2">
-                        <Input
-                          id="api-key"
-                          type={showKey ? "text" : "password"}
-                          value={apiKey}
-                          onChange={(e) => setKeyDraft(e.target.value)}
-                          onBlur={persistKey}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              persistKey();
-                            }
-                          }}
-                          placeholder={providerInfo.placeholder}
-                          autoComplete="off"
-                          spellCheck={false}
-                          aria-describedby="api-key-hint"
-                          className="h-11 rounded-full bg-card px-4 text-base"
-                        />
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          aria-label={
-                            showKey ? "Sembunyikan API key" : "Lihat API key"
-                          }
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => setShowKey((v) => !v)}
-                          className="shrink-0"
-                        >
-                          {showKey ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="mt-2 flex h-11 items-center justify-between gap-2 rounded-full bg-card pl-4 pr-1.5">
-                        <span
-                          id="api-key-status"
-                          className="flex items-center gap-2 text-[0.9375rem]"
-                        >
-                          <span
-                            className="h-1.5 w-1.5 rounded-full bg-primary"
-                            aria-hidden="true"
-                          />
-                          API Key aktif
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          aria-label="Ganti API key"
-                          onClick={() => {
-                            setKeyDraft(storedKey);
-                            setEditingDraft(true);
-                          }}
-                        >
-                          Ganti
-                        </Button>
-                      </div>
-                    )}
-                    <p
-                      id="api-key-hint"
-                      className="mt-2 text-[0.8125rem] leading-snug text-muted-foreground"
-                    >
-                      Kunci hanya dikirim ke {providerInfo.label}, disimpan di
-                      browser ini.
-                      {!hasStoredKey && (
-                        <>
-                          {" "}
-                          <Link
-                            href="/settings#panduan-api-key"
-                            className="underline decoration-1 underline-offset-4 hover:text-foreground"
-                          >
-                            Cara mendapatkan API key
-                          </Link>
-                        </>
-                      )}
-                    </p>
-                  </>
-                )}
+                <ProviderKeyList />
               </div>
 
-              {!keyless && file && !apiKey.trim() ? (
+              {file && canTranscribe && !ready ? (
                 <Button
                   asChild
                   size="lg"
@@ -571,9 +459,9 @@ export default function BerandaPage() {
                 hosting hanya menyajikan file statis.
               </p>
               <p>
-                Rekaman dan API key dikirim langsung ke provider yang Anda pilih
-                untuk diproses, tidak pernah ke domain lain. Semua data di
-                browser bisa Anda hapus sendiri lewat menu{" "}
+                Rekaman dikirim ke provider transkripsi Anda, teks transkrip ke
+                provider ringkasan Anda, tidak pernah ke domain lain. Semua data
+                di browser bisa Anda hapus sendiri lewat menu{" "}
                 <Link
                   href="/settings"
                   className="underline decoration-1 underline-offset-4 hover:text-muted-foreground"

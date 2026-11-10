@@ -14,9 +14,15 @@ import { openDB } from "@/lib/db";
 export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const storedKey = useStoredApiKey();
-  const provider = useStoredProvider();
-  const hasKey = Boolean(storedKey) || PROVIDERS[provider].keyless;
+  const stt = useStoredProvider("stt");
+  const llm = useStoredProvider("llm");
+  const sttKey = useStoredApiKey(stt);
+  const llmKey = useStoredApiKey(llm);
+  const sttInfo = PROVIDERS[stt];
+  const llmInfo = PROVIDERS[llm];
+  const ready =
+    (sttInfo.keyless || Boolean(sttKey.trim())) &&
+    (llmInfo.keyless || Boolean(llmKey.trim()));
   const [hasMaterials, setHasMaterials] = useState(false);
 
   useEffect(() => {
@@ -126,7 +132,7 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
               onClick={() => setMenuOpen(false)}
             >
               Pengaturan
-              {hasKey && (
+              {ready && (
                 <span
                   className="ml-auto size-2 rounded-full bg-primary"
                   aria-label="API key aktif"

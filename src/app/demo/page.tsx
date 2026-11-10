@@ -35,8 +35,9 @@ export default function DemoPage() {
             Rekaman Anda akan menghasilkan ini juga.
           </h2>
           <p className="mt-2 max-w-[52ch] text-[1.0625rem] leading-[1.55] text-muted-foreground">
-            Tempel API key sekali, lalu unggah rekaman kuliah. Empat tahap
-            berjalan di browser dan hasilnya tersimpan lokal.
+            Tempel API key transkripsi dan API key ringkasan, lalu unggah
+            rekaman kuliah. Empat tahap berjalan di browser dan hasilnya
+            tersimpan lokal.
           </p>
           <Button asChild className="mt-5">
             <Link href="/">Proses rekaman saya</Link>

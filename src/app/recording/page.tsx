@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
-import { Mic, Square, Loader2, Trash2, Save, Play, Pause, AlertTriangle, MicOff, Eye, EyeOff } from "lucide-react"
+import { Mic, Square, Loader2, Trash2, Save, Play, Pause, AlertTriangle, MicOff } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { openDB } from "@/lib/db"
-import { setApiKey, useStoredApiKey, useStoredProvider } from "@/lib/storage/settings"
+import { useStoredApiKey, useStoredProvider } from "@/lib/storage/settings"
+import ProviderKeyList from "@/components/provider-key-list"
 import { PROVIDERS } from "@/lib/ai/providers"
 import SiteHeader from "@/components/site-header"
 
@@ -29,24 +30,15 @@ export default function RecordingPage() {
   const [playing, setPlaying] = useState(false)
   const [volume, setVolume] = useState<number[]>(() => new Array(24).fill(0.06))
 
-  const storedKey = useStoredApiKey()
-  const provider = useStoredProvider()
-  const providerInfo = PROVIDERS[provider]
-  const keyless = providerInfo.keyless
-  const [keyDraft, setKeyDraft] = useState<string | null>(null)
-  const [showKey, setShowKey] = useState(false)
-  const [editingDraft, setEditingDraft] = useState(false)
-  const apiKey = keyDraft ?? storedKey
-  const hasStoredKey = Boolean(storedKey) || keyless
-  const editingKey = editingDraft ?? !hasStoredKey
-
-  function persistKey() {
-    const trimmed = apiKey.trim()
-    setApiKey(trimmed)
-    setKeyDraft(trimmed)
-    setEditingDraft(false)
-    if (trimmed && !keyless) toast({ title: "API key disimpan" })
-  }
+  const stt = useStoredProvider("stt")
+  const llm = useStoredProvider("llm")
+  const sttKey = useStoredApiKey(stt)
+  const llmKey = useStoredApiKey(llm)
+  const sttInfo = PROVIDERS[stt]
+  const llmInfo = PROVIDERS[llm]
+  const canTranscribe = Boolean(sttInfo.stt)
+  const sttReady = sttInfo.keyless || Boolean(sttKey.trim())
+  const llmReady = llmInfo.keyless || Boolean(llmKey.trim())
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -201,17 +193,31 @@ export default function RecordingPage() {
   const saveRecording = async () => {
     if (!audioBlob) return
 
-    const trimmedKey = apiKey.trim()
-    if (!keyless && !trimmedKey) {
-      setEditingDraft(true)
+    if (!canTranscribe) {
+      setProcessing(false)
       toast({
-        title: "API key diperlukan",
-        description: `Tempel API key ${providerInfo.label} untuk memproses rekaman.`,
+        title: "Provider tidak mendukung transkripsi",
+        description: `${sttInfo.label} belum mendukung transkripsi audio. Pilih Groq atau OpenAI di Pengaturan.`,
+      })
+      return
+    }
+    if (!sttReady) {
+      setProcessing(false)
+      toast({
+        title: "API key transkripsi belum diisi",
+        description: `Tempel API key ${sttInfo.label} untuk memproses rekaman.`,
+      })
+      return
+    }
+    if (!llmReady) {
+      setProcessing(false)
+      toast({
+        title: "API key ringkasan belum diisi",
+        description: `Tempel API key ${llmInfo.label} untuk ringkasan materi.`,
       })
       return
     }
 
-    persistKey()
     setProcessing(true)
     try {
       const finalTitle = title.trim() || `Rekaman ${new Date().toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}`
@@ -313,81 +319,7 @@ export default function RecordingPage() {
 
             {audioBlob && !recording && (
               <div className="rounded-2xl border border-border bg-card p-4">
-                {keyless ? (
-                  <p className="text-[0.9375rem] leading-snug text-muted-foreground">
-                    {providerInfo.label} berjalan lokal. Tidak perlu API key.
-                  </p>
-                ) : (
-                  <>
-                <label
-                  htmlFor={editingKey ? "rec-api-key" : "rec-api-key-status"}
-                  className="text-[0.9375rem] font-medium"
-                >
-                  API Key
-                </label>
-                {editingKey ? (
-                  <div className="mt-2 flex gap-2">
-                    <Input
-                      id="rec-api-key"
-                      type={showKey ? "text" : "password"}
-                      value={apiKey}
-                      onChange={(e) => setKeyDraft(e.target.value)}
-                      onBlur={persistKey}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault()
-                          persistKey()
-                        }
-                      }}
-                      placeholder={providerInfo.placeholder}
-                      autoComplete="off"
-                      spellCheck={false}
-                      aria-describedby="rec-api-key-hint"
-                      className="h-11 rounded-full bg-secondary/50 px-4 text-base"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      aria-label={showKey ? "Sembunyikan API key" : "Lihat API key"}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => setShowKey((v) => !v)}
-                      className="shrink-0"
-                    >
-                      {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="mt-2 flex h-11 items-center justify-between gap-2 rounded-full bg-secondary/50 pl-4 pr-1.5">
-                    <span id="rec-api-key-status" className="flex items-center gap-2 text-[0.9375rem]">
-                      <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
-                      API Key aktif
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      aria-label="Ganti API key"
-                      onClick={() => {
-                        setKeyDraft(storedKey)
-                        setEditingDraft(true)
-                      }}
-                    >
-                      Ganti
-                    </Button>
-                  </div>
-                )}
-                <div id="rec-api-key-hint" className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Kunci disimpan di browser ini.</span>
-                  <Link
-                    href="/settings#panduan-api-key"
-                    className="underline decoration-1 underline-offset-2 hover:text-foreground"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Cara dapat key
-                  </Link>
-                </div>
-                  </>
-                )}
+                <ProviderKeyList />
               </div>
             )}
 
@@ -410,7 +342,7 @@ export default function RecordingPage() {
                     {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
                     {playing ? "Jeda" : "Putar Ulang"}
                   </Button>
-                  <Button onClick={saveRecording} disabled={processing}>
+                  <Button onClick={saveRecording} disabled={processing || !sttReady || !llmReady}>
                     {processing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
                     Pakai Rekaman Ini
                   </Button>

@@ -95,20 +95,23 @@ function ProcessingView() {
   async function runPipeline() {
     const mid = parseInt(materialId!, 10)
     const db = openDB()
-    const apiKey = getApiKey()
-    const provider = getProvider()
-    const providerInfo = PROVIDERS[provider]
+    const sttProvider = getProvider("stt")
+    const llmProvider = getProvider("llm")
+    const sttInfo = PROVIDERS[sttProvider]
+    const llmInfo = PROVIDERS[llmProvider]
+    const sttApiKey = getApiKey(sttProvider)
+    const llmApiKey = getApiKey(llmProvider)
 
     updateStage("transcribe", { status: "running", error: undefined, finishedAt: undefined })
-    if (!providerInfo.stt) {
+    if (!sttInfo.stt) {
       updateStage("transcribe", {
         status: "failed",
-        error: `${providerInfo.label} belum mendukung transkripsi audio. Pilih Groq atau OpenAI di Pengaturan.`,
+        error: `${sttInfo.label} belum mendukung transkripsi audio. Pilih Groq atau OpenAI di Pengaturan.`,
       })
       return
     }
-    if (!apiKey && !providerInfo.keyless) {
-      updateStage("transcribe", { status: "failed", error: "API key belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider." })
+    if (!sttInfo.keyless && !sttApiKey.trim()) {
+      updateStage("transcribe", { status: "failed", error: "API key transkripsi belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider." })
       return
     }
 
@@ -124,7 +127,7 @@ function ProcessingView() {
         return
       }
       title = material.title
-      const result = await transcribe(provider, apiKey, material.audio)
+      const result = await transcribe(sttProvider, sttApiKey, material.audio)
       text = result.segments.map((s) => s.text).join(" ").trim()
       transcriptTextRef.current = text
       await db.transcripts.put({ materialId: mid, segments: result.segments })
@@ -141,10 +144,15 @@ function ProcessingView() {
       return
     }
 
+    if (!llmInfo.keyless && !llmApiKey.trim()) {
+      updateStage("summarize", { status: "failed", error: "API key ringkasan belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider." })
+      return
+    }
+
     const results = await Promise.all([
-      runSummarize(mid, provider, apiKey, text),
-      runMindmap(mid, provider, apiKey, text, title),
-      runFlashcard(mid, provider, apiKey, text, title),
+      runSummarize(mid, llmProvider, llmApiKey, text),
+      runMindmap(mid, llmProvider, llmApiKey, text, title),
+      runFlashcard(mid, llmProvider, llmApiKey, text, title),
     ])
 
     await db.materials.update(mid, { status: results.every(Boolean) ? "done" : "partial" })
@@ -205,11 +213,11 @@ function ProcessingView() {
       await runPipeline()
       return
     }
-    const apiKey = getApiKey()
-    const provider = getProvider()
+    const llmProvider = getProvider("llm")
+    const llmApiKey = getApiKey(llmProvider)
     const mid = parseInt(materialId!, 10)
-    if (!apiKey && !PROVIDERS[provider].keyless) {
-      updateStage(id, { status: "failed", error: "API key belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider." })
+    if (!llmApiKey && !PROVIDERS[llmProvider].keyless) {
+      updateStage(id, { status: "failed", error: "API key ringkasan belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider." })
       return
     }
 
@@ -225,9 +233,9 @@ function ProcessingView() {
     const material = await openDB().materials.get(mid)
     const title = material?.title ?? "Materi"
 
-    if (id === "summarize") await runSummarize(mid, provider, apiKey, text)
-    if (id === "mindmap") await runMindmap(mid, provider, apiKey, text, title)
-    if (id === "flashcard") await runFlashcard(mid, provider, apiKey, text, title)
+    if (id === "summarize") await runSummarize(mid, llmProvider, llmApiKey, text)
+    if (id === "mindmap") await runMindmap(mid, llmProvider, llmApiKey, text, title)
+    if (id === "flashcard") await runFlashcard(mid, llmProvider, llmApiKey, text, title)
   }
 
   useEffect(() => {
