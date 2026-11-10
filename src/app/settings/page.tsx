@@ -4,23 +4,18 @@ import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import {
   AlertCircle,
   CheckCircle,
+  ChevronDown,
   ExternalLink,
-  Loader2,
-  Key,
   Eye,
   EyeOff,
+  Key,
+  Loader2,
   Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -40,11 +35,16 @@ import {
 } from "@/lib/storage/settings";
 import {
   PROVIDERS,
+  privacySummary,
   providerIdsFor,
   ROLE_LABELS,
 } from "@/lib/ai/providers";
 import type { Provider, ProviderRole } from "@/lib/ai/providers";
 import SiteHeader, { BackLink } from "@/components/site-header";
+
+const GUIDED_PROVIDERS: Provider[] = Array.from(
+  new Set([...providerIdsFor("stt"), ...providerIdsFor("llm")]),
+);
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -54,10 +54,8 @@ export default function SettingsPage() {
   const [materialIds, setMaterialIds] = useState<number[]>([]);
   const [importing, setImporting] = useState(false);
 
-  const sttInfo = PROVIDERS[stt];
-  const needsAnyKey = [stt, llm].some(
-    (p) => !PROVIDERS[p].keyless,
-  );
+  const keyProviders = stt === llm ? [stt] : [stt, llm];
+  const needsAnyKey = keyProviders.some((p) => !PROVIDERS[p].keyless);
 
   const refreshMaterialIds = () => {
     openDB()
@@ -132,225 +130,180 @@ export default function SettingsPage() {
     <div className="flex min-h-dvh flex-col overflow-x-clip">
       <SiteHeader />
 
-      <main className="mx-auto w-full max-w-180 flex-1 px-5 pb-16 pt-4 sm:px-8 sm:pt-6">
+      <main className="mx-auto w-full max-w-[1080px] flex-1 px-5 pb-16 pt-4 sm:px-8 sm:pt-6">
         <BackLink label="Kembali" />
-        <h1 className="mt-2 text-[clamp(2.25rem,5.4vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.03em]">
+        <h1 className="mt-2 text-[clamp(1.75rem,3vw,2.25rem)] font-semibold leading-[1.1] tracking-[-0.02em]">
           Pengaturan
         </h1>
-        <p className="mt-3 max-w-[46ch] text-[1.0625rem] leading-[1.55] text-muted-foreground">
-          Pilih provider transkripsi dan provider ringkasan, tempel API key,
-          lalu uji koneksinya sebelum memproses rekaman.
+        <p className="mt-2 max-w-[56ch] text-[1.0625rem] leading-[1.55] text-muted-foreground">
+          Pilih provider untuk transkripsi dan ringkasan, isi API key, lalu uji
+          koneksinya. Perubahan langsung tersimpan.
         </p>
 
-        <div className="mt-10 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Pilih Provider AI</CardTitle>
-              <CardDescription>
-                Transkripsi audio dan ringkasan teks bisa pakai provider
-                beda. Tidak ada perpindahan otomatis.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3 rounded-2xl bg-secondary p-4">
-                <p className="text-[0.9375rem] font-medium">
-                  {ROLE_LABELS.stt.title}
-                </p>
-                <p className="text-[0.9375rem] leading-[1.55] text-muted-foreground">
-                  {ROLE_LABELS.stt.description}
-                </p>
-                <ProviderPicker
-                  role="stt"
-                  value={stt}
-                  onChange={(next) => chooseProvider("stt", next)}
-                />
-              </div>
+        <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:gap-8">
+          <div className="space-y-4">
+            <RoleCard
+              role="stt"
+              provider={stt}
+              onChange={(next) => chooseProvider("stt", next)}
+            />
+            <RoleCard
+              role="llm"
+              provider={llm}
+              onChange={(next) => chooseProvider("llm", next)}
+            />
+          </div>
 
-              <div className="space-y-3 rounded-2xl bg-secondary p-4">
-                <p className="text-[0.9375rem] font-medium">
-                  {ROLE_LABELS.llm.title}
+          <div className="lg:sticky lg:top-24 lg:self-start">
+            <Card>
+              <div className="p-5 sm:p-6">
+                <h2 className="text-lg font-semibold">API Key</h2>
+                <p className="mt-1 text-[0.875rem] leading-snug text-muted-foreground">
+                  {needsAnyKey
+                    ? "Key disimpan terpisah untuk setiap provider. Uji dulu sebelum memproses rekaman."
+                    : "Kedua peran berjalan di komputer ini, jadi tidak ada key yang perlu diisi."}
                 </p>
-                <p className="text-[0.9375rem] leading-[1.55] text-muted-foreground">
-                  {ROLE_LABELS.llm.description}
-                </p>
-                <ProviderPicker
-                  role="llm"
-                  value={llm}
-                  onChange={(next) => chooseProvider("llm", next)}
-                />
-              </div>
 
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="space-y-2 rounded-2xl bg-secondary p-4">
-                  <p className="text-[0.8125rem] font-medium uppercase tracking-wide text-muted-foreground">
-                    Provider Transkripsi
-                  </p>
-                  <ProviderDetail provider={stt} />
-                </div>
-                <div className="space-y-2 rounded-2xl bg-secondary p-4">
-                  <p className="text-[0.8125rem] font-medium uppercase tracking-wide text-muted-foreground">
-                    Provider Ringkasan
-                  </p>
-                  <ProviderDetail provider={llm} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card id="panduan-api-key" className="scroll-mt-8">
-            <CardHeader>
-              <CardTitle className="text-lg">Cara mendapatkan API key</CardTitle>
-              <CardDescription>
-                Panduan singkat untuk setiap provider. Ikuti yang sesuai pilihan
-                Anda di atas.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ol className="space-y-2">
-                {providerIdsFor("stt").map((id) => (
-                  <GuideItem key={`stt-${id}`} provider={id} />
-                ))}
-                {providerIdsFor("llm").map((id) => (
-                  <GuideItem key={`llm-${id}`} provider={id} />
-                ))}
-              </ol>
-              <p className="mt-4 text-[0.9375rem] leading-[1.55] text-muted-foreground">
-                Halaman ini hanya menautkan ke situs resmi provider. Mindo tidak
-                pernah menerima key Anda.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">API Key</CardTitle>
-              <CardDescription>
-                {needsAnyKey
-                  ? stt === llm
-                    ? `Masukkan API key ${sttInfo.label}. Key tiap provider disimpan terpisah.`
-                    : "Masukkan API key untuk provider transkripsi dan provider ringkasan. Key tiap provider disimpan terpisah."
-                  : "Provider transkripsi dan ringkasan Anda berjalan di komputer ini tanpa API key."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {needsAnyKey && (
-                <div className="flex items-start justify-between gap-3 rounded-2xl bg-secondary p-4">
-                  <div className="min-w-0">
-                    <div className="text-[0.9375rem] font-medium">
-                      Simpan di browser ini
-                    </div>
-                    <div className="mt-0.5 text-[0.875rem] leading-snug text-muted-foreground">
-                      {saveMode === "local"
-                        ? "Disimpan permanen di browser ini dan bertahan sampai key dihapus. Bisa dilihat lewat DevTools."
-                        : "Hanya disimpan untuk sesi ini. Hilang saat tab/browser ditutup, maka harus diisi lagi."}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={saveMode === "local"}
-                    aria-label="Simpan API key di browser"
-                    onClick={() =>
-                      chooseSaveMode(saveMode === "local" ? "session" : "local")
-                    }
-                    className={cn(
-                      "relative h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors",
-                      saveMode === "local" ? "bg-primary" : "bg-border",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "absolute top-1 h-4 w-4 rounded-full bg-card transition-all",
-                        saveMode === "local" ? "left-6" : "left-1",
-                      )}
+                <div className="mt-4 space-y-5">
+                  {keyProviders.map((provider) => (
+                    <KeyField
+                      key={provider}
+                      provider={provider}
+                      roles={
+                        stt === llm
+                          ? "Transkripsi & ringkasan"
+                          : provider === stt
+                            ? "Transkripsi"
+                            : "Ringkasan"
+                      }
                     />
-                  </button>
+                  ))}
                 </div>
-              )}
 
-              <div className="space-y-2">
-                {stt === llm ? (
-                  <KeyCard provider={stt} role="stt" />
-                ) : (
-                  <>
-                    <KeyCard provider={stt} role="stt" />
-                    <KeyCard provider={llm} role="llm" />
-                  </>
+                {needsAnyKey && (
+                  <div className="mt-5 border-t border-border pt-4">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={saveMode === "local"}
+                      onClick={() =>
+                        chooseSaveMode(
+                          saveMode === "local" ? "session" : "local",
+                        )
+                      }
+                      className="flex min-h-11 w-full cursor-pointer items-start justify-between gap-4 text-left"
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-[0.9375rem] font-medium">
+                          Simpan di browser ini
+                        </span>
+                        <span className="mt-0.5 block text-[0.8125rem] leading-snug text-muted-foreground">
+                          {saveMode === "local"
+                            ? "Permanen sampai key dihapus. Bisa dilihat lewat DevTools."
+                            : "Hanya sesi ini. Hilang saat tab/browser ditutup."}
+                        </span>
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors",
+                          saveMode === "local" ? "bg-primary" : "bg-border",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "absolute top-1 h-4 w-4 rounded-full bg-card shadow-sm transition-all",
+                            saveMode === "local" ? "left-6" : "left-1",
+                          )}
+                        />
+                      </span>
+                    </button>
+                  </div>
                 )}
+
+                <p className="mt-4 text-[0.8125rem] leading-snug text-muted-foreground">
+                  {privacySummary(stt, llm)}
+                </p>
               </div>
-
-              {!needsAnyKey && (
-                <div className="rounded-2xl bg-secondary p-4 text-[0.9375rem] leading-[1.55] text-muted-foreground">
-                  Provider transkripsi dan ringkasan Anda berjalan di komputer
-                  ini tanpa API key.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Data</CardTitle>
-              <CardDescription>
-                Simpan arsip hasil, pindahkan materi ke perangkat lain, atau
-                pulihkan dari file .zip.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex flex-wrap gap-2">
-                <ExportDialog
-                  materialIds={materialIds}
-                  label="Ekspor semua materi"
-                  size="default"
-                />
-                <Button variant="outline" asChild>
-                  <label
-                    htmlFor="import-zip"
-                    className={cn(
-                      "cursor-pointer",
-                      importing && "pointer-events-none opacity-50",
-                    )}
-                  >
-                    {importing ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Upload className="h-4 w-4" />
-                    )}
-                    {importing ? "Mengimpor…" : "Impor .zip"}
-                  </label>
-                </Button>
-              </div>
-              <input
-                id="import-zip"
-                type="file"
-                accept=".zip,application/zip"
-                className="sr-only"
-                onChange={handleImport}
-                disabled={importing}
-              />
-              <p className="max-w-[52ch] text-[0.9375rem] leading-[1.55] text-muted-foreground">
-                Impor hanya menerima .zip mode “Pindah perangkat”. Materi yang
-                masuk ditambahkan ke daftar, bukan menimpa yang lama.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-destructive/40 bg-destructive/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg text-destructive">
-                <AlertCircle className="h-5 w-5" />
-                Zona Bahaya
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button variant="destructive" onClick={handleClearAll}>
-                Hapus Semua Data
-              </Button>
-            </CardContent>
-          </Card>
+            </Card>
+          </div>
         </div>
 
-        <p className="mt-6 text-[0.9375rem] text-muted-foreground">
+        <section id="panduan-api-key" className="mt-10 scroll-mt-24">
+          <h2 className="text-lg font-semibold">Cara mendapatkan API key</h2>
+          <p className="mt-1 text-[0.9375rem] leading-snug text-muted-foreground">
+            Panduan singkat per provider. Mindo hanya menautkan ke situs resmi.
+          </p>
+          <div className="mt-3 rounded-[28px] border border-border bg-card px-5 py-1 sm:px-6">
+            {GUIDED_PROVIDERS.map((provider) => (
+              <GuideItem key={provider} provider={provider} />
+            ))}
+          </div>
+        </section>
+
+        <div className="mt-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[28px] border border-border bg-card px-5 py-4">
+            <div className="min-w-0">
+              <p className="text-[0.9375rem] font-medium">Data</p>
+              <p className="mt-0.5 text-[0.875rem] leading-snug text-muted-foreground">
+                Ekspor arsip atau impor .zip mode “Pindah perangkat”.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <ExportDialog
+                materialIds={materialIds}
+                label="Ekspor semua"
+                size="default"
+              />
+              <Button
+                variant="outline"
+                asChild
+                className={cn(
+                  importing && "pointer-events-none opacity-50",
+                )}
+              >
+                <label htmlFor="import-zip" className="cursor-pointer">
+                  {importing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {importing ? "Mengimpor…" : "Impor .zip"}
+                </label>
+              </Button>
+            </div>
+          </div>
+          <input
+            id="import-zip"
+            type="file"
+            accept=".zip,application/zip"
+            className="sr-only"
+            onChange={handleImport}
+            disabled={importing}
+          />
+          <p className="px-1 text-[0.8125rem] leading-snug text-muted-foreground">
+            Impor hanya menerima .zip mode “Pindah perangkat”. Materi yang masuk
+            ditambahkan ke daftar, bukan menimpa yang lama.
+          </p>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[28px] border border-border px-5 py-4">
+            <div className="min-w-0">
+              <p className="text-[0.9375rem] font-medium">Hapus semua data</p>
+              <p className="mt-0.5 text-[0.875rem] leading-snug text-muted-foreground">
+                Materi, riwayat, pilihan provider, dan API key di browser ini.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleClearAll}
+              className="border-destructive/40 text-destructive hover:bg-destructive/5"
+            >
+              Hapus semua data
+            </Button>
+          </div>
+        </div>
+
+        <p className="mt-6 text-[0.875rem] text-muted-foreground">
           Semua perubahan langsung tersimpan.{" "}
           <Link
             href="/"
@@ -364,54 +317,74 @@ export default function SettingsPage() {
   );
 }
 
-function GuideItem({ provider }: { provider: Provider }) {
-  const p = PROVIDERS[provider];
-  const usedForStt = providerIdsFor("stt").includes(provider);
-  const usedForLlm = providerIdsFor("llm").includes(provider);
+function RoleCard({
+  role,
+  provider,
+  onChange,
+}: {
+  role: ProviderRole;
+  provider: Provider;
+  onChange: (provider: Provider) => void;
+}) {
+  const meta = ROLE_LABELS[role];
 
   return (
-    <li>
-      <div className="rounded-2xl bg-secondary p-4">
-        <div className="flex flex-wrap items-baseline gap-2">
-          <p className="font-medium">{p.label}</p>
-          {p.keyless && (
-            <span className="text-xs text-muted-foreground">tanpa key</span>
-          )}
+    <Card>
+      <div className="p-5 sm:p-6">
+        <h2 className="text-lg font-semibold">{meta.title}</h2>
+        <p className="mt-1 text-[0.9375rem] leading-snug text-muted-foreground">
+          {meta.description}
+        </p>
+        <div className="mt-4">
+          <ProviderPicker role={role} value={provider} onChange={onChange} />
         </div>
-        <p className="mt-1.5 text-[0.9375rem] leading-[1.55]">
-          {p.signup}
-        </p>
-        <p className="mt-1 text-[0.9375rem] leading-[1.55] text-muted-foreground">
-          {p.note}
-        </p>
+        <div className="mt-4 border-t border-border pt-1">
+          <ProviderDetail provider={provider} />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function GuideItem({ provider }: { provider: Provider }) {
+  const p = PROVIDERS[provider];
+
+  return (
+    <details className="group border-b border-border last:border-b-0">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-3 text-[0.9375rem] font-medium [&::-webkit-details-marker]:hidden">
+        <span>{p.label}</span>
+        <span className="flex items-center gap-2 text-[0.8125rem] font-normal text-muted-foreground">
+          {p.keyless ? "tanpa key" : p.keysLabel}
+          <ChevronDown
+            className="h-4 w-4 transition-transform group-open:rotate-180"
+            aria-hidden="true"
+          />
+        </span>
+      </summary>
+      <div className="pb-4 text-[0.9375rem] leading-[1.55]">
+        <p>{p.signup}</p>
+        <p className="mt-1 text-muted-foreground">{p.note}</p>
         <a
           href={p.keysUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-[0.9375rem] underline decoration-1 underline-offset-4 hover:text-muted-foreground"
+          className="mt-1 inline-flex min-h-11 items-center gap-1.5 underline decoration-1 underline-offset-4 hover:text-muted-foreground"
         >
           {p.keysLabel}
           <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
           <span className="sr-only">(buka di tab baru)</span>
         </a>
-        <p className="mt-2 text-[0.8125rem] text-muted-foreground">
-          {usedForStt && usedForLlm
-            ? "Dipakai untuk transkripsi dan ringkasan."
-            : usedForStt
-              ? "Dipakai untuk transkripsi audio."
-              : "Dipakai untuk ringkasan, mindmap, flashcard, dan tutor."}
-        </p>
       </div>
-    </li>
+    </details>
   );
 }
 
-function KeyCard({
+function KeyField({
   provider,
-  role,
+  roles,
 }: {
   provider: Provider;
-  role: ProviderRole;
+  roles: string;
 }) {
   const info = PROVIDERS[provider];
   const stored = useStoredApiKey(provider);
@@ -434,9 +407,7 @@ function KeyCard({
     setTestResult(null);
     try {
       const headers: Record<string, string> = {};
-      if (info.keyless) {
-        // keyless provider tidak butuh header auth
-      } else if (stored.trim()) {
+      if (!info.keyless && stored.trim()) {
         headers.Authorization = `Bearer ${stored.trim()}`;
       }
       const startedAt = performance.now();
@@ -481,27 +452,22 @@ function KeyCard({
     }
   };
 
-  const title =
-    role === "stt"
-      ? info.keyless
-        ? "Transkripsi"
-        : `Transkripsi · ${info.label}`
-      : info.keyless
-        ? "Ringkasan & teks"
-        : `Ringkasan · ${info.label}`;
-
   return (
-    <div className="rounded-2xl bg-secondary p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[0.9375rem] font-medium">{title}</p>
+    <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[0.9375rem] font-medium">{info.label}</p>
+          <p className="text-[0.8125rem] text-muted-foreground">{roles}</p>
+        </div>
         {info.keyless ? (
-          <span className="text-[0.8125rem] text-muted-foreground">
+          <span className="pt-0.5 text-[0.8125rem] text-muted-foreground">
             tanpa key
           </span>
         ) : (
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
+            className="min-h-11 shrink-0"
             onClick={testConnection}
             disabled={testing || !value.trim()}
           >
@@ -510,64 +476,56 @@ function KeyCard({
             ) : (
               <Key className="h-4 w-4" />
             )}
-            Uji Koneksi
+            Uji
           </Button>
         )}
       </div>
 
       {info.keyless ? (
-        <p className="mt-2 text-[0.9375rem] leading-[1.55] text-muted-foreground">
-          Provider ini berjalan di komputer Anda dan tidak memakai API key.
+        <p className="mt-1 text-[0.875rem] leading-snug text-muted-foreground">
+          Berjalan di komputer ini. Tidak ada key yang dikirim.
         </p>
       ) : (
-        <div className="mt-2 space-y-2">
-          <div className="relative">
-            <Input
-              type={show ? "text" : "password"}
-              value={value}
-              onChange={(e) => commit(e.target.value)}
-              placeholder={info.placeholder}
-              aria-label={`API key ${info.label}`}
-              autoComplete="off"
-              spellCheck={false}
-              className="h-11 rounded-full bg-card pr-12 pl-4 text-base"
-            />
-            <button
-              type="button"
-              aria-label={show ? "Sembunyikan API key" : "Lihat API key"}
-              onClick={() => setShow((v) => !v)}
-              className="absolute right-0 top-0 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
-            >
-              {show ? (
-                <EyeOff className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <Eye className="h-4 w-4" aria-hidden="true" />
-              )}
-            </button>
-          </div>
-          <p className="text-[0.875rem] leading-snug text-muted-foreground">
-            Tersimpan otomatis begitu Anda mengetik. Tidak ada tombol simpan
-            yang perlu ditekan.
-          </p>
+        <div className="relative mt-2">
+          <Input
+            type={show ? "text" : "password"}
+            value={value}
+            onChange={(e) => commit(e.target.value)}
+            placeholder={info.placeholder}
+            aria-label={`API key ${info.label}`}
+            autoComplete="off"
+            spellCheck={false}
+            className="h-11 rounded-full bg-background pr-12 pl-4 text-base"
+          />
+          <button
+            type="button"
+            aria-label={show ? "Sembunyikan API key" : "Lihat API key"}
+            onClick={() => setShow((v) => !v)}
+            className="absolute right-0 top-0 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
+          >
+            {show ? (
+              <EyeOff className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <Eye className="h-4 w-4" aria-hidden="true" />
+            )}
+          </button>
         </div>
       )}
 
       {testResult && (
-        <div
+        <p
           className={cn(
-            "mt-3 flex items-center gap-2 rounded-2xl p-3 text-sm",
-            testResult.ok
-              ? "bg-primary/12 text-foreground"
-              : "bg-destructive/10 text-destructive",
+            "mt-2 flex items-start gap-1.5 text-[0.8125rem] leading-snug",
+            testResult.ok ? "text-foreground" : "text-destructive",
           )}
         >
           {testResult.ok ? (
-            <CheckCircle className="h-4 w-4" />
+            <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           ) : (
-            <AlertCircle className="h-4 w-4" />
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           )}
           {testResult.message}
-        </div>
+        </p>
       )}
     </div>
   );

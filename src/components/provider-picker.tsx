@@ -1,7 +1,8 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PROVIDERS, providerIdsFor, ROLE_LABELS } from "@/lib/ai/providers";
+import { PROVIDERS, providerIdsFor } from "@/lib/ai/providers";
 import type { Provider, ProviderRole } from "@/lib/ai/providers";
 
 interface ProviderPickerProps {
@@ -12,49 +13,47 @@ interface ProviderPickerProps {
 
 export function ProviderPicker({ role, value, onChange }: ProviderPickerProps) {
   const options = providerIdsFor(role);
+  const name = `provider-${role}`;
 
   return (
-    <div
-      role="radiogroup"
-      aria-label={ROLE_LABELS[role].title}
-      className="space-y-2"
-    >
+    <div className="grid gap-2 sm:grid-cols-2">
       {options.map((id) => {
         const p = PROVIDERS[id];
         const selected = id === value;
         return (
-          <button
+          <label
             key={id}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            onClick={() => onChange(id)}
             className={cn(
-              "w-full cursor-pointer rounded-2xl border p-4 text-left transition-colors",
+              "flex cursor-pointer flex-col gap-1 rounded-2xl border p-3.5 transition-colors",
+              "has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-[3px] has-[:focus-visible]:outline-ring",
               selected
-                ? "border-primary bg-primary/12"
+                ? "border-foreground bg-card"
                 : "border-border hover:bg-secondary",
             )}
           >
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="font-medium">{p.label}</p>
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                  {p.description}
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {p.keyless
-                    ? "tanpa key"
-                    : `biaya: ${p.billing} · data: ${p.data} · butuh key`}
-                </p>
-              </div>
+            <input
+              type="radio"
+              name={name}
+              value={id}
+              checked={selected}
+              onChange={() => onChange(id)}
+              aria-label={p.label}
+              className="sr-only"
+            />
+            <span className="flex items-center justify-between gap-2">
+              <span className="text-[0.9375rem] font-medium">{p.label}</span>
               {selected && (
-                <span className="shrink-0 text-sm font-medium text-foreground">
-                  Dipilih
-                </span>
+                <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
               )}
-            </div>
-          </button>
+            </span>
+            <span className="line-clamp-2 text-[0.875rem] leading-snug text-muted-foreground">
+              {p.description}
+            </span>
+            <span className="text-[0.8125rem] text-muted-foreground">
+              {p.billing} · data {p.data} ·{" "}
+              {p.keyless ? "tanpa key" : "butuh key"}
+            </span>
+          </label>
         );
       })}
     </div>

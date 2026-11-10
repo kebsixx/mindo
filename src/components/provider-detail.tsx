@@ -11,30 +11,33 @@ export function ProviderDetail({ provider }: ProviderDetailProps) {
   const p = PROVIDERS[provider];
 
   return (
-    <div className="space-y-2 rounded-2xl bg-secondary p-4 text-[0.9375rem] leading-[1.55]">
-      <p>
-        <span className="font-medium">Biaya:</span> {p.billing}. {p.billingNote}
-      </p>
-      <p>
-        <span className="font-medium">Data:</span> {p.data}. {p.dataNote}
-      </p>
-      <p>
-        <span className="font-medium">Kunci:</span>{" "}
-        {p.keyless
-          ? `Tanpa key. ${p.dataNote}`
-          : `Butuh key. ${p.signup} ${p.note}`}
-      </p>
-      <p>
-        <span className="font-medium">Transkripsi:</span>{" "}
-        {p.stt
-          ? `Tersedia lewat model ${p.stt}.`
-          : "Belum tersedia di Mindo. Hanya ringkasan, mindmap, flashcard, dan tutor yang bisa dipakai."}
-      </p>
-      {p.limits.length > 0 && (
-        <p>
-          <span className="font-medium">Batas:</span> {p.limits.join(". ")}
-        </p>
-      )}
+    <dl className="text-[0.9375rem] leading-[1.55]">
+      <Row term="Biaya" value={`${p.billing}. ${p.billingNote}`} />
+      <Row term="Data" value={`${p.data}. ${p.dataNote}`} />
+      <Row
+        term="Akses"
+        value={
+          p.keyless ? `Tanpa key. ${p.note}` : `Butuh key. ${p.signup}`
+        }
+      />
+      <Row
+        term="Transkripsi"
+        value={
+          p.stt
+            ? `Tersedia lewat model ${p.stt}.`
+            : "Belum tersedia di Mindo. Hanya ringkasan, mindmap, flashcard, dan tutor."
+        }
+      />
+      {p.limits.length > 0 && <Row term="Batas" value={p.limits.join(". ")} />}
+    </dl>
+  );
+}
+
+function Row({ term, value }: { term: string; value: string }) {
+  return (
+    <div className="grid gap-0.5 border-t border-border py-3 first:border-t-0 first:pt-0 sm:grid-cols-[7rem_1fr] sm:gap-4">
+      <dt className="text-muted-foreground">{term}</dt>
+      <dd>{value}</dd>
     </div>
   );
 }

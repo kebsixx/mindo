@@ -195,3 +195,24 @@ export function supportsRole(provider: Provider, role: ProviderRole): boolean {
 export function providerIdsFor(role: ProviderRole): Provider[] {
   return PROVIDER_IDS.filter((id) => supportsRole(id, role));
 }
+
+/** Kalimat jujur soal ke mana audio dan teks pergi untuk pasangan provider ini. */
+export function privacySummary(stt: Provider, llm: Provider): string {
+  const sttLocal = PROVIDERS[stt].keyless;
+  const llmLocal = PROVIDERS[llm].keyless;
+  if (stt === llm) {
+    return sttLocal
+      ? "Audio dan teks diproses di komputer ini."
+      : `Audio dan teks dikirim ke ${PROVIDERS[stt].label}.`;
+  }
+  if (sttLocal && llmLocal) {
+    return "Audio dan teks diproses di komputer ini.";
+  }
+  if (sttLocal) {
+    return `Audio diproses di komputer ini. Teks transkrip dikirim ke ${PROVIDERS[llm].label}.`;
+  }
+  if (llmLocal) {
+    return `Audio dikirim ke ${PROVIDERS[stt].label}. Teks transkrip diproses di komputer ini.`;
+  }
+  return `Audio dikirim ke ${PROVIDERS[stt].label}. Teks transkrip dikirim ke ${PROVIDERS[llm].label}.`;
+}

@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PROVIDERS } from "@/lib/ai/providers"
+import { PROVIDERS, privacySummary } from "@/lib/ai/providers"
 import type { Provider } from "@/lib/ai/providers"
 import {
   setApiKey,
@@ -16,26 +16,6 @@ import {
 function roleLabel(stt: Provider, llm: Provider, provider: Provider): string {
   if (provider === stt && provider === llm) return "Transkripsi & ringkasan"
   return provider === stt ? "Transkripsi" : "Ringkasan"
-}
-
-function privacyLine(stt: Provider, llm: Provider): string {
-  const sttLocal = PROVIDERS[stt].keyless
-  const llmLocal = PROVIDERS[llm].keyless
-  if (stt === llm) {
-    return sttLocal
-      ? "Audio dan teks diproses di komputer ini."
-      : `Audio dan teks dikirim ke ${PROVIDERS[stt].label}.`
-  }
-  if (sttLocal && llmLocal) {
-    return "Audio dan teks diproses di komputer ini."
-  }
-  if (sttLocal) {
-    return `Audio diproses di komputer ini. Teks transkrip dikirim ke ${PROVIDERS[llm].label}.`
-  }
-  if (llmLocal) {
-    return `Audio dikirim ke ${PROVIDERS[stt].label}. Teks transkrip diproses di komputer ini.`
-  }
-  return `Audio dikirim ke ${PROVIDERS[stt].label}. Teks transkrip dikirim ke ${PROVIDERS[llm].label}.`
 }
 
 function KeyRow({ provider, role }: { provider: Provider; role: string }) {
@@ -131,7 +111,7 @@ export default function ProviderKeyList() {
         ))}
       </ul>
       <p className="mt-2 text-[0.8125rem] leading-snug text-muted-foreground">
-        {privacyLine(stt, llm)}
+        {privacySummary(stt, llm)}
       </p>
       {(!sttReady || !llmReady) && (
         <p className="mt-1 text-[0.8125rem] leading-snug text-muted-foreground">
