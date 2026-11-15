@@ -6,6 +6,12 @@ import Link from "next/link";
 
 import { Mic, Upload, Trash2, Loader2, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import SiteHeader from "@/components/site-header";
 import DemoShowcase from "@/components/demo-showcase";
 import { Mascot } from "@/components/mascot";
@@ -71,6 +77,10 @@ export default function BerandaPage() {
   const [showAll, setShowAll] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: number;
+    title: string;
+  } | null>(null);
   const editInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadMaterials = useCallback(async () => {
@@ -156,7 +166,6 @@ export default function BerandaPage() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Hapus materi ini beserta seluruh hasilnya?")) return;
     const db = openDB();
     await db.materials.delete(id);
     await db.transcripts.delete(id);
@@ -165,6 +174,7 @@ export default function BerandaPage() {
     await db.flashcards.where("materialId").equals(id).delete();
     await db.chunks.where("materialId").equals(id).delete();
     setMaterials((prev) => prev.filter((m) => m.id !== id));
+    setDeleteTarget(null);
   }
 
   function startRename(id: number, currentTitle: string) {
@@ -408,7 +418,7 @@ export default function BerandaPage() {
                 {(showAll ? materials : materials.slice(0, 3)).map((m) => (
                   <li
                     key={m.id}
-                    className="flex min-h-16 items-center gap-3 rounded-2xl bg-secondary px-4 py-2"
+                    className="flex min-h-16 items-center gap-4 rounded-2xl bg-secondary px-5 py-3 sm:px-6"
                   >
                     {editingId === m.id ? (
                       <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -445,7 +455,7 @@ export default function BerandaPage() {
                       <>
                         <Link
                           href={`/material?id=${m.id}`}
-                          className="min-w-0 flex-1 py-1 hover:text-muted-foreground"
+                          className="min-w-0 flex-1 py-0.5 hover:text-muted-foreground"
                         >
                           <span className="block truncate text-[1.0625rem] font-medium">
                             {m.title}
@@ -458,26 +468,33 @@ export default function BerandaPage() {
                             })}
                           </span>
                         </Link>
-                        <span className="text-[0.875rem] tabular-nums text-muted-foreground">
-                          {formatDuration(m.duration)}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Ubah nama ${m.title}`}
-                          title="Ubah nama"
-                          onClick={() => startRename(m.id!, m.title)}
-                        >
-                          <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Hapus ${m.title}`}
-                          onClick={() => handleDelete(m.id!)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+                          <span className="mr-2 text-[0.875rem] tabular-nums text-muted-foreground">
+                            {formatDuration(m.duration)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            aria-label={`Ubah nama ${m.title}`}
+                            title="Ubah nama"
+                            onClick={() => startRename(m.id!, m.title)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive/80 hover:bg-destructive/10 hover:text-destructive"
+                            aria-label={`Hapus ${m.title}`}
+                            title="Hapus materi"
+                            onClick={() =>
+                              setDeleteTarget({ id: m.id!, title: m.title })
+                            }
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </>
                     )}
                   </li>
@@ -643,6 +660,36 @@ export default function BerandaPage() {
           </div>
         </div>
       </footer>
+
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
+        <DialogContent className="gap-0 rounded-[28px] p-6 sm:max-w-md">
+          <DialogTitle className="text-xl">Hapus materi ini?</DialogTitle>
+          <DialogDescription className="mt-2 text-[0.9375rem] leading-relaxed text-muted-foreground">
+            Materi <strong className="font-medium text-foreground">{deleteTarget?.title}</strong> beserta rekaman, transkrip, ringkasan, mindmap, dan flashcard akan dihapus permanen dari browser ini.
+          </DialogDescription>
+          <p className="mt-3 text-[0.875rem] leading-snug text-muted-foreground">
+            Tindakan ini tidak bisa dibatalkan.
+          </p>
+          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleteTarget) void handleDelete(deleteTarget.id);
+              }}
+            >
+              Hapus materi
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
