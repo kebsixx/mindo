@@ -5,17 +5,15 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Loader2, Check, XCircle, FileText, Brain, Network, Layers, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { openDB } from "@/lib/db"
+import { openDB, type Flashcard, type Material, type Mindmap, type Summary } from "@/lib/db"
 import { transcribe } from "@/lib/ai/agents/transcribe"
-import { summarize } from "@/lib/ai/agents/summarize"
-import { mindmap } from "@/lib/ai/agents/mindmap"
-import { flashcard } from "@/lib/ai/agents/flashcard"
 import { chunkTranscript } from "@/lib/retrieval/chunk"
 import { getApiKey, getProvider } from "@/lib/storage/settings"
 import { PROVIDERS } from "@/lib/ai/providers"
+import { humanError } from "@/lib/ai/errors"
+import { runFlashcards, runMindmap, runSummary } from "@/lib/ai/pipeline"
 import SiteHeader from "@/components/site-header"
 import { Mascot } from "@/components/mascot"
-import type { Provider } from "@/lib/ai/client"
 
 type StageStatus = "pending" | "running" | "completed" | "failed"
 
@@ -28,6 +26,16 @@ interface ProcessingStage {
   finishedAt?: string
 }
 
+interface ExistingResults {
+  material?: Material
+  text: string
+  summary?: Summary
+  mindmap?: Mindmap
+  flashcards: Flashcard[]
+}
+
+const LLM_STAGES = ["summarize", "mindmap", "flashcard"] as const
+
 const INITIAL_STAGES: ProcessingStage[] = [
   { id: "transcribe", label: "Transkrip", icon: <FileText className="h-5 w-5" />, status: "pending" },
   { id: "summarize", label: "Ringkasan", icon: <Brain className="h-5 w-5" />, status: "pending" },
@@ -39,27 +47,21 @@ function nowTime(): string {
   return new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
 }
 
-function humanError(e: unknown): string {
-  const raw = e instanceof Error ? e.message : String(e ?? "")
-  if (/401|unauthorized|invalid api key|incorrect api key/i.test(raw)) {
-    return "API key ditolak provider. Periksa di menu Pengaturan, atau lihat panduan di Pengaturan > Cara mendapatkan API key."
-  }
-  if (/413|too large|maximum file size|file too large/i.test(raw)) {
-    return "File terlalu besar untuk diproses. Batasnya 25 MB."
-  }
-  if (/429|rate limit|too many requests/i.test(raw)) {
-    return "Terlalu banyak permintaan ke provider. Tunggu sebentar lalu coba lagi."
-  }
-  if (/failed to fetch|networkerror|load failed|cors/i.test(raw)) {
-    return "Tidak bisa menghubungi provider. Periksa koneksi internet."
-  }
-  if (/ECONNREFUSED|ENOTFOUND|certificate/i.test(raw)) {
-    return "Server provider tidak terjangkau. Coba lagi nanti."
-  }
-  if (/invalid_request_error|unsupported_|json_validate_failed/i.test(raw)) {
-    return "Provider menolak permintaan karena formatnya tidak didukung. Ini masalah konfigurasi Mindo, bukan key Anda."
-  }
-  return "Proses gagal. Coba lagi, atau ganti API key di menu Pengaturan."
+async function loadExistingResults(mid: number): Promise<ExistingResults> {
+  const db = openDB()
+  const [material, transcript, summary, mindmap, flashcards] = await Promise.all([
+    db.materials.get(mid),
+    db.transcripts.get(mid),
+    db.summaries.get(mid),
+    db.mindmaps.get(mid),
+    db.flashcards.where("materialId").equals(mid).toArray(),
+  ])
+  const text =
+    transcript?.segments
+      .map((s) => s.text)
+      .join(" ")
+      .trim() ?? ""
+  return { material, text, summary, mindmap, flashcards }
 }
 
 export default function ProcessingPage() {
@@ -83,6 +85,7 @@ function ProcessingView() {
   const materialId = searchParams.get("id")
   const [stages, setStages] = useState<ProcessingStage[]>(INITIAL_STAGES)
   const stagesRef = useRef<ProcessingStage[]>(INITIAL_STAGES)
+  const stageErrorsRef = useRef<Record<string, string>>({})
   const transcriptTextRef = useRef("")
   const startedRef = useRef(false)
 
@@ -92,132 +95,230 @@ function ProcessingView() {
     setStages(next)
   }
 
-  async function runPipeline() {
-    const mid = parseInt(materialId!, 10)
-    const db = openDB()
-    const sttProvider = getProvider("stt")
+  const markRunning = (id: string) => {
+    delete stageErrorsRef.current[id]
+    updateStage(id, { status: "running", error: undefined, finishedAt: undefined })
+  }
+
+  const markCompleted = (id: string) => {
+    delete stageErrorsRef.current[id]
+    updateStage(id, { status: "completed", error: undefined, finishedAt: nowTime() })
+  }
+
+  const markFailed = (id: string, message: string) => {
+    stageErrorsRef.current[id] = message
+    updateStage(id, { status: "failed", error: message })
+  }
+
+  /**
+   * Simpan status akhir ke materi supaya halaman Materi tahu bagian mana yang
+   * gagal dan tidak menawarkan hasil kosong tanpa jalan keluar.
+   */
+  const persistOutcome = async (mid: number) => {
+    const status = Object.fromEntries(stagesRef.current.map((s) => [s.id, s.status]))
+    const allLlmDone = LLM_STAGES.every((id) => status[id] === "completed")
+    const someLlmDone = LLM_STAGES.some((id) => status[id] === "completed")
+    const overall =
+      status.transcribe !== "completed"
+        ? "failed"
+        : allLlmDone
+          ? "done"
+          : someLlmDone
+            ? "partial"
+            : "failed"
+    await openDB().materials.update(mid, {
+      status: overall,
+      stageErrors: { ...stageErrorsRef.current },
+    })
+  }
+
+  async function runStage(
+    id: string,
+    action: () => Promise<void>
+  ): Promise<boolean> {
+    markRunning(id)
+    try {
+      await action()
+      markCompleted(id)
+      return true
+    } catch (e) {
+      console.error(`[mindo] tahap ${id} gagal`, e)
+      markFailed(id, humanError(e))
+      return false
+    }
+  }
+
+  async function runLlmStages(
+    mid: number,
+    text: string,
+    title: string,
+    existing: Pick<ExistingResults, "summary" | "mindmap" | "flashcards">
+  ) {
     const llmProvider = getProvider("llm")
-    const sttInfo = PROVIDERS[sttProvider]
     const llmInfo = PROVIDERS[llmProvider]
-    const sttApiKey = getApiKey(sttProvider)
     const llmApiKey = getApiKey(llmProvider)
 
-    updateStage("transcribe", { status: "running", error: undefined, finishedAt: undefined })
-    if (!sttInfo.stt) {
-      updateStage("transcribe", {
-        status: "failed",
-        error: `${sttInfo.label} belum mendukung transkripsi audio. Pilih Groq atau OpenAI di Pengaturan.`,
-      })
-      return
-    }
-    if (!sttInfo.keyless && !sttApiKey.trim()) {
-      updateStage("transcribe", { status: "failed", error: "API key transkripsi belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider." })
-      return
+    const has = {
+      summarize: Boolean(existing.summary),
+      mindmap: Boolean(existing.mindmap),
+      flashcard: existing.flashcards.length > 0,
     }
 
-    let text = ""
-    let title = "Materi"
-    try {
-      const material = await db.materials.get(mid)
-      if (!material?.audio) {
-        updateStage("transcribe", {
-          status: "failed",
-          error: "File rekaman tidak ditemukan. Pilih atau rekam ulang file.",
-        })
-        return
+    // Hasil yang sudah tersimpan menang atas catatan gagal lama.
+    for (const id of LLM_STAGES) {
+      if (has[id]) {
+        delete stageErrorsRef.current[id]
+        updateStage(id, { status: "completed", error: undefined, finishedAt: undefined })
       }
-      title = material.title
-      const result = await transcribe(sttProvider, sttApiKey, material.audio)
-      text = result.segments.map((s) => s.text).join(" ").trim()
-      transcriptTextRef.current = text
-      await db.transcripts.put({ materialId: mid, segments: result.segments })
-      await db.chunks.bulkPut(chunkTranscript(mid, result.segments))
-      await db.materials.update(mid, { duration: Math.round(result.duration), status: "processing" })
-      updateStage("transcribe", { status: "completed", finishedAt: nowTime() })
-    } catch (e) {
-      updateStage("transcribe", { status: "failed", error: humanError(e) })
-      return
-    }
-
-    if (!text) {
-      updateStage("transcribe", { status: "failed", error: "Transkrip kosong. Rekam ulang dengan audio yang lebih jelas." })
-      return
     }
 
     if (!llmInfo.keyless && !llmApiKey.trim()) {
-      updateStage("summarize", { status: "failed", error: "API key ringkasan belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider." })
+      const message =
+        "API key ringkasan belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider."
+      for (const id of LLM_STAGES) {
+        if (!has[id]) markFailed(id, message)
+      }
+      await persistOutcome(mid)
       return
     }
 
-    const results = await Promise.all([
-      runSummarize(mid, llmProvider, llmApiKey, text),
-      runMindmap(mid, llmProvider, llmApiKey, text, title),
-      runFlashcard(mid, llmProvider, llmApiKey, text, title),
-    ])
-
-    await db.materials.update(mid, { status: results.every(Boolean) ? "done" : "partial" })
-  }
-
-  async function runSummarize(mid: number, provider: Provider, apiKey: string, text: string): Promise<boolean> {
-    updateStage("summarize", { status: "running", error: undefined, finishedAt: undefined })
-    try {
-      const result = await summarize(provider, apiKey, text)
-      await openDB().summaries.put({ materialId: mid, title: result.title, sections: result.sections })
-      updateStage("summarize", { status: "completed", finishedAt: nowTime() })
-      return true
-    } catch (e) {
-      updateStage("summarize", { status: "failed", error: humanError(e) })
-      return false
+    // Kegagalan sebelumnya hanya dijalankan ulang lewat tombol Coba lagi.
+    for (const id of LLM_STAGES) {
+      if (!has[id] && stageErrorsRef.current[id]) {
+        updateStage(id, { status: "failed", error: stageErrorsRef.current[id] })
+      }
     }
-  }
 
-  async function runMindmap(mid: number, provider: Provider, apiKey: string, text: string, title: string): Promise<boolean> {
-    updateStage("mindmap", { status: "running", error: undefined, finishedAt: undefined })
-    try {
-      const result = await mindmap(provider, apiKey, text, title)
-      await openDB().mindmaps.put({ materialId: mid, title: result.title, children: result.children })
-      updateStage("mindmap", { status: "completed", finishedAt: nowTime() })
-      return true
-    } catch (e) {
-      updateStage("mindmap", { status: "failed", error: humanError(e) })
-      return false
+    const jobs: Promise<boolean>[] = []
+    if (!has.summarize && !stageErrorsRef.current.summarize) {
+      jobs.push(runStage("summarize", () => runSummary(mid, llmProvider, llmApiKey, text)))
     }
-  }
-
-  async function runFlashcard(mid: number, provider: Provider, apiKey: string, text: string, title: string): Promise<boolean> {
-    updateStage("flashcard", { status: "running", error: undefined, finishedAt: undefined })
-    try {
-      const result = await flashcard(provider, apiKey, text, title)
-      const db = openDB()
-      await db.flashcards.where("materialId").equals(mid).delete()
-      await db.flashcards.bulkAdd(
-        result.cards.map((c) => ({
-          materialId: mid,
-          question: c.question,
-          answer: c.answer,
-          difficulty: c.difficulty,
-          timestampRef: c.timestampRef,
-          grade: "unknown" as const,
-        }))
+    if (!has.mindmap && !stageErrorsRef.current.mindmap) {
+      jobs.push(runStage("mindmap", () => runMindmap(mid, llmProvider, llmApiKey, text, title)))
+    }
+    if (!has.flashcard && !stageErrorsRef.current.flashcard) {
+      jobs.push(
+        runStage("flashcard", () => runFlashcards(mid, llmProvider, llmApiKey, text, title))
       )
-      updateStage("flashcard", { status: "completed", finishedAt: nowTime() })
-      return true
+    }
+
+    await Promise.all(jobs)
+    await persistOutcome(mid)
+  }
+
+  async function runPipeline() {
+    const mid = parseInt(materialId ?? "", 10)
+    if (!Number.isFinite(mid)) {
+      markFailed("transcribe", "Materi tidak ditemukan. Buka lagi dari Riwayat.")
+      return
+    }
+
+    const db = openDB()
+    const existing = await loadExistingResults(mid)
+    if (existing.material?.stageErrors) {
+      stageErrorsRef.current = { ...existing.material.stageErrors }
+    }
+
+    if (existing.text) {
+      // Transkripsi tidak diulang saat halaman dimuat ulang.
+      updateStage("transcribe", { status: "completed", error: undefined, finishedAt: undefined })
+      transcriptTextRef.current = existing.text
+      await runLlmStages(
+        mid,
+        existing.text,
+        existing.material?.title ?? "Materi",
+        existing
+      )
+      return
+    }
+
+    const storedTranscribeError = stageErrorsRef.current.transcribe
+    if (storedTranscribeError) {
+      updateStage("transcribe", { status: "failed", error: storedTranscribeError })
+      return
+    }
+
+    const sttProvider = getProvider("stt")
+    const sttInfo = PROVIDERS[sttProvider]
+    const sttApiKey = getApiKey(sttProvider)
+
+    if (!sttInfo.stt) {
+      markFailed(
+        "transcribe",
+        `${sttInfo.label} belum mendukung transkripsi audio. Pilih Groq atau OpenAI di Pengaturan.`
+      )
+      await persistOutcome(mid)
+      return
+    }
+    if (!sttInfo.keyless && !sttApiKey.trim()) {
+      markFailed(
+        "transcribe",
+        "API key transkripsi belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider."
+      )
+      await persistOutcome(mid)
+      return
+    }
+    if (!existing.material?.audio) {
+      markFailed("transcribe", "File rekaman tidak ditemukan. Pilih atau rekam ulang file.")
+      await persistOutcome(mid)
+      return
+    }
+
+    markRunning("transcribe")
+    try {
+      const result = await transcribe(sttProvider, sttApiKey, existing.material.audio)
+      const text = result.segments
+        .map((s) => s.text)
+        .join(" ")
+        .trim()
+      if (!text) {
+        markFailed("transcribe", "Transkrip kosong. Rekam ulang dengan audio yang lebih jelas.")
+        await persistOutcome(mid)
+        return
+      }
+      transcriptTextRef.current = text
+      await db.transcripts.put({ materialId: mid, segments: result.segments })
+      await db.chunks.bulkPut(chunkTranscript(mid, result.segments))
+      await db.materials.update(mid, {
+        duration: Math.round(result.duration),
+        status: "processing",
+      })
+      markCompleted("transcribe")
+      await runLlmStages(mid, text, existing.material.title, {
+        summary: undefined,
+        mindmap: undefined,
+        flashcards: [],
+      })
     } catch (e) {
-      updateStage("flashcard", { status: "failed", error: humanError(e) })
-      return false
+      console.error("[mindo] tahap transcribe gagal", e)
+      markFailed("transcribe", humanError(e))
+      await persistOutcome(mid)
     }
   }
 
   async function handleRetry(id: string) {
+    const mid = parseInt(materialId ?? "", 10)
+    if (!Number.isFinite(mid)) return
+
     if (id === "transcribe") {
+      // Hapus catatan gagal lama dulu, kalau tidak runPipeline akan
+      // memulihkannya dari DB dan langsung berhenti tanpa mencoba.
+      const nextErrors = { ...stageErrorsRef.current }
+      delete nextErrors.transcribe
+      stageErrorsRef.current = nextErrors
+      await openDB().materials.update(mid, { stageErrors: nextErrors })
       await runPipeline()
       return
     }
+
     const llmProvider = getProvider("llm")
     const llmApiKey = getApiKey(llmProvider)
-    const mid = parseInt(materialId!, 10)
-    if (!llmApiKey && !PROVIDERS[llmProvider].keyless) {
-      updateStage(id, { status: "failed", error: "API key ringkasan belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider." })
+    if (!PROVIDERS[llmProvider].keyless && !llmApiKey.trim()) {
+      markFailed(
+        id,
+        "API key ringkasan belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider."
+      )
+      await persistOutcome(mid)
       return
     }
 
@@ -227,26 +328,38 @@ function ProcessingView() {
       text = saved?.segments.map((s) => s.text).join(" ").trim() ?? ""
     }
     if (!text) {
-      updateStage(id, { status: "failed", error: "Transkrip belum ada. Jalankan ulang tahap Transkrip dulu." })
+      markFailed(id, "Transkrip belum ada. Jalankan ulang tahap Transkrip dulu.")
+      await persistOutcome(mid)
       return
     }
     const material = await openDB().materials.get(mid)
     const title = material?.title ?? "Materi"
 
-    if (id === "summarize") await runSummarize(mid, llmProvider, llmApiKey, text)
-    if (id === "mindmap") await runMindmap(mid, llmProvider, llmApiKey, text, title)
-    if (id === "flashcard") await runFlashcard(mid, llmProvider, llmApiKey, text, title)
+    if (id === "summarize") {
+      await runStage("summarize", () => runSummary(mid, llmProvider, llmApiKey, text))
+    } else if (id === "mindmap") {
+      await runStage("mindmap", () => runMindmap(mid, llmProvider, llmApiKey, text, title))
+    } else if (id === "flashcard") {
+      await runStage("flashcard", () => runFlashcards(mid, llmProvider, llmApiKey, text, title))
+    }
+    await persistOutcome(mid)
   }
 
   useEffect(() => {
     if (!materialId || startedRef.current) return
     startedRef.current = true
-    void runPipeline()
+    void runPipeline().catch((e) => {
+      console.error("[mindo] pemrosesan berhenti", e)
+      markFailed("transcribe", humanError(e))
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [materialId])
 
   const allDone = stages.every((s) => s.status === "completed" || s.status === "failed")
   const transcribeDone = stages.find((s) => s.id === "transcribe")?.status === "completed"
+  const failedParts = stages.filter(
+    (s) => LLM_STAGES.includes(s.id as (typeof LLM_STAGES)[number]) && s.status === "failed"
+  ).length
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-clip">
@@ -264,6 +377,21 @@ function ProcessingView() {
         <p className="mt-3 max-w-[46ch] text-[1.0625rem] leading-[1.55] text-muted-foreground">
           Transkrip dikerjakan lebih dulu, lalu ringkasan, mindmap, dan flashcard berjalan bersamaan.
         </p>
+
+        {transcribeDone && failedParts > 0 && (
+          <div
+            role="status"
+            className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3.5"
+          >
+            <p className="text-[0.9375rem] font-medium">
+              {failedParts} dari 3 bagian belum jadi.
+            </p>
+            <p className="mt-1 text-[0.9375rem] leading-snug text-muted-foreground">
+              Hasil yang selesai tetap tersimpan. Coba lagi bagian yang gagal, atau buka hasil
+              yang sudah ada.
+            </p>
+          </div>
+        )}
 
         <div className="mt-10 space-y-2" aria-live="polite">
           {stages.map((stage) => (
@@ -300,8 +428,10 @@ function ProcessingView() {
                   {stage.label}
                 </div>
                 {stage.status === "running" && <p className="text-[0.9375rem] text-muted-foreground">Sedang diproses</p>}
-                {stage.status === "completed" && stage.finishedAt && (
-                  <p className="text-[0.9375rem] tabular-nums text-muted-foreground">Selesai pukul {stage.finishedAt}</p>
+                {stage.status === "completed" && (
+                  <p className="text-[0.9375rem] tabular-nums text-muted-foreground">
+                    {stage.finishedAt ? `Selesai pukul ${stage.finishedAt}` : "Sudah tersimpan"}
+                  </p>
                 )}
                 {stage.status === "failed" && stage.error && (
                   <p className="text-[0.9375rem] text-destructive" aria-live="assertive">
@@ -311,13 +441,12 @@ function ProcessingView() {
               </div>
               {stage.status === "failed" && (
                 <Button
-                  size="sm"
                   variant="outline"
                   className="w-full bg-card sm:w-auto"
                   onClick={() => handleRetry(stage.id)}
                 >
                   <RefreshCw className="h-4 w-4" />
-                  Coba Lagi
+                  Coba lagi
                 </Button>
               )}
             </div>
@@ -329,12 +458,15 @@ function ProcessingView() {
             Batal
           </Button>
           {allDone && transcribeDone && (
-            <Button onClick={() => router.push(`/material?id=${materialId}`)}>Lihat Hasil</Button>
+            <Button onClick={() => router.push(`/material?id=${materialId}`)}>
+              {failedParts > 0 ? "Lihat hasil yang selesai" : "Lihat Hasil"}
+            </Button>
           )}
         </div>
 
-        <p className="mt-6 text-[0.9375rem] text-muted-foreground">
-          Jangan tutup tab ini sampai tahap terakhir selesai. Semua panggilan berjalan dari browser Anda.
+        <p className="mt-6 text-[0.9375rem] leading-snug text-muted-foreground">
+          Jangan tutup tab ini sampai tahap terakhir selesai. Semua panggilan berjalan dari browser
+          Anda. Membuka ulang halaman ini tidak mengulang transkripsi yang sudah tersimpan.
         </p>
       </main>
     </div>

@@ -160,3 +160,44 @@ export async function chatCompletion(
   }
   return content
 }
+
+/**
+ * Jawaban model kadang terpotong sehingga JSON gagal diparse. Percobaan kedua
+ * yang manual terbukti sering berhasil, jadi ulangi sekali di sini sebelum
+ * menyerahkan kegagalan ke pengguna.
+ */
+export async function chatCompletionParsed<T>(
+  provider: Provider,
+  apiKey: string,
+  systemPrompt: string,
+  userPrompt: string,
+  schema: Record<string, unknown> | undefined,
+  parse: (raw: string) => T,
+  options?: { temperature?: number; maxTokens?: number }
+): Promise<T> {
+  const raw = await chatCompletion(
+    provider,
+    apiKey,
+    systemPrompt,
+    userPrompt,
+    schema,
+    options
+  )
+  try {
+    return parse(raw)
+  } catch (first) {
+    const retry = await chatCompletion(
+      provider,
+      apiKey,
+      systemPrompt,
+      userPrompt,
+      schema,
+      options
+    )
+    try {
+      return parse(retry)
+    } catch {
+      throw first
+    }
+  }
+}

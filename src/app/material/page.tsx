@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, FileText, MessageCircle, PanelRightClose } from "lucide-react";
+import { Loader2, FileText, MessageCircle, PanelRightClose, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,6 +27,75 @@ import ChatPanel, { type TutorReply } from "@/components/chat-panel";
 import { tutor } from "@/lib/ai/agents/tutor";
 import { getApiKey, getProvider } from "@/lib/storage/settings";
 import { PROVIDERS } from "@/lib/ai/providers";
+import { humanError } from "@/lib/ai/errors";
+import { runFlashcards, runMindmap, runSummary } from "@/lib/ai/pipeline";
+
+function StageFallback({
+  title,
+  message,
+  hasTranscript,
+  materialId,
+  retrying,
+  busy,
+  onRetry,
+}: {
+  title: string;
+  message?: string;
+  hasTranscript: boolean;
+  materialId: string | null;
+  retrying: boolean;
+  busy: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start gap-3">
+        <AlertCircle
+          className={cn(
+            "mt-0.5 h-5 w-5 shrink-0",
+            message ? "text-destructive" : "text-muted-foreground",
+          )}
+          aria-hidden="true"
+        />
+        <div className="min-w-0">
+          <p className="text-[1.0625rem] font-medium">
+            {message ? `${title} belum jadi` : `${title} belum dibuat`}
+          </p>
+          <p className="mt-1 max-w-[52ch] text-[0.9375rem] leading-[1.55] text-muted-foreground">
+            {message
+              ? "Bagian lain tidak terpengaruh. Kalau percobaan ini berhasil, hasilnya langsung muncul di tab ini."
+              : hasTranscript
+                ? "Transkrip sudah tersimpan, jadi bagian ini bisa dibuat tanpa mengunggah ulang rekaman."
+                : "Transkrip belum ada. Jalankan pemrosesan dulu sebelum membuat bagian ini."}
+          </p>
+          {message && (
+            <p
+              role="alert"
+              className="mt-2 max-w-[52ch] text-[0.9375rem] leading-snug text-destructive"
+            >
+              {message}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {hasTranscript ? (
+        <Button variant="outline" onClick={onRetry} disabled={busy}>
+          {retrying ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+          )}
+          {retrying ? "Mencoba..." : message ? "Coba lagi" : "Buat sekarang"}
+        </Button>
+      ) : (
+        <Button asChild variant="outline">
+          <Link href={`/processing?id=${materialId ?? ""}`}>Buka Pemrosesan</Link>
+        </Button>
+      )}
+    </div>
+  );
+}
 
 export default function MaterialPage() {
   return (
@@ -59,9 +128,16 @@ function MaterialView() {
   const [activeTab, setActiveTab] = useState("summary");
   const [chatOpen, setChatOpen] = useState(false);
   const [chatCollapsed, setChatCollapsed] = useState(false);
+  const [stageErrors, setStageErrors] = useState<Record<string, string>>({});
+  const [retryErrors, setRetryErrors] = useState<Record<string, string>>({});
+  const [retrying, setRetrying] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const transcriptView = searchParams.get("view") === "transcript";
+  const transcriptText = segments
+    .map((segment) => segment.text)
+    .join(" ")
+    .trim();
 
   const loadData = async () => {
     const db = openDB();
@@ -76,20 +152,90 @@ function MaterialView() {
     return { mat, sum, mm, cards, trans };
   };
 
+  const applyData = (data: Awaited<ReturnType<typeof loadData>>) => {
+    setMaterial(data.mat || null);
+    setSummary(data.sum || null);
+    setMindmap(data.mm || null);
+    setFlashcards(data.cards);
+    setSegments(data.trans?.segments || []);
+    setStageErrors(data.mat?.stageErrors || {});
+  };
+
   useEffect(() => {
     if (!materialId) return;
     loadData()
-      .then(({ mat, sum, mm, cards, trans }) => {
-        setMaterial(mat || null);
-        setSummary(sum || null);
-        setMindmap(mm || null);
-        setFlashcards(cards);
-        setSegments(trans?.segments || []);
-      })
+      .then(applyData)
       .catch((e) => console.error(e))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [materialId]);
+
+  const retryStage = async (stage: "summarize" | "mindmap" | "flashcard") => {
+    if (!materialId || retrying) return;
+    const mid = parseInt(materialId, 10);
+    const db = openDB();
+    const provider = getProvider("llm");
+    const apiKey = getApiKey(provider);
+
+    setRetrying(stage);
+    setRetryErrors((prev) => {
+      const next = { ...prev };
+      delete next[stage];
+      return next;
+    });
+    const cleaned = { ...stageErrors };
+    delete cleaned[stage];
+    setStageErrors(cleaned);
+    await db.materials.update(mid, { stageErrors: cleaned });
+
+    try {
+      if (!PROVIDERS[provider].keyless && !apiKey.trim()) {
+        throw new Error(
+          "API key ringkasan belum diisi. Buka Pengaturan > Cara mendapatkan API key untuk panduan tiap provider.",
+        );
+      }
+      const saved = await db.transcripts.get(mid);
+      const text =
+        saved?.segments
+          .map((segment) => segment.text)
+          .join(" ")
+          .trim() || transcriptText;
+      if (!text) {
+        throw new Error(
+          "Transkrip belum tersedia. Jalankan ulang tahap Transkrip di halaman Pemrosesan.",
+        );
+      }
+      const title = material?.title || "Materi";
+      if (stage === "summarize") {
+        await runSummary(mid, provider, apiKey, text);
+      } else if (stage === "mindmap") {
+        await runMindmap(mid, provider, apiKey, text, title);
+      } else {
+        await runFlashcards(mid, provider, apiKey, text, title);
+      }
+
+      const refreshed = await loadData();
+      applyData(refreshed);
+      const complete = Boolean(
+        refreshed.sum && refreshed.mm && refreshed.cards.length > 0,
+      );
+      await db.materials.update(mid, {
+        status: complete ? "done" : "partial",
+        stageErrors: cleaned,
+      });
+    } catch (e) {
+      console.error(`[mindo] coba lagi ${stage} gagal`, e);
+      const message = humanError(e);
+      const next = { ...stageErrors, [stage]: message };
+      setRetryErrors((prev) => ({ ...prev, [stage]: message }));
+      setStageErrors(next);
+      await db.materials
+        .update(mid, { status: "partial", stageErrors: next })
+        .catch(() => {});
+    } finally {
+      setRetrying(null);
+    }
+  };
 
   const toggleTranscript = () => {
     router.replace(
@@ -234,9 +380,15 @@ function MaterialView() {
                         </div>
                       ))}
                       {!summary && (
-                        <p className="text-[1.0625rem] text-muted-foreground">
-                          Belum ada ringkasan.
-                        </p>
+                        <StageFallback
+                          title="Ringkasan"
+                          message={retryErrors.summarize ?? stageErrors.summarize}
+                          hasTranscript={Boolean(transcriptText)}
+                          materialId={materialId}
+                          retrying={retrying === "summarize"}
+                          busy={retrying !== null}
+                          onRetry={() => retryStage("summarize")}
+                        />
                       )}
                     </CardContent>
                   </Card>
@@ -256,9 +408,15 @@ function MaterialView() {
                           className="h-125 w-full"
                         />
                       ) : (
-                        <p className="text-[1.0625rem] text-muted-foreground">
-                          Belum ada mindmap.
-                        </p>
+                        <StageFallback
+                          title="Mindmap"
+                          message={retryErrors.mindmap ?? stageErrors.mindmap}
+                          hasTranscript={Boolean(transcriptText)}
+                          materialId={materialId}
+                          retrying={retrying === "mindmap"}
+                          busy={retrying !== null}
+                          onRetry={() => retryStage("mindmap")}
+                        />
                       )}
                     </CardContent>
                   </Card>
@@ -270,12 +428,24 @@ function MaterialView() {
                       <CardTitle className="text-lg">Flashcard</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <FlashcardSwiper
-                        cards={flashcards
-                          .filter((c) => c.id !== undefined)
-                          .map((c) => ({ ...c, id: c.id as number }))}
-                        onGrade={handleGrade}
-                      />
+                      {flashcards.length > 0 ? (
+                        <FlashcardSwiper
+                          cards={flashcards
+                            .filter((c) => c.id !== undefined)
+                            .map((c) => ({ ...c, id: c.id as number }))}
+                          onGrade={handleGrade}
+                        />
+                      ) : (
+                        <StageFallback
+                          title="Flashcard"
+                          message={retryErrors.flashcard ?? stageErrors.flashcard}
+                          hasTranscript={Boolean(transcriptText)}
+                          materialId={materialId}
+                          retrying={retrying === "flashcard"}
+                          busy={retrying !== null}
+                          onRetry={() => retryStage("flashcard")}
+                        />
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>

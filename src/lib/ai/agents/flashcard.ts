@@ -1,4 +1,4 @@
-import { chatCompletion } from "@/lib/ai/client"
+import { chatCompletionParsed } from "@/lib/ai/client"
 import { FLASHCARD_SCHEMA } from "@/lib/ai/schema"
 import { z } from "zod"
 import type { Provider } from "@/lib/ai/client"
@@ -36,8 +36,13 @@ Aturan:
 
   const schema = z.toJSONSchema(FLASHCARD_SCHEMA)
 
-  const raw = await chatCompletion(provider, apiKey, systemPrompt, userPrompt, schema, { temperature: 0 })
-
-  const parsed = JSON.parse(raw)
-  return FlashcardSchema.parse(parsed)
+  return chatCompletionParsed(
+    provider,
+    apiKey,
+    systemPrompt,
+    userPrompt,
+    schema,
+    (raw) => FlashcardSchema.parse(JSON.parse(raw)),
+    { temperature: 0 }
+  )
 }

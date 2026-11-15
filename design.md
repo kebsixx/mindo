@@ -197,6 +197,9 @@ Kartu tunggal di tengah, lebar maks 640 px.
   - Berjalan: ikon berdenyut Lime, label "Sedang diproses".
   - Selesai: ikon centang Lime, waktu selesai.
   - Gagal: ikon seru Danger, satu kalimat alasan, tombol "Coba lagi" khusus tahap itu.
+- Bila sebagian tahap gagal, tampilkan satu baris ringkas di atas daftar: berapa bagian yang belum jadi, bahwa hasil lain tetap tersimpan, dan tombol bawah menjadi "Lihat hasil yang selesai".
+- Membuka ulang halaman melanjutkan dari hasil tersimpan. Transkripsi tidak diulang bila transkrip sudah ada, dan tahap yang sudah selesai tidak dikerjakan lagi.
+- Tahap yang sebelumnya gagal tidak dijalankan otomatis saat halaman dimuat ulang; pengguna memilih "Coba lagi" untuk tahap itu.
 - Bawah: tombol "Batal" bergaya outline. Batal menghentikan request berjalan, hasil yang sudah selesai tetap tersimpan.
 - Baris ringkasan, peta konsep, dan flashcard berjalan bersamaan setelah transkrip selesai, jadi jangan tampilkan sebagai antrean.
 - Seluruh daftar memakai `aria-live="polite"`.
@@ -231,6 +234,12 @@ Tab Flashcard:
 - Satu kartu putih di tengah, radius 28 px, tinggi tetap supaya tidak melompat saat dibalik.
 - Ketuk atau Enter membalik.
 - Bawah kartu: dua tombol "Ulang" dan "Paham", plus progres Mono "7 / 15".
+
+Tab yang gagal:
+
+- Isi tab diganti satu blok di dalam kartu: nama bagian yang gagal, kalimat bahwa bagian lain tidak terpengaruh, alasan dalam bahasa user, dan tombol "Coba lagi".
+- Tombol hanya mengerjakan bagian itu, memakai transkrip yang sudah tersimpan. Tidak ada unggah ulang atau transkripsi ulang.
+- Bila transkrip belum ada, tombol diganti tautan ke halaman Pemrosesan.
 - Panah kiri berarti Ulang, panah kanan berarti Paham.
 - Setelah kartu terakhir, layar ringkas: jumlah paham, jumlah ulang, tombol "Ulangi yang salah".
 - Progres disimpan per kartu di IndexedDB, bertahan setelah refresh.

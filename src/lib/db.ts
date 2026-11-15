@@ -9,6 +9,8 @@ export interface Material {
   fileName: string
   fileSize: number
   audio?: Blob
+  /** Pesan siap-tampil per tahap yang gagal. Kunci: transcribe, summarize, mindmap, flashcard. */
+  stageErrors?: Record<string, string>
 }
 
 export interface TranscriptSegment {

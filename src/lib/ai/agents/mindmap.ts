@@ -1,4 +1,4 @@
-import { chatCompletion } from "@/lib/ai/client"
+import { chatCompletionParsed } from "@/lib/ai/client"
 import { MINDMAP_SCHEMA } from "@/lib/ai/schema"
 import { z } from "zod"
 import type { Provider } from "@/lib/ai/client"
@@ -42,8 +42,13 @@ Aturan:
 
   const schema = z.toJSONSchema(MINDMAP_SCHEMA)
 
-  const raw = await chatCompletion(provider, apiKey, systemPrompt, userPrompt, schema, { temperature: 0 })
-
-  const parsed = JSON.parse(raw)
-  return MindmapSchema.parse(parsed)
+  return chatCompletionParsed(
+    provider,
+    apiKey,
+    systemPrompt,
+    userPrompt,
+    schema,
+    (raw) => MindmapSchema.parse(JSON.parse(raw)),
+    { temperature: 0 }
+  )
 }
