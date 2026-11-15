@@ -27,8 +27,8 @@ export function ProviderPicker({ role, value, onChange }: ProviderPickerProps) {
               "flex cursor-pointer flex-col gap-1 rounded-[16px] border p-4 transition-colors",
               "has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-[3px] has-[:focus-visible]:outline-ring",
               selected
-                ? "border-foreground bg-card"
-                : "border-foreground/20 hover:bg-secondary",
+                ? "border-primary bg-primary/10 shadow-xs"
+                : "border-foreground/20 bg-card hover:bg-secondary/60",
             )}
           >
             <input
@@ -42,9 +42,12 @@ export function ProviderPicker({ role, value, onChange }: ProviderPickerProps) {
             />
             <span className="flex items-center justify-between gap-2">
               <span className="text-[0.9375rem] font-medium">{p.label}</span>
-              {selected && (
-                <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
-              )}
+              {selected ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/20 px-2 py-0.5 text-[0.75rem] font-medium text-foreground">
+                  <Check className="h-3 w-3 shrink-0 text-foreground" aria-hidden="true" />
+                  Dipilih
+                </span>
+              ) : null}
             </span>
             <span className="line-clamp-2 text-[0.875rem] leading-snug text-muted-foreground">
               {p.description}

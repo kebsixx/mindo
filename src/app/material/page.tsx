@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, FileText, MessageCircle, PanelRightClose, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, FileText, MessageCircle, PanelRightClose, AlertCircle, RefreshCw, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -131,6 +131,9 @@ function MaterialView() {
   const [stageErrors, setStageErrors] = useState<Record<string, string>>({});
   const [retryErrors, setRetryErrors] = useState<Record<string, string>>({});
   const [retrying, setRetrying] = useState<string | null>(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState("");
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const transcriptView = searchParams.get("view") === "transcript";
@@ -169,6 +172,48 @@ function MaterialView() {
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [materialId]);
+
+  const startEditingTitle = () => {
+    setEditedTitle(material?.title || "Materi");
+    setIsEditingTitle(true);
+    setTimeout(() => {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    }, 0);
+  };
+
+  const cancelEditingTitle = () => {
+    setIsEditingTitle(false);
+    setEditedTitle("");
+  };
+
+  const saveTitle = async () => {
+    if (!materialId || !material) return;
+    const current = titleInputRef.current?.value ?? editedTitle;
+    const trimmed = current.trim();
+    if (!trimmed || trimmed === material.title) {
+      cancelEditingTitle();
+      return;
+    }
+    const mid = parseInt(materialId, 10);
+    try {
+      await openDB().materials.update(mid, { title: trimmed });
+      setMaterial({ ...material, title: trimmed });
+      setIsEditingTitle(false);
+    } catch (err) {
+      console.error("[mindo] gagal memperbarui judul materi", err);
+    }
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      void saveTitle();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      cancelEditingTitle();
+    }
+  };
 
   const retryStage = async (stage: "summarize" | "mindmap" | "flashcard") => {
     if (!materialId || retrying) return;
@@ -311,9 +356,54 @@ function MaterialView() {
       <main className="mx-auto w-full max-w-280 flex-1 px-5 pb-16 pt-4 sm:px-8 sm:pt-6">
         <BackLink href="/" label="Kembali ke beranda" />
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="min-w-0 flex-1 truncate text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
-            {material?.title || "Materi"}
-          </h1>
+          {isEditingTitle ? (
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <input
+                ref={titleInputRef}
+                type="text"
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                onKeyDown={handleTitleKeyDown}
+                className="w-full min-w-[200px] rounded-xl border border-foreground/30 bg-card px-3 py-1.5 text-[clamp(1.5rem,3vw,2.25rem)] font-semibold leading-[1.1] tracking-tight text-foreground outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20"
+                maxLength={100}
+                aria-label="Ubah judul materi"
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => void saveTitle()}
+                aria-label="Simpan judul"
+                className="h-10 w-10 shrink-0 text-foreground"
+              >
+                <Check className="h-5 w-5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={cancelEditingTitle}
+                aria-label="Batal ubah judul"
+                className="h-10 w-10 shrink-0 text-muted-foreground"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+          ) : (
+            <div className="group flex min-w-0 flex-1 items-center gap-2">
+              <h1 className="truncate text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
+                {material?.title || "Materi"}
+              </h1>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={startEditingTitle}
+                aria-label="Ubah nama materi"
+                title="Ubah nama materi"
+                className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           <Button
             size="sm"
             variant={transcriptView ? "default" : "outline"}

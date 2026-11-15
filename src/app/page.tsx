@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import { Mic, Upload, Trash2, Loader2 } from "lucide-react";
+import { Mic, Upload, Trash2, Loader2, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SiteHeader from "@/components/site-header";
 import DemoShowcase from "@/components/demo-showcase";
@@ -69,6 +69,9 @@ export default function BerandaPage() {
   const [saving, setSaving] = useState(false);
   const [sampleLoading, setSampleLoading] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const editInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadMaterials = useCallback(async () => {
     const db = openDB();
@@ -162,6 +165,54 @@ export default function BerandaPage() {
     await db.flashcards.where("materialId").equals(id).delete();
     await db.chunks.where("materialId").equals(id).delete();
     setMaterials((prev) => prev.filter((m) => m.id !== id));
+  }
+
+  function startRename(id: number, currentTitle: string) {
+    setEditingId(id);
+    setEditingTitle(currentTitle);
+    setTimeout(() => {
+      editInputRef.current?.focus();
+      editInputRef.current?.select();
+    }, 0);
+  }
+
+  function cancelRename() {
+    setEditingId(null);
+    setEditingTitle("");
+  }
+
+  async function saveRename(id: number) {
+    const current = editInputRef.current?.value ?? editingTitle;
+    const trimmed = current.trim();
+    if (!trimmed) {
+      cancelRename();
+      return;
+    }
+    try {
+      await openDB().materials.update(id, { title: trimmed });
+      setMaterials((rows) =>
+        rows.map((m) => (m.id === id ? { ...m, title: trimmed } : m)),
+      );
+      cancelRename();
+    } catch {
+      toast({
+        title: "Gagal menyimpan nama",
+        description: "Terjadi kesalahan saat memperbarui nama materi.",
+      });
+    }
+  }
+
+  function handleRenameKeyDown(
+    e: React.KeyboardEvent<HTMLInputElement>,
+    id: number,
+  ) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      void saveRename(id);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      cancelRename();
+    }
   }
 
   const ready = Boolean(file) && canTranscribe && sttReady && llmReady;
@@ -357,34 +408,78 @@ export default function BerandaPage() {
                 {(showAll ? materials : materials.slice(0, 3)).map((m) => (
                   <li
                     key={m.id}
-                    className="flex min-h-16 items-center gap-3 rounded-2xl bg-secondary px-4 py-1"
+                    className="flex min-h-16 items-center gap-3 rounded-2xl bg-secondary px-4 py-2"
                   >
-                    <Link
-                      href={`/material?id=${m.id}`}
-                      className="min-w-0 flex-1 py-3 hover:text-muted-foreground"
-                    >
-                      <span className="block truncate text-[1.0625rem] font-medium">
-                        {m.title}
-                      </span>
-                      <span className="mt-0.5 block text-[0.875rem] text-muted-foreground">
-                        {new Date(m.createdAt).toLocaleDateString("id-ID", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}
-                      </span>
-                    </Link>
-                    <span className="text-[0.875rem] tabular-nums text-muted-foreground">
-                      {formatDuration(m.duration)}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Hapus ${m.title}`}
-                      onClick={() => handleDelete(m.id!)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    {editingId === m.id ? (
+                      <div className="flex min-w-0 flex-1 items-center gap-2">
+                        <input
+                          ref={editInputRef}
+                          type="text"
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onKeyDown={(e) => handleRenameKeyDown(e, m.id!)}
+                          className="w-full rounded-lg border border-foreground/30 bg-card px-2.5 py-1 text-[0.9375rem] font-medium text-foreground outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          maxLength={100}
+                          aria-label="Ubah nama materi"
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => void saveRename(m.id!)}
+                          aria-label="Simpan nama"
+                          className="h-8 w-8 shrink-0 text-foreground"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={cancelRename}
+                          aria-label="Batal ubah"
+                          className="h-8 w-8 shrink-0 text-muted-foreground"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Link
+                          href={`/material?id=${m.id}`}
+                          className="min-w-0 flex-1 py-1 hover:text-muted-foreground"
+                        >
+                          <span className="block truncate text-[1.0625rem] font-medium">
+                            {m.title}
+                          </span>
+                          <span className="mt-0.5 block text-[0.875rem] text-muted-foreground">
+                            {new Date(m.createdAt).toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </span>
+                        </Link>
+                        <span className="text-[0.875rem] tabular-nums text-muted-foreground">
+                          {formatDuration(m.duration)}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Ubah nama ${m.title}`}
+                          title="Ubah nama"
+                          onClick={() => startRename(m.id!, m.title)}
+                        >
+                          <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Hapus ${m.title}`}
+                          onClick={() => handleDelete(m.id!)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -480,6 +575,74 @@ export default function BerandaPage() {
           </div>
         </section>
       </main>
+
+      <footer className="w-full border-t border-border bg-card">
+        <div className="mx-auto flex w-full max-w-280 flex-col gap-6 px-5 py-8 sm:px-8 sm:py-10">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/icons/icon-192.png"
+                alt=""
+                width={24}
+                height={24}
+                className="h-6 w-6 rounded-md"
+              />
+              <span className="text-[1rem] font-bold tracking-tight text-foreground">
+                MINDO
+              </span>
+              <span className="text-[0.875rem] text-muted-foreground">
+                1 Rekaman, 3 Bahan Ajar
+              </span>
+            </div>
+            <nav
+              aria-label="Navigasi footer"
+              className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[0.875rem] text-muted-foreground"
+            >
+              <a
+                href="#contoh"
+                className="transition-colors hover:text-foreground"
+              >
+                Contoh
+              </a>
+              {hasHistory && (
+                <a
+                  href="#riwayat"
+                  className="transition-colors hover:text-foreground"
+                >
+                  Riwayat
+                </a>
+              )}
+              <a
+                href="#cara-kerja"
+                className="transition-colors hover:text-foreground"
+              >
+                Cara kerja
+              </a>
+              <a
+                href="#privasi"
+                className="transition-colors hover:text-foreground"
+              >
+                Privasi
+              </a>
+              <Link
+                href="/settings"
+                className="transition-colors hover:text-foreground"
+              >
+                Pengaturan
+              </Link>
+            </nav>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-6 text-[0.8125rem] text-muted-foreground">
+            <p>
+              Semua data rekaman & API key tersimpan di browser Anda. Tidak ada data yang dikirim ke server Mindo.
+            </p>
+            <p className="tabular-nums">
+              {new Date().getFullYear()} Mindo
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
