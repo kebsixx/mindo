@@ -35,6 +35,35 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
 
   const historyVisible = showHistory ?? hasMaterials;
 
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    let lastY = window.scrollY;
+
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const scrolledPast = currentY > 32;
+      setIsScrolled(scrolledPast);
+
+      if (currentY <= 32) {
+        setIsVisible(true);
+      } else if (currentY > lastY + 8) {
+        // Scroll ke bawah: sembunyikan navbar
+        setIsVisible(false);
+        setMenuOpen(false);
+      } else if (currentY < lastY - 8) {
+        // Scroll ke atas: tampilkan kembali navbar
+        setIsVisible(true);
+      }
+
+      lastY = currentY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const onHome = pathname === "/";
   const onSettings = pathname === "/settings";
   const navItems = [
@@ -48,20 +77,48 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
   ];
 
   return (
-    <div className="sticky top-0 z-40 w-full pt-3 sm:pt-4">
-      <header className="relative mx-auto flex h-14 w-[calc(100%-1.5rem)] max-w-280 items-center justify-between gap-3 rounded-full border border-border/70 bg-card/85 px-4 shadow-xs backdrop-blur-md sm:h-15 sm:w-[calc(100%-3rem)] sm:px-6">
+    <div
+      className={cn(
+        "sticky top-0 z-40 w-full transition-transform duration-300 ease-out",
+        !isVisible && "-translate-y-full",
+        isScrolled ? "pt-3 sm:pt-4" : "pt-0",
+      )}
+    >
+      <header
+        className={cn(
+          "relative mx-auto flex items-center justify-between gap-3 transition-all duration-300 ease-out",
+          isScrolled
+            ? "h-14 w-[calc(100%-1.5rem)] max-w-280 rounded-full border border-border/75 bg-card/85 px-4 shadow-xs backdrop-blur-md sm:h-15 sm:w-[calc(100%-3rem)] sm:px-6"
+            : "h-16 w-full max-w-280 rounded-none border-b border-transparent bg-transparent px-5 sm:h-18 sm:px-8",
+        )}
+      >
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <Image
             src="/logo-mindo.png"
             alt=""
-            width={28}
-            height={28}
-            className="h-7 w-7"
+            width={isScrolled ? 28 : 32}
+            height={isScrolled ? 28 : 32}
+            className={cn(
+              "transition-all duration-300",
+              isScrolled ? "h-7 w-7" : "h-8 w-8",
+            )}
           />
-          <span className="text-[1.125rem] font-bold tracking-tight">MINDO</span>
+          <span
+            className={cn(
+              "font-bold tracking-tight transition-all duration-300",
+              isScrolled ? "text-[1.125rem]" : "text-xl",
+            )}
+          >
+            MINDO
+          </span>
         </Link>
 
-        <nav className="hidden items-center gap-6 text-[0.875rem] font-medium text-muted-foreground md:flex">
+        <nav
+          className={cn(
+            "hidden items-center gap-6 font-medium text-muted-foreground md:flex transition-colors",
+            isScrolled ? "text-[0.875rem]" : "text-[0.9375rem]",
+          )}
+        >
           {navItems.map((item) => (
             <a
               key={item.label}
@@ -82,11 +139,13 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
             className={buttonVariants({
               variant: "ghost",
               size: "icon",
-              className:
-                "h-9 w-9 rounded-full max-md:hidden! text-muted-foreground hover:text-foreground",
+              className: cn(
+                "rounded-full max-md:hidden! text-muted-foreground hover:text-foreground transition-all",
+                isScrolled ? "h-9 w-9" : "h-10 w-10",
+              ),
             })}
           >
-            <Settings className="h-4.5 w-4.5" aria-hidden="true" />
+            <Settings className="h-5 w-5" aria-hidden="true" />
           </Link>
           <Button
             size="icon"
@@ -94,7 +153,10 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
             aria-label={menuOpen ? "Tutup menu" : "Buka menu"}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
-            className="h-9 w-9 rounded-full md:hidden"
+            className={cn(
+              "rounded-full md:hidden transition-all",
+              isScrolled ? "h-9 w-9" : "h-10 w-10",
+            )}
           >
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
@@ -102,7 +164,10 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
 
         {menuOpen && (
           <nav
-            className="absolute inset-x-0 top-16 z-40 rounded-[28px] border border-border bg-card/95 p-3 shadow-lg backdrop-blur-md md:hidden"
+            className={cn(
+              "absolute z-40 rounded-[28px] border border-border bg-card/95 p-3 shadow-lg backdrop-blur-md md:hidden",
+              isScrolled ? "inset-x-0 top-16" : "inset-x-4 top-16 sm:top-18",
+            )}
             aria-label="Menu utama"
           >
             <div className="flex flex-col text-base">
