@@ -81,18 +81,31 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
   return (
     <div
       className={cn(
-        "sticky top-0 z-40 w-full transition-[transform,padding] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        "sticky top-0 z-40 w-full",
         !isVisible && "-translate-y-full",
         isScrolled ? "pt-3 sm:pt-4" : "pt-0",
       )}
+      style={{
+        transitionProperty: "transform, padding",
+        transitionDuration: isVisible
+          ? "var(--duration-fast, 250ms)"
+          : "var(--duration-quick, 150ms)",
+        transitionTimingFunction: "var(--ease-smooth-out)",
+      }}
     >
       <header
         className={cn(
-          "relative mx-auto flex items-center justify-between gap-3 transition-[max-width,height,border-radius,background-color,border-color,box-shadow,padding] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          "relative mx-auto flex items-center justify-between gap-3",
           isScrolled
             ? "h-14 w-[calc(100%-1.5rem)] max-w-280 rounded-full border border-border/80 bg-card/85 px-4 shadow-sm backdrop-blur-md sm:h-15 sm:w-[calc(100%-3rem)] sm:px-6"
             : "h-16 w-full max-w-280 rounded-none border border-transparent bg-transparent px-5 sm:h-18 sm:px-8",
         )}
+        style={{
+          transitionProperty:
+            "max-width, height, border-radius, background-color, border-color, box-shadow, padding",
+          transitionDuration: "var(--duration-fast, 250ms)",
+          transitionTimingFunction: "var(--ease-smooth-out)",
+        }}
       >
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <Image
@@ -101,15 +114,23 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
             width={isScrolled ? 28 : 32}
             height={isScrolled ? 28 : 32}
             className={cn(
-              "transition-[width,height] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+              "transition-all",
               isScrolled ? "h-7 w-7" : "h-8 w-8",
             )}
+            style={{
+              transitionDuration: "var(--duration-fast, 250ms)",
+              transitionTimingFunction: "var(--ease-smooth-out)",
+            }}
           />
           <span
             className={cn(
-              "font-bold tracking-tight transition-[font-size] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+              "font-bold tracking-tight transition-all",
               isScrolled ? "text-[1.125rem]" : "text-xl",
             )}
+            style={{
+              transitionDuration: "var(--duration-fast, 250ms)",
+              transitionTimingFunction: "var(--ease-smooth-out)",
+            }}
           >
             MINDO
           </span>
@@ -117,9 +138,13 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
 
         <nav
           className={cn(
-            "hidden items-center gap-6 font-medium text-muted-foreground md:flex transition-[font-size,color] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+            "hidden items-center gap-6 font-medium text-muted-foreground md:flex transition-colors",
             isScrolled ? "text-[0.875rem]" : "text-[0.9375rem]",
           )}
+          style={{
+            transitionDuration: "var(--duration-fast, 250ms)",
+            transitionTimingFunction: "var(--ease-smooth-out)",
+          }}
         >
           {navItems.map((item) => (
             <a
@@ -142,10 +167,14 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
               variant: "ghost",
               size: "icon",
               className: cn(
-                "rounded-full max-md:hidden! text-muted-foreground hover:text-foreground transition-[width,height] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                "rounded-full max-md:hidden! text-muted-foreground hover:text-foreground transition-all",
                 isScrolled ? "h-9 w-9" : "h-10 w-10",
               ),
             })}
+            style={{
+              transitionDuration: "var(--duration-fast, 250ms)",
+              transitionTimingFunction: "var(--ease-smooth-out)",
+            }}
           >
             <Settings className="h-5 w-5" aria-hidden="true" />
           </Link>
@@ -156,9 +185,13 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
             className={cn(
-              "rounded-full md:hidden transition-[width,height] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+              "rounded-full md:hidden transition-all",
               isScrolled ? "h-9 w-9" : "h-10 w-10",
             )}
+            style={{
+              transitionDuration: "var(--duration-fast, 250ms)",
+              transitionTimingFunction: "var(--ease-smooth-out)",
+            }}
           >
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
