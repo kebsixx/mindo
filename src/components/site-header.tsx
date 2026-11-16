@@ -81,29 +81,29 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
   return (
     <div
       className={cn(
-        "sticky top-0 z-40 w-full",
-        !isVisible && "-translate-y-full",
+        "sticky top-0 z-40 w-full pointer-events-none",
         isScrolled ? "pt-3 sm:pt-4" : "pt-0",
       )}
       style={{
-        transitionProperty: "transform, padding",
-        transitionDuration: isVisible
-          ? "var(--duration-fast, 250ms)"
-          : "var(--duration-quick, 150ms)",
+        transitionProperty: "padding",
+        transitionDuration: "var(--duration-fast, 250ms)",
         transitionTimingFunction: "var(--ease-smooth-out)",
       }}
     >
       <header
         className={cn(
-          "relative mx-auto flex items-center justify-between gap-3",
+          "relative mx-auto flex items-center justify-between gap-3 pointer-events-auto",
+          !isVisible && "-translate-y-24 opacity-0 pointer-events-none scale-[0.98]",
           isScrolled
             ? "h-14 w-[calc(100%-1.5rem)] max-w-280 rounded-full border border-border/80 bg-card/85 px-4 shadow-sm backdrop-blur-md sm:h-15 sm:w-[calc(100%-3rem)] sm:px-6"
             : "h-16 w-full max-w-280 rounded-none border border-transparent bg-transparent px-5 sm:h-18 sm:px-8",
         )}
         style={{
           transitionProperty:
-            "max-width, height, border-radius, background-color, border-color, box-shadow, padding",
-          transitionDuration: "var(--duration-fast, 250ms)",
+            "transform, opacity, max-width, height, border-radius, background-color, border-color, box-shadow, padding",
+          transitionDuration: isVisible
+            ? "var(--duration-medium, 350ms)"
+            : "var(--duration-fast, 250ms)",
           transitionTimingFunction: "var(--ease-smooth-out)",
         }}
       >
