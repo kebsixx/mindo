@@ -43,13 +43,15 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
 
     const handleScroll = () => {
       const currentY = window.scrollY;
-      const scrolledPast = currentY > 32;
+      const scrolledPast = currentY > 24;
       setIsScrolled(scrolledPast);
 
-      if (currentY <= 32) {
+      // Selama masih di bagian atas halaman (scrollY <= 140),
+      // berikan jeda agar pengguna sempat melihat wujud kapsul navbar
+      if (currentY <= 140) {
         setIsVisible(true);
-      } else if (currentY > lastY + 8) {
-        // Scroll ke bawah: sembunyikan navbar
+      } else if (currentY > lastY + 14) {
+        // Scroll ke bawah lebih dari 14px: sembunyikan navbar
         setIsVisible(false);
         setMenuOpen(false);
       } else if (currentY < lastY - 8) {
@@ -79,17 +81,17 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
   return (
     <div
       className={cn(
-        "sticky top-0 z-40 w-full transition-transform duration-300 ease-out",
+        "sticky top-0 z-40 w-full transition-[transform,padding] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
         !isVisible && "-translate-y-full",
         isScrolled ? "pt-3 sm:pt-4" : "pt-0",
       )}
     >
       <header
         className={cn(
-          "relative mx-auto flex items-center justify-between gap-3 transition-all duration-300 ease-out",
+          "relative mx-auto flex items-center justify-between gap-3 transition-[max-width,height,border-radius,background-color,border-color,box-shadow,padding] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
           isScrolled
-            ? "h-14 w-[calc(100%-1.5rem)] max-w-280 rounded-full border border-border/75 bg-card/85 px-4 shadow-xs backdrop-blur-md sm:h-15 sm:w-[calc(100%-3rem)] sm:px-6"
-            : "h-16 w-full max-w-280 rounded-none border-b border-transparent bg-transparent px-5 sm:h-18 sm:px-8",
+            ? "h-14 w-[calc(100%-1.5rem)] max-w-280 rounded-full border border-border/80 bg-card/85 px-4 shadow-sm backdrop-blur-md sm:h-15 sm:w-[calc(100%-3rem)] sm:px-6"
+            : "h-16 w-full max-w-280 rounded-none border border-transparent bg-transparent px-5 sm:h-18 sm:px-8",
         )}
       >
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
@@ -99,13 +101,13 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
             width={isScrolled ? 28 : 32}
             height={isScrolled ? 28 : 32}
             className={cn(
-              "transition-all duration-300",
+              "transition-[width,height] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
               isScrolled ? "h-7 w-7" : "h-8 w-8",
             )}
           />
           <span
             className={cn(
-              "font-bold tracking-tight transition-all duration-300",
+              "font-bold tracking-tight transition-[font-size] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
               isScrolled ? "text-[1.125rem]" : "text-xl",
             )}
           >
@@ -115,7 +117,7 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
 
         <nav
           className={cn(
-            "hidden items-center gap-6 font-medium text-muted-foreground md:flex transition-colors",
+            "hidden items-center gap-6 font-medium text-muted-foreground md:flex transition-[font-size,color] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
             isScrolled ? "text-[0.875rem]" : "text-[0.9375rem]",
           )}
         >
@@ -140,7 +142,7 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
               variant: "ghost",
               size: "icon",
               className: cn(
-                "rounded-full max-md:hidden! text-muted-foreground hover:text-foreground transition-all",
+                "rounded-full max-md:hidden! text-muted-foreground hover:text-foreground transition-[width,height] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
                 isScrolled ? "h-9 w-9" : "h-10 w-10",
               ),
             })}
@@ -154,7 +156,7 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
             className={cn(
-              "rounded-full md:hidden transition-all",
+              "rounded-full md:hidden transition-[width,height] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
               isScrolled ? "h-9 w-9" : "h-10 w-10",
             )}
           >
