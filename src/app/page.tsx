@@ -599,11 +599,11 @@ export default function BerandaPage() {
             <div className="flex items-center gap-2.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/icons/icon-192.png"
+                src="/logo-mindo.png"
                 alt=""
                 width={24}
                 height={24}
-                className="h-6 w-6 rounded-md"
+                className="h-6 w-6"
               />
               <span className="text-[1rem] font-bold tracking-tight text-foreground">
                 MINDO
