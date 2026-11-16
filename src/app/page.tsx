@@ -36,15 +36,15 @@ const AUDIO_TYPES: Record<string, string> = {
 const STEPS = [
   {
     title: "Siapkan rekaman.",
-    body: "Pilih file audio sampai 25 MB atau rekam langsung dari browser.",
+    body: "Pilih file audio atau video (MP4) hingga 25 MB, atau rekam langsung lewat mikrofon browser.",
   },
   {
-    title: "Provider Anda yang memproses.",
-    body: "Rekaman dikirim ke provider transkripsi Anda, teks transkrip ke provider ringkasan Anda. Tidak lewat server Mindo. Dari sana keluar transkrip, ringkasan, mindmap, dan flashcard.",
+    title: "Provider pilihan Anda yang memproses.",
+    body: "Audio dikirim ke provider transkripsi pilihan Anda (Groq atau OpenAI), lalu teksnya diolah menjadi transkrip lengkap, ringkasan terstruktur, peta konsep (mindmap), dan kartu latihan (flashcard). Tidak lewat server perantara.",
   },
   {
-    title: "Hasil disimpan di browser.",
-    body: "Buka lagi kapan saja dari Riwayat, tanpa akun dan tanpa unggah ulang.",
+    title: "Belajar interaktif dan simpan mandiri.",
+    body: "Buka hasil kapan saja dari Riwayat, tanyakan materi ke Tutor AI, atau ekspor bahan ajar ke PDF, Markdown, atau arsip ZIP untuk pindah perangkat tanpa akun.",
   },
 ];
 
@@ -567,13 +567,18 @@ export default function BerandaPage() {
             <div className="max-w-[62ch] space-y-4 text-[1.0625rem] leading-[1.6]">
               <p>
                 Rekaman, transkrip, dan seluruh hasil tersimpan di IndexedDB
-                browser Anda. Tidak ada server Mindo yang menyimpan data:
-                hosting hanya menyajikan file statis.
+                browser Anda. Tidak ada server Mindo yang menyimpan data rekaman:
+                hosting hanya menyajikan file statis aplikasi.
               </p>
               <p>
-                Rekaman dikirim ke provider transkripsi Anda, teks transkrip ke
-                provider ringkasan Anda, tidak pernah ke domain lain. Semua data
-                di browser bisa Anda hapus sendiri lewat menu{" "}
+                Kunci API (API key) tersimpan langsung di browser Anda dengan opsi
+                permanen atau hanya selama tab aktif. Panggilan AI berjalan langsung
+                dari perangkat ke penyedia resmi (Groq, OpenAI, Google, OpenRouter,
+                atau Ollama lokal) tanpa server perantara.
+              </p>
+              <p>
+                Anda memegang kendali penuh atas data: semua materi bisa diekspor
+                ke arsip zip untuk pindah perangkat, atau dihapus bersih kapan saja lewat menu{" "}
                 <Link
                   href="/settings"
                   className="underline decoration-1 underline-offset-4 hover:text-muted-foreground"
