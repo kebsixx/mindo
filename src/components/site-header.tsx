@@ -44,6 +44,7 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
       : []),
     { href: onHome ? "#cara-kerja" : "/#cara-kerja", label: "Cara kerja" },
     { href: onHome ? "#privasi" : "/#privasi", label: "Privasi" },
+    { href: onHome ? "#faq" : "/#faq", label: "FAQ" },
   ];
 
   return (

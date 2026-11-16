@@ -48,6 +48,25 @@ const STEPS = [
   },
 ];
 
+const FAQS = [
+  {
+    q: "Apakah Mindo gratis atau berbayar?",
+    a: "Mindo 100% gratis digunakan. Anda hanya membayar biaya penggunaan API langsung ke provider AI yang Anda pilih (seperti OpenAI atau Groq). Banyak provider menyediakan kuota gratis yang cukup untuk kebutuhan belajar harian.",
+  },
+  {
+    q: "Bagaimana jika saya tidak punya kartu kredit untuk API key?",
+    a: "Anda bisa memilih provider dengan tier gratis tanpa kartu kredit (seperti Groq) atau menjalankan model AI lokal di laptop sendiri memakai Ollama tanpa biaya sama sekali.",
+  },
+  {
+    q: "Kenapa riwayat materi tidak otomatis muncul di perangkat lain?",
+    a: "Mindo tidak memakai sistem akun atau server pusat. Seluruh audio, teks, dan flashcard tersimpan di IndexedDB browser perangkat Anda. Untuk memindahkannya, gunakan menu Ekspor di Pengaturan lalu Impor di perangkat baru.",
+  },
+  {
+    q: "Apakah API key dan rekaman saya aman?",
+    a: "Sangat aman. API key dan file Anda tidak pernah dikirim ke server Mindo. Panggilan transkripsi dan ringkasan dikirim langsung dari browser Anda ke endpoint resmi provider AI pilihan Anda.",
+  },
+];
+
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
@@ -596,6 +615,45 @@ export default function BerandaPage() {
             </div>
           </div>
         </section>
+
+        <section
+          id="faq"
+          className="mx-auto w-full max-w-280 scroll-mt-8 px-5 py-14 sm:px-8 sm:py-20"
+        >
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
+            <div>
+              <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
+                Pertanyaan umum
+              </h2>
+              <p className="mt-2 text-[0.9375rem] text-muted-foreground">
+                Ketahui cara kerja model Bring Your Own Key dan privasi data di Mindo.
+              </p>
+            </div>
+            <div className="space-y-3">
+              {FAQS.map((faq) => (
+                <details
+                  key={faq.q}
+                  className="group rounded-[28px] border border-border bg-card p-5 transition-colors sm:p-6"
+                >
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-foreground select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+                    <span className="text-[1.0625rem] leading-snug">
+                      {faq.q}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-transform duration-200 group-open:rotate-45"
+                    >
+                      +
+                    </span>
+                  </summary>
+                  <p className="mt-3.5 text-[0.9375rem] leading-[1.6] text-muted-foreground">
+                    {faq.a}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
       </main>
 
       <footer className="w-full border-t border-border bg-card">
@@ -646,6 +704,12 @@ export default function BerandaPage() {
                 className="transition-colors hover:text-foreground"
               >
                 Privasi
+              </a>
+              <a
+                href="#faq"
+                className="transition-colors hover:text-foreground"
+              >
+                FAQ
               </a>
               <Link
                 href="/settings"
