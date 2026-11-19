@@ -257,6 +257,23 @@ Aturan: maksimal 20 detik per jawaban. Kalau butuh lebih, berarti belum dikuasai
 > ruang kerja berisi riwayat materi. Kami membangun pipeline: transkripsi, tiga agen terstruktur,
 > retrieval BM25, sitasi detik, lalu penyimpanan lokal. Model hanya salah satu komponen.
 
+**"Bedanya dengan NotebookLM apa? Bukannya itu sudah bisa semua?"**
+> "Betul, NotebookLM lebih matang. Dia menyimpan sumber di akun Google dan memakai Gemini.
+> Mindo tidak punya akun dan tidak punya server data: rekaman tinggal di browser, provider
+> dipilih sendiri, hasilnya keluar sebagai file. Untuk meringkas PDF, NotebookLM lebih baik.
+> Bedanya di siapa yang memegang rekaman."
+
+**"Jadi Mindo cuma NotebookLM versi lokal?"**
+> "Bukan. NotebookLM ruang riset dengan banyak jenis sumber. Mindo satu jalur spesifik: rekaman
+> kuliah masuk, satu paket bahan belajar keluar, tanpa akun. Yang mirip sebagian outputnya. Yang
+> beda justru yang menentukan: siapa menyimpan, siapa memilih model, dan apakah hasilnya bisa
+> dibawa pergi."
+
+**"Mindo berarti lebih aman dari Google?"**
+> "Tidak. Yang bisa saya klaim cuma: tidak ada data di kami. Audio tetap dikirim ke provider
+> yang dipilih, dan provider itu punya kebijakan sendiri. Tidak ada audit, tidak ada sertifikasi.
+> Kalau soal keamanan perusahaan, Google punya lebih banyak sumber daya."
+
 **"Kenapa tidak pakai vector database? Kan lebih modern."**
 > Untuk satu rekaman, chunk-nya ratusan. BM25 cukup, nol biaya, jalan di browser. Vector database
 > menambah server dan biaya tanpa lompatan kualitas yang sepadan di skala ini. Kalau nanti
@@ -301,6 +318,9 @@ Aturan: maksimal 20 detik per jawaban. Kalau butuh lebih, berarti belum dikuasai
 | "Data tidak pernah keluar dari perangkat" | "Data tidak pernah lewat server kami" |
 | "Akurat 95 persen" | "Akurasi belum kami ukur" |
 | "Dipakai banyak mahasiswa" | "Dibangun untuk mahasiswa, validasi berikutnya" |
+| "NotebookLM belum bisa audio" | "NotebookLM punya Audio Overview, dan itu bagus" |
+| "NotebookLM belum bisa flashcard" | "Bedanya bukan fitur, tapi arsitektur: akun dan tempat data" |
+| "Mindo lebih aman" | "Tidak ada data di kami yang bisa bocor" |
 | "Tidak ada koneksi ke AI" | "Langsung ke provider pilihan pengguna" |
 | "Revolusioner" | Sebut hal konkret yang berubah |
 | "Ekosistem" | Sebut produknya |

@@ -525,3 +525,180 @@ Target      : 5 menit audio < 60 detik (belum diukur)
 Belum ada   : akun, sync otomatis, mobile native, PDF, WebGPU, data pengguna
 Tim         : [ISI]
 ```
+
+---
+
+## 18. Banding dengan NotebookLM / Gemini Notebook
+
+Bagian ini untuk pertanyaan yang paling mungkin datang dari koordinator UKM: "Apa bedanya dengan
+NotebookLM Google?" Jawab dengan arsitektur dan alur, bukan dengan daftar fitur. Daftar fitur
+akan kalah, dan juri tahu itu.
+
+Status fakta: dicek 19 November 2026 dari halaman bantuan resmi Google. Produk kini tampil
+sebagai **Gemini Notebook** di `notebook.google`, halaman bantuannya di
+`support.google.com/gemininotebook`. Cek ulang sehari sebelum presentasi, nama dan batasannya
+masih bergerak.
+
+### 18.1 Kalimat pembuka yang aman
+
+> "NotebookLM itu produk bagus, dan untuk banyak tugas saya akan menyarankannya. Bedanya bukan
+> siapa yang lebih pintar. Bedanya di siapa yang memegang rekaman dan siapa yang menentukan model."
+
+Jangan membuka dengan merendahkan NotebookLM. Juri kemungkinan besar sudah memakainya, dan
+mengalahkan produk Google di kualitas model adalah pertarungan yang tidak bisa dimenangkan.
+
+### 18.2 Satu paragraf positioning
+
+NotebookLM adalah ruang riset di cloud Google. Anda memasukkan sumber, dia menyimpan salinan di
+akun Anda, lalu Gemini yang membacanya. Kualitas modelnya tinggi, ragam sumbernya luas, dan
+hasilnya bisa langsung jadi audio. Mindo adalah jalur dari rekaman kuliah ke bahan belajar yang
+berjalan di browser mahasiswa: tanpa akun, tanpa salinan di server kami, dengan provider dan
+model yang dipilih sendiri, dan hasil yang bisa dibawa keluar sebagai file biasa. Keduanya
+mengerjakan hal yang mirip. Yang berbeda adalah siapa yang menyimpan, siapa yang memilih model,
+dan seberapa mudah hasilnya dipindahkan.
+
+### 18.3 Tabel pembeda
+
+Isi tabel ini hanya kalau ditanya. Di slide, cukup satu atau dua baris.
+
+| Aspek | Mindo | NotebookLM / Gemini Notebook | Sumber |
+|---|---|---|---|
+| Akun | Tidak ada auth sama sekali | Wajib akun Google dan sign-in | `[KODE]` vs docs Google |
+| Tempat data | IndexedDB di browser user | Cloud Google, terikat akun | `[KODE]` vs docs |
+| Server data milik pembuat | Tidak ada. Static export. | Ada, dikelola Google | `[KODE]` |
+| Pilihan model | 6 provider, user yang memilih | Model Gemini, ditentukan Google | `providers.ts` |
+| Biaya | Langsung ke provider, BYOK, ada free tier Groq | Gratis dengan batas, atau Google AI plan | `providers.ts` vs docs |
+| Input utama | Audio atau video kuliah, termasuk rekam langsung di browser | PDF, web, YouTube, audio, Docs, Slides, Sheets, gambar, Word, txt, md, CSV, pptx, ePub, Play Books, Gemini Chats | `[PRD]` vs docs |
+| Keluaran | Transkrip, ringkasan, peta konsep, flashcard, tutor bersitasi | Ringkasan, chat, Audio/Video Overview, Mind Map, Flashcards, Quizzes, Infografis, Slide Deck, Reports | `[KODE]` vs docs |
+| Format hasil | Markdown, PNG, ZIP, bisa diimpor balik | Terikat notebook dan akun | `export/` |
+| Bisa di-host sendiri | Ya, build statis | Tidak | `next.config.ts` |
+| Bisa diaudit kodenya | Ya, repo terbuka | Tidak, produk tertutup | repo |
+| Aplikasi mobile | Tidak ada, hanya web responsif | Ada, versi awal | `[BELUM ADA]` vs docs |
+| Kolaborasi | Tidak ada | Berbagi notebook | `[BELUM ADA]` vs docs |
+| Kualitas model | Bergantung provider pilihan user | Gemini, kelas atas | jujur: Google unggul |
+| Biaya untuk user | API key sendiri, bisa nol lewat free tier | Gratis dengan batas | `[KODE]` vs docs |
+
+Fakta batas NotebookLM yang boleh disebut, dengan catatan "per dokumentasi saat ini":
+satu sumber maksimal 500.000 kata atau 200 MB; free tier 50 sumber per notebook dan 100 notebook;
+audio lokal ditranskripsi saat diimpor; ada aplikasi mobile versi awal. Angka ini bisa berubah,
+sebut sebagai "batas versi gratis yang kami baca di dokumentasinya", bukan sebagai kebenaran
+abadi.
+
+### 18.4 Empat pembeda yang jujur
+
+Urut dari yang paling sulit ditiru, bukan dari yang paling keren.
+
+1. **Tidak ada akun, jadi tidak ada yang bisa disandera.** Tidak ada email, tidak ada login,
+   tidak ada profil belajar. Untuk mahasiswa yang merekam diskusi kelas atau materi yang belum
+   publik, ini bukan fitur kecil. Konsekuensinya juga nyata: tidak ada pemulihan akun, dan data
+   hilang kalau browser dibersihkan. Karena itu ada ekspor ZIP.
+2. **Tidak ada server data milik kami.** Bukan "data Anda aman di server kami", tapi "kami tidak
+   punya server data". Audio pergi dari browser langsung ke provider yang dipilih. Ini klaim
+   arsitektur, bukan klaim keamanan. Jangan bilang "lebih aman dari Google".
+3. **Model dan biaya bisa diganti user.** Enam provider, termasuk Ollama yang jalan di laptop
+   sendiri untuk tugas teks. Kalau Groq berubah harga atau limit, user pindah provider tanpa
+   menunggu kami merilis versi baru. NotebookLM: model dan harga ditentukan Google.
+4. **Hasilnya file, bukan isi akun.** Markdown, PNG, ZIP, dan ZIP itu bisa diimpor balik. Bisa
+   dihosting sendiri, bisa dibaca tanpa Mindo, bisa masuk repo catatan. NotebookLM menyimpan
+   notebook di akun dan berbagi lewat Google.
+
+Pembeda yang **jangan** dipakai karena sudah tidak benar:
+
+- "NotebookLM belum bisa audio." Salah. Ada Audio Overview dan impor audio.
+- "NotebookLM belum bisa flashcard atau mind map." Salah. Ada Flashcards, Quizzes, Mind Map.
+- "NotebookLM belum bisa sitasi." Salah. Ada sitasi in-line ke sumber.
+- "Mindo lebih akurat." Tidak diukur. Jangan diucapkan.
+- "Mindo lebih cepat." Tidak diukur. Jangan diucapkan.
+- "Mindo lebih murah." Tergantung provider dan pemakaian. Yang benar: tidak ada biaya platform.
+
+### 18.5 Yang NotebookLM menangkan, sebut sendiri
+
+Menyebut keunggulan lawan lebih dulu membuat sisa jawaban dipercaya.
+
+- **Kualitas model.** Gemini kelas atas, tanpa user perlu memilih apa pun.
+- **Ragam sumber.** PDF, web, YouTube, Docs, Slides, Sheets, gambar, ePub, dan lainnya. Mindo
+  hanya audio dan video.
+- **Audio dan Video Overview.** Mindo tidak punya. Ini fitur yang paling sering membuat orang
+  jatuh cinta pada NotebookLM.
+- **Aplikasi mobile.** Mindo hanya web.
+- **Kolaborasi dan berbagi.** Mindo tidak punya.
+- **Nol setup.** Buka, login, unggah. Mindo minta API key dulu. Ini friksi terbesar Mindo, dan
+  harus diakui sebelum ditanya.
+- **Gratis tanpa kartu dan tanpa key.** Batasnya ada, tapi tidak ada langkah teknis.
+
+### 18.6 Kapan Mindo kalah, kapan Mindo menang
+
+Kalah kalau: tugasnya meringkas banyak PDF dan web, butuh Audio Overview, butuh dikerjakan
+bersama tim, atau penggunanya tidak mau menyentuh API key. Untuk semua itu, jawab saja
+"pakai NotebookLM". Kejujuran ini menghemat waktu dan menaikkan kredibilitas.
+
+Menang kalau: sumbernya rekaman kuliah sendiri; ingin satu paket transkrip bertimestamp plus
+bahan belajar dari rekaman yang sama; tidak ingin materi masuk ke akun cloud; ingin memilih
+provider atau memakai model lokal; ingin hasilnya jadi file yang bisa dibawa dan diarsipkan;
+atau ingin membaca dan mengaudit kodenya karena ini proyek kampus.
+
+### 18.7 Jawaban 20 detik
+
+> "NotebookLM menyimpan sumber Anda di akun Google dan memakai Gemini. Mindo tidak punya akun
+> dan tidak punya server data: rekaman tinggal di browser, dan modelnya Anda pilih sendiri.
+> Fiturnya lebih sedikit, dan untuk meringkas PDF NotebookLM lebih baik. Bedanya di siapa yang
+> memegang rekaman."
+
+### 18.8 Jawaban 45 detik
+
+> "Kalau dinilai sebagai produk jadi, NotebookLM menang di banyak hal: modelnya lebih kuat,
+> sumbernya lebih beragam, ada Audio Overview, ada aplikasi mobile, ada kolaborasi, dan tidak
+> perlu API key. Kami tidak mencoba menandingi itu.
+>
+> Yang kami kejar berbeda. NotebookLM adalah ruang riset di cloud: sumber masuk ke akun, Gemini
+> yang membacanya. Mindo adalah jalur dari rekaman kuliah ke bahan belajar yang berjalan di
+> browser mahasiswa: tanpa akun, tanpa salinan di server kami, provider dipilih sendiri, dan
+> hasilnya keluar sebagai Markdown, PNG, atau ZIP yang bisa diimpor balik.
+>
+> Jadi untuk meringkas PDF, pakai NotebookLM. Untuk rekaman kuliah yang tidak ingin diunggah
+> ke akun siapa pun, dan untuk hasil yang ingin dimiliki sendiri, itu celah yang Mindo isi."
+
+### 18.9 Kalau ditanya "berarti cuma soal privasi?"
+
+> "Privasi itu alasan pertama, bukan satu-satunya. Yang kedua kepemilikan hasil: Markdown dan ZIP
+> bisa dibaca tanpa Mindo, tanpa akun, sepuluh tahun lagi. Yang ketiga ketergantungan: kalau
+> provider A berubah harga, pengguna pindah ke B tanpa menunggu kami. Dua yang terakhir juga
+> berlaku untuk orang yang tidak peduli privasi."
+
+### 18.10 Kalau ditanya "kenapa tidak pakai NotebookLM saja?"
+
+> "Untuk banyak orang, jawabannya memang NotebookLM saja. Mindo untuk kasus yang berbeda:
+> rekaman kuliah dua jam yang tidak mau diunggah, dan mahasiswa yang ingin bahan belajarnya
+> jadi file miliknya sendiri. Kalau tidak ada kebutuhan itu, NotebookLM pilihan yang lebih
+> matang."
+
+Jangan berdebat. Mengakui produk lain lebih matang bukan kekalahan, itu tanda tahu posisi.
+
+### 18.11 Kalimat yang boleh dan tidak boleh
+
+| Boleh | Tidak boleh |
+|---|---|
+| "Mindo tidak punya akun dan tidak punya server data." | "Mindo 100 persen offline." |
+| "Audio dikirim langsung ke provider pilihan user." | "Data tidak pernah keluar dari perangkat." |
+| "Model ditentukan user, bukan kami." | "Model kami lebih baik dari Gemini." |
+| "Hasilnya Markdown, PNG, dan ZIP yang bisa diimpor balik." | "NotebookLM tidak bisa ekspor." |
+| "Mindo bisa dihosting sendiri dan kodenya terbuka." | "Mindo lebih aman dari Google." |
+| "NotebookLM unggul di kualitas model, ragam sumber, dan fitur jadi." | "NotebookLM cuma mainan." |
+| "Untuk meringkas PDF, NotebookLM lebih tepat." | "Mindo menggantikan NotebookLM." |
+| "Ini proyek kampus yang dibangun sampai bisa dipakai." | "Mindo siap produksi untuk kampus." |
+
+### 18.12 Tiga jebakan saat menjawab
+
+1. **Menyerang Google, bukan menjelaskan posisi.** Juri tidak peduli siapa yang lebih hebat.
+   Mereka menilai apakah tim paham pilihan desainnya sendiri.
+2. **Mengklaim lebih aman tanpa bukti.** Tidak ada audit, tidak ada sertifikasi. Yang bisa
+   diklaim cuma "tidak ada data di kami". Itu beda dengan "aman".
+3. **Menjawab dengan daftar fitur.** NotebookLM punya lebih banyak fitur. Jawab dengan
+   arsitektur, satu kalimat, lalu berhenti. Jawaban panjang terdengar seperti pembelaan.
+
+### 18.13 Kalau ditanya "jadi ini cuma NotebookLM versi lokal?"
+
+> "Bukan. NotebookLM adalah ruang riset dengan banyak jenis sumber. Mindo satu jalur spesifik:
+> rekaman kuliah masuk, satu paket bahan belajar keluar, di browser, tanpa akun. Yang mirip
+> hanya sebagian outputnya. Yang berbeda justru hal yang paling menentukan: siapa yang
+> menyimpan, siapa yang memilih model, dan apakah hasilnya bisa dibawa pergi."

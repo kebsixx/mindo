@@ -450,6 +450,57 @@ Mindo: dari rekaman, jadi paham.
 
 ---
 
+# Slide cadangan: Mindo dan NotebookLM
+
+Jangan taruh di urutan utama. Jangan tampilkan tanpa ditanya. Sembilan slide utama sudah penuh,
+dan membandingkan diri dengan produk Google tanpa diminta membuat juri ikut membandingkan.
+
+Buka slide ini hanya kalau muncul pertanyaan "bedanya dengan NotebookLM apa" atau "kenapa tidak
+pakai NotebookLM saja". Kalau tidak ada proyektor, jawab lisan saja, 20 detik, tanpa membuka file.
+
+---
+
+## Slide C1: Dua jalur, bukan dua peringkat
+
+**Judul**
+
+Sumber yang sama, pemegang yang berbeda.
+
+**Isi (tabel dua kolom, tanpa logo NotebookLM)**
+
+| | NotebookLM | Mindo |
+|---|---|---|
+| Sumber | PDF, web, YouTube, audio, Docs | Rekaman kuliah, audio dan video |
+| Akun | Wajib akun Google | Tidak ada |
+| Data | Tersimpan di akun Google | Tinggal di browser perangkat |
+| Model | Gemini, ditentukan Google | 6 provider, dipilih user |
+| Hasil | Terikat notebook dan akun | Markdown, PNG, ZIP, bisa diimpor balik |
+| Kematangan | Produk jadi, model kelas atas | Proyek kampus, fokus satu alur |
+
+**Naskah (20 detik)**
+
+> NotebookLM menyimpan sumber di akun Google dan memakai Gemini. Mindo tidak punya akun dan tidak
+> punya server data: rekaman tinggal di browser, modelnya dipilih sendiri. Untuk meringkas PDF,
+> NotebookLM lebih baik. Bedanya di siapa yang memegang rekaman.
+
+**Aturan penyampaian**
+
+- Sebut keunggulan NotebookLM lebih dulu, minimal satu. Itu yang membuat sisa jawaban dipercaya.
+- Jangan bilang "lebih aman". Bilang "tidak ada data di kami untuk bocor".
+- Jangan bandingkan kualitas model. Kalau ditanya, jawab: "Gemini lebih kuat, dan itu bukan
+  pertarungan kami."
+- Kalau juri terus menekan, tutup dengan batasan yang diakui: "Mindo butuh API key. Itu friksi
+  terbesar kami, dan kami tahu."
+
+## Slide C2: Kalau ditanya "kenapa tidak pakai NotebookLM saja?"
+
+Cukup satu kalimat, tanpa slide:
+
+> "Untuk banyak orang, jawabannya memang NotebookLM. Mindo untuk rekaman kuliah yang tidak mau
+> diunggah ke akun, dan untuk bahan belajar yang ingin jadi file milik sendiri."
+
+---
+
 # Checklist sebelum presentasi
 
 ## Konten
