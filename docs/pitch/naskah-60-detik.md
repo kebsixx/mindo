@@ -17,7 +17,7 @@ Kalimat kunci ditandai **tebal**.
 | 0-8 | Hook | "Setiap kuliah dua jam, kami pulang membawa file rekaman dua jam. Dan tidak pernah kami buka lagi." |
 | 8-20 | Masalah | "Bukan karena malas. Memutarnya ulang butuh dua jam lagi. Mencatat sambil mendengar itu mustahil. Akhirnya rekaman menumpuk, dan belajar cuma mengandalkan ingatan." |
 | 20-32 | Solusi | "Mindo mengubah rekaman itu jadi empat bahan: transkrip, ringkasan, peta konsep, dan flashcard. Plus tutor AI yang bisa ditanya, dan menjawab dengan menunjuk detik rekamannya." |
-| 32-45 | Pembeda | "Yang membedakan: tidak ada akun, tidak ada server data. Semua tersimpan di browser. Biaya AI dibayar langsung ke provider pilihan, dan dengan Groq, free tier-nya cukup untuk harian." |
+| 32-45 | Pembeda | "Yang membedakan: tidak ada akun, tidak ada server data. Semua tersimpan di browser. Satu materi bisa berisi beberapa rekaman tanpa transkripsi ulang. Biaya AI dibayar langsung ke provider pilihan, dan dengan Groq, free tier-nya cukup untuk harian." |
 | 45-55 | Bukti | "Hari ini Mindo sudah jalan. Upload, proses, belajar, ekspor. Build bersih, tanpa kerentanan dependensi produksi." |
 | 55-60 | Ajakan | "Namanya Mindo. Dari rekaman, jadi paham." |
 
@@ -67,7 +67,7 @@ aplikasi berbasis AI". Itu membuang 8 detik pertama.
 
 ### 0:20-0:55, Slide 2, [A]
 
-> Mindo adalah asisten belajar dari rekaman kuliah. Satu rekaman masuk, keluar empat bahan:
+> Mindo adalah asisten belajar dari rekaman kuliah. Rekaman masuk, keluar empat bahan:
 > transkrip, ringkasan, peta konsep, dan flashcard. Ada juga Tutor AI yang bisa ditanya seputar
 > rekaman itu.
 >
@@ -118,6 +118,11 @@ akan menanyakan instrumennya.
 > Semuanya berasal dari transkrip yang sama. Itu penting, karena artinya tidak ada dua versi
 > materi yang saling bertentangan.
 >
+> Satu materi juga tidak harus satu rekaman. Kalau ada sesi susulan, pengguna menambah rekaman;
+> yang ditranskripsi hanya berkas baru, lalu hasilnya diperbarui. Kalau materi lama ingin
+> disatukan, ada "Gabungkan rekaman": transkrip lama dipakai ulang, tanpa biaya transkripsi lagi.
+> Tiap rekaman tetap jadi bagian sendiri, dan pemutar memilih berkas yang tepat.
+>
 > Sekarang, apa yang berbeda.
 >
 > Pertama, **bukan cuma transkripsi.** Otter dan Notta berhenti di teks. Mindo lanjut ke bentuk yang
@@ -149,9 +154,13 @@ akan menanyakan instrumennya.
 >
 > Processing: transkripsi dulu, lalu tiga agen jalan paralel.
 >
-> Ruang materi: empat tab, satu sumber.
+> Ruang materi: tiga tab, yaitu Ringkasan, Peta Konsep, dan Flashcard. Transkrip dibuka lewat
+> tombol, Tutor lewat panel. Satu materi bisa berisi beberapa rekaman.
 >
 > Ekspor: Markdown, PNG untuk peta konsep, atau ZIP untuk seluruh materi.
+>
+> Kalau ada rekaman susulan, tinggal "Tambah rekaman". Hasil lama ditandai basi sampai ketiganya
+> diperbarui. Kalau materi terpisah ingin disatukan, "Gabungkan rekaman" di Riwayat.
 >
 > Yang tidak kelihatan di screenshot tapi kami anggap penting: setiap layar data punya tiga
 > kondisi. Kosong, memuat, gagal. Kalau satu tahap gagal, misalnya ringkasan, kami tidak
@@ -171,7 +180,9 @@ akan menanyakan instrumennya.
 > endpoint provider yang dipilih pengguna. Kami tidak punya API route yang menampung data.
 >
 > Transkripsi memakai Whisper. Groq menjalankan `whisper-large-v3`, OpenAI `whisper-1`. Bahasa
-> dipaksa Indonesia. Hasilnya segmen bertimestamp, bukan satu blok teks.
+> dipaksa Indonesia. Hasilnya segmen bertimestamp, bukan satu blok teks. Tiap berkas audio punya
+> baris `sources` sendiri dengan `offset`, jadi satu materi bisa berisi beberapa bagian tanpa
+> menggabungkan file audionya.
 >
 > Setelah transkrip selesai, tiga agen teks jalan **paralel**, bukan berurutan. Kenapa paralel?
 > Karena tidak ada yang saling bergantung. Total waktu jadi ditentukan agen paling lambat, bukan
@@ -185,10 +196,11 @@ akan menanyakan instrumennya.
 > Kami validasi dengan Zod. Kalau bentuknya salah, ditolak. Lebih baik gagal terang-terangan
 > daripada menampilkan data rusak.
 >
-> Untuk Tutor AI, kami tidak memakai vector database. Satu rekaman hanya punya ratusan chunk.
+> Untuk Tutor AI, kami tidak memakai vector database. Satu materi hanya punya ratusan chunk.
 > Kami potong transkrip, lalu cari dengan **BM25**, yang jalan di browser tanpa biaya. Ambil
-> lima chunk terbaik, tambahkan tetangganya sebagai konteks. Untuk pertanyaan menyeluruh seperti
-> "poin utamanya apa", kami sebar dua belas chunk supaya model melihat seluruh rekaman.
+> lima chunk terbaik, tambahkan tetangganya sebagai konteks. Chunk tidak menyeberangi batas
+> bagian. Untuk pertanyaan menyeluruh seperti "poin utamanya apa", kami sebar dua belas chunk
+> supaya model melihat seluruh materi.
 >
 > Model dipaksa menjawab hanya dari konteks. Outputnya punya field `found` dan `citations`. Kalau
 > tidak ada dasar, dia bilang topik itu tidak dibahas. Bukan mengarang.
@@ -217,7 +229,11 @@ Demo 60 sampai 90 detik, sambil bicara.
 > Saya tanya hal yang tidak ada di rekaman. Dia bilang tidak dibahas. Ini yang kami maksud
 > kejujuran yang dipaksa oleh sistem.
 >
-> Terakhir, ekspor. ZIP ini berisi seluruh materi, bisa diimpor di perangkat lain.
+> Saya tambahkan satu rekaman susulan. Yang diproses hanya bagian baru, dan hasil lama ditandai
+> basi sampai diperbarui. Kami juga bisa menggabungkan dua materi tanpa mentranskripsi ulang.
+>
+> Terakhir, ekspor. ZIP ini berisi seluruh materi, termasuk audio tiap bagian, dan bisa diimpor di
+> perangkat lain.
 
 Kalau demo gagal, langsung pindah ke video cadangan. Jangan memperbaiki di panggung lebih dari
 sepuluh detik.
@@ -275,7 +291,7 @@ Aturan: maksimal 20 detik per jawaban. Kalau butuh lebih, berarti belum dikuasai
 > Kalau soal keamanan perusahaan, Google punya lebih banyak sumber daya."
 
 **"Kenapa tidak pakai vector database? Kan lebih modern."**
-> Untuk satu rekaman, chunk-nya ratusan. BM25 cukup, nol biaya, jalan di browser. Vector database
+> Untuk satu materi, chunk-nya ratusan. BM25 cukup, nol biaya, jalan di browser. Vector database
 > menambah server dan biaya tanpa lompatan kualitas yang sepadan di skala ini. Kalau nanti
 > pencarian lintas banyak materi, kami evaluasi.
 
@@ -288,6 +304,17 @@ Aturan: maksimal 20 detik per jawaban. Kalau butuh lebih, berarti belum dikuasai
 **"Kalau user hapus data browser, datanya hilang?"**
 > Ya. Itu konsekuensi local-first, dan kami sebutkan di produk. Mitigasinya ekspor ZIP. Sinkronisasi
 > otomatis belum ada.
+
+**"Bisa menggabungkan beberapa rekaman jadi satu materi?"**
+> Bisa. Di Riwayat ada "Gabungkan rekaman". Pilih dua materi atau lebih, hasilnya materi baru
+> berurutan dari yang terlama. Transkrip lama dipakai ulang, jadi tidak ada transkripsi baru, dan
+> materi asli tidak diubah. Konsekuensinya audio tiap bagian disalin, jadi penyimpanan bertambah.
+
+**"Kalau ada rekaman susulan, harus mengulang dari awal?"**
+> Tidak. Buka materi, tekan "Tambah rekaman". Hanya berkas baru yang ditranskripsi, lalu ringkasan,
+> peta konsep, dan flashcard dibuat ulang. Hasil lama ditandai basi sampai ketiganya selesai.
+> Yang perlu disebut jujur: urutan bagian belum bisa diatur sendiri, dan file audio tidak
+> digabung jadi satu.
 
 **"Bagaimana kalau internet mati di kelas?"**
 > Tahap AI berhenti. Materi yang sudah ada tetap terbuka. Untuk offline penuh, rencananya
@@ -322,6 +349,8 @@ Aturan: maksimal 20 detik per jawaban. Kalau butuh lebih, berarti belum dikuasai
 | "NotebookLM belum bisa flashcard" | "Bedanya bukan fitur, tapi arsitektur: akun dan tempat data" |
 | "Mindo lebih aman" | "Tidak ada data di kami yang bisa bocor" |
 | "Tidak ada koneksi ke AI" | "Langsung ke provider pilihan pengguna" |
+| "Audio gabungan jadi satu file" | "Tiap bagian tetap file terpisah, pemutar berpindah otomatis" |
+| "Gabung rekaman menghemat penyimpanan" | "Audio tiap bagian disalin ke materi baru" |
 | "Revolusioner" | Sebut hal konkret yang berubah |
 | "Ekosistem" | Sebut produknya |
 | "Sinergi" | Sebut kerja samanya |
@@ -335,7 +364,7 @@ Aturan: maksimal 20 detik per jawaban. Kalau butuh lebih, berarti belum dikuasai
 1. Rekam suara versi 6 menit. Dengarkan ulang tanpa melihat naskah.
 2. Tandai setiap "eh", "gitu", "kayak", "jadi". Latihan kedua: hilangkan.
 3. Latihan dengan timer berjalan di depan mata. Kelebihan waktu biasanya di bagian masalah.
-4. Latihan menjawab 8 pertanyaan di atas dalam 20 detik, direkam.
+4. Latihan menjawab semua pertanyaan di atas dalam 20 detik, direkam.
 5. Latihan demo dengan jaringan dimatikan, untuk tahu di titik mana gagal dan apa yang dikatakan.
 6. Latihan terakhir: tanpa slide. Kalau masih bisa menjelaskan alurnya, slide-nya sudah tidak
    menopang apa pun.

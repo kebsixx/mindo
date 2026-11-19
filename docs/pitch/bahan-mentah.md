@@ -60,10 +60,11 @@ menjawab hanya dari rekaman itu.
 **Satu paragraf (deskripsi):**
 Mindo adalah aplikasi web asisten belajar untuk mahasiswa. Pengguna mengunggah rekaman audio atau
 video kuliah, atau merekam langsung dari browser. Mindo mentranskripsinya, lalu menghasilkan
-ringkasan terstruktur, peta konsep interaktif, dan bank flashcard. Ada juga Tutor AI yang menjawab
-pertanyaan berdasarkan transkrip yang sama dan menyertakan timestamp sebagai rujukan. Tidak ada
-akun, tidak ada server penyimpanan, dan tidak ada langganan platform. Semua data tersimpan di
-browser pengguna, dan biaya AI dibayar langsung ke provider yang dipilih lewat API key sendiri.
+ringkasan terstruktur, peta konsep interaktif, dan bank flashcard. Beberapa rekaman bisa disatukan
+dalam satu materi: tambahkan bagian baru, atau gabungkan materi lama jadi satu. Ada juga Tutor AI
+yang menjawab pertanyaan berdasarkan transkrip yang sama dan menyertakan timestamp sebagai rujukan.
+Tidak ada akun, tidak ada server penyimpanan, dan tidak ada langganan platform. Materi tersimpan
+di browser pengguna, dan biaya AI dibayar langsung ke provider yang dipilih lewat API key sendiri.
 
 **Elevator 30 detik:**
 Setiap kuliah dua jam, mahasiswa pulang dengan file rekaman yang tidak pernah didengar ulang.
@@ -131,9 +132,24 @@ Transkrip ber-timestamp (Whisper)
     +---> Tutor AI (retrieval dari chunk transkrip)
 ```
 
+Sejak fitur multi-rekaman, satu materi bisa berisi beberapa berkas audio. Tiap berkas menjadi
+"bagian" dengan titik mulai (`offset`) di satu timeline. Pemutar memilih berkas yang tepat saat
+pengguna melompat ke detik tertentu. Tidak ada penggabungan file audio jadi satu berkas.
+
+Dua cara menambah bagian:
+
+| Cara | Yang terjadi | Transkripsi baru? |
+|---|---|---|
+| Tambah rekaman ke materi | Satu berkas baru masuk sebagai bagian terakhir, transkripnya disambung, tiga output teks dibuat ulang | Hanya berkas baru |
+| Gabungkan materi | Beberapa materi digabung jadi materi baru, urut dari yang terlama, transkrip lama disalin dengan offset | Tidak ada |
+
+Materi asli tidak diubah pada kedua cara. Materi gabungan menyimpan salinan audio tiap bagian,
+jadi pemakaian penyimpanan browser bertambah. Menggabung tidak memicu transkripsi baru, tapi tiga
+output teks tetap dibuat ulang dari transkrip gabungan, jadi kuota teks provider terpakai.
+
 | Output | Bentuk | Bisa diekspor? |
 |---|---|---|
-| Transkrip | Segmen dengan waktu mulai dan selesai | Markdown |
+| Transkrip | Segmen dengan waktu mulai dan selesai, dikelompokkan per bagian | Markdown |
 | Ringkasan | Judul, 5 sampai 10 bagian, poin, istilah kunci | Markdown |
 | Peta konsep | Node hierarki maksimal 3 level, interaktif (zoom/pan) | PNG |
 | Flashcard | Pertanyaan, jawaban, tingkat kesulitan, timestamp rujukan | Markdown |
@@ -141,8 +157,10 @@ Transkrip ber-timestamp (Whisper)
 | Seluruh materi | Satu bundel | ZIP (ekspor dan impor) |
 
 Catatan: ZIP export/import ada di `src/lib/export/bundle.ts` dan `src/lib/export/import.ts`.
-Bentuk ZIP inilah yang dipakai untuk pindah perangkat, jadi klaim "local storage, multi device"
-harus dijelaskan sebagai **manual pindah lewat file**, bukan sinkronisasi otomatis.
+Versi 2 menyertakan daftar `sources` beserta audionya. Impor masih menerima versi 1, dan baris
+sumber untuk arsip lama dibuat saat materi pertama dibuka. Bentuk ZIP inilah yang dipakai untuk
+pindah perangkat, jadi klaim "local storage, multi device" harus dijelaskan sebagai **manual
+pindah lewat file**, bukan sinkronisasi otomatis.
 
 ---
 
@@ -161,6 +179,10 @@ Ini daftar fitur yang ada di kode. Urut dari yang paling terlihat saat demo.
 | Mode belajar flashcard | Ada | swipe kiri ulang, kanan paham, progres tersimpan | FR-07, key `grade` di DB |
 | Tutor AI | Ada | retrieval BM25, sitasi timestamp, jujur kalau tidak ada | FR-08, `src/lib/retrieval/bm25.ts` |
 | Riwayat materi lokal | Ada | daftar, buka, hapus, ubah judul | FR-09 |
+| Gabung materi | Ada | pilih minimal 2 materi, urut terlama, materi baru, asli tidak diubah | `sources.ts` |
+| Tambah rekaman ke materi | Ada | hanya berkas baru ditranskripsi, tiga output diperbarui | `material/page.tsx` |
+| Penanda hasil basi | Ada | banner dan tombol perbarui setelah transkrip bertambah | `timeline.ts` |
+| Pemutar multi-bagian | Ada | lompat ke detik absolut, berkas dipilih otomatis | `timeline.ts` |
 | Pengaturan provider | Ada | 6 provider, API key lokal, tombol uji koneksi | FR-10, `providers.ts` |
 | Ekspor | Ada | PNG mindmap, Markdown ringkasan/flashcard/transkrip, ZIP | FR-11 |
 | Impor ZIP | Ada | pindah materi antar perangkat | `export/import.ts` |
@@ -176,6 +198,10 @@ Yang belum ada:
 - On-device inference lewat WebGPU. `[BELUM ADA]`
 - Ekspor PDF. `[BELUM ADA]`
 - Aplikasi mobile native. `[BELUM ADA]`
+- Menyatukan beberapa bagian audio jadi satu file. Pemutar berpindah berkas per bagian. `[BELUM ADA]`
+- Mengatur sendiri urutan bagian saat menggabung. Sekarang urut dari materi terlama. `[BELUM ADA]`
+- Deteksi bagian yang tumpang tindih atau duplikat. `[BELUM ADA]`
+- Map-reduce untuk transkrip yang melewati context window model. `[BELUM ADA]`
 
 ---
 
@@ -200,20 +226,26 @@ biaya dan server untuk teks, tapi transkripsi tetap perlu Groq atau OpenAI.
 
 1. File di ekstrak di sisi klien. Tidak ada upload ke server Mindo.
 2. Transkripsi: audio dikirim langsung ke endpoint provider yang dipilih. Hasil disimpan sebagai
-   segmen `{ start, end, text }`.
-3. Setelah transkrip selesai, tiga agen teks dijalankan **paralel** dengan `Promise.all`:
+   segmen `{ start, end, text }` milik satu bagian, lalu digeser sebesar `offset` bagian itu.
+3. Saat menambah rekaman ke materi yang sudah ada, hanya berkas baru yang dikirim ke provider.
+   Segmen bagian baru disambung ke transkrip lama, lalu tiga agen teks dijalankan ulang dari
+   transkrip lengkap.
+4. Saat menggabungkan beberapa materi, tidak ada transkripsi baru. Transkrip tersimpan disalin
+   dengan offset baru ke materi hasil gabungan.
+5. Setelah transkrip lengkap, tiga agen teks dijalankan **paralel** dengan `Promise.all`:
    ringkasan, peta konsep, flashcard. Ini sesuai NFR-02.
-4. Untuk Tutor AI, transkrip dipotong jadi chunk, disimpan di IndexedDB, lalu dicari dengan
+6. Untuk Tutor AI, transkrip dipotong jadi chunk, disimpan di IndexedDB, lalu dicari dengan
    **BM25** yang diimplementasikan sendiri (`src/lib/retrieval/bm25.ts`), bukan embedding.
+   - Chunk tidak menyeberangi batas bagian.
    - Ambil maksimal 5 chunk terbaik.
    - Sertakan chunk sebelum dan sesudahnya sebagai konteks.
    - Kalau pertanyaan bersifat menyeluruh ("poin utama", "istilah tersulit", "bagian akhir"),
      ambil 12 chunk yang tersebar merata.
    - Kalau tidak ada bukti di konteks, model wajib menjawab `found: false` dan bilang topik itu
      tidak dibahas di rekaman.
-5. Output model divalidasi dengan skema Zod (`src/lib/ai/schema.ts`). JSON rusak ditolak, bukan
+7. Output model divalidasi dengan skema Zod (`src/lib/ai/schema.ts`). JSON rusak ditolak, bukan
    dipasang diam-diam.
-6. Hasil ditulis ke IndexedDB lewat Dexie (`src/lib/db.ts`). API key disimpan lokal, tidak pernah
+8. Hasil ditulis ke IndexedDB lewat Dexie (`src/lib/db.ts`). API key disimpan lokal, tidak pernah
    dikirim ke domain Mindo.
 
 ### Kenapa pilihan ini
@@ -224,7 +256,7 @@ biaya dan server untuk teks, tapi transkripsi tetap perlu Groq atau OpenAI.
 | Groq sebagai default | Free tier permanen tanpa kartu kredit, latency rendah | OpenAI, bayar di depan |
 | BYOK | Nol biaya server, user pegang kendali kuota dan data | Key milik kami, risiko biaya dan penyalahgunaan |
 | Tanpa backend | Tidak ada data untuk disimpan, tidak ada tagihan hosting | Server + database, lebih mahal dan lebih berisiko |
-| BM25 bukan embedding | Ringan, jalan di browser, tanpa biaya embedding, cukup untuk satu rekaman | Vector DB, butuh server dan biaya |
+| BM25 bukan embedding | Ringan, jalan di browser, tanpa biaya embedding, cukup untuk satu materi | Vector DB, butuh server dan biaya |
 | IndexedDB | Data bertahan tanpa akun, ukuran cukup untuk audio | localStorage, batas 5 MB |
 
 ---
@@ -233,14 +265,17 @@ biaya dan server untuk teks, tapi transkripsi tetap perlu Groq atau OpenAI.
 
 | Pertanyaan | Jawaban | Bukti |
 |---|---|---|
-| Di mana audio disimpan? | IndexedDB browser, tabel `materials`, field `audio` (Blob) | `db.ts` |
+| Di mana audio disimpan? | IndexedDB browser, tabel `sources`, field `audio` (Blob) per bagian, plus `offset` di timeline | `db.ts`, `sources.ts` |
+| Apakah materi lama tetap kompatibel? | Ya. Materi tanpa baris `sources` dibuatkan satu bagian saat pertama dibuka; audio lamanya tidak dipindahkan | `ensureSources` |
+| Apakah audio digabung jadi satu file? | Tidak. Tiap bagian tetap berkas terpisah, pemutar berpindah berkas | `timeline.ts` |
+| Apakah menggabung materi menyalin audio? | Ya, materi gabungan menyimpan salinan tiap bagian supaya materi asli tetap utuh | `mergeMaterials` |
 | Apakah audio dikirim ke server Mindo? | Tidak. Mindo tidak punya backend. | `architecture.md`, tidak ada API route |
-| Ke mana audio pergi? | Langsung ke endpoint provider transkripsi yang dipilih | `src/lib/ai/client.ts` |
+| Ke mana audio pergi? | Langsung ke endpoint provider transkripsi yang dipilih, dan hanya untuk bagian yang belum punya transkrip | `src/lib/ai/client.ts` |
 | Di mana API key disimpan? | Lokal di browser | `src/lib/storage/settings.ts` |
 | Apakah ada akun? | Tidak | `[KODE]` |
 | Apakah ada tracking? | Vercel Analytics dan Speed Insights | `package.json` |
-| Bagaimana pindah perangkat? | Ekspor ZIP, impor di perangkat baru | `export/bundle.ts`, `export/import.ts` |
-| Bagaimana hapus data? | Satu tombol dengan konfirmasi, termasuk API key | FR-12 |
+| Bagaimana pindah perangkat? | Ekspor ZIP versi 2, termasuk audio per bagian, impor di perangkat baru | `export/bundle.ts`, `export/import.ts` |
+| Bagaimana hapus data? | Satu tombol dengan konfirmasi, termasuk API key; menghapus materi ikut menghapus semua bagiannya | FR-12 |
 | Apakah data dilatih ke model? | Tergantung provider. Groq dan OpenAI API default tidak melatih. | `providers.ts` |
 
 Kalimat privasi yang aman diucapkan:
@@ -290,8 +325,13 @@ Sebut ini sebelum juri menemukannya. Mengaku batasan lebih kuat daripada ketahua
 
 | Batasan | Angka | Alasan | Rencana |
 |---|---|---|---|
-| Ukuran file | 25 MB | Batas API Whisper | Rekam langsung memakai bitrate rendah, pecah otomatis nanti |
+| Ukuran file | 25 MB | Batas API Whisper | Batas tetap per berkas, tidak bertambah karena gabung |
 | Rekaman langsung | webm opus, mono | Hasil ukur desain | 1 jam sekitar 11 MB, masih di bawah 25 MB |
+| Jumlah bagian per materi | belum dibatasi di UI | Batas praktis penyimpanan browser | Tampilkan peringatan ruang, atau batasi jumlah |
+| Audio gabungan | tidak ada file gabungan | Tiap bagian tetap berkas terpisah | Pemutar berpindah berkas, tanpa encode ulang |
+| Penyimpanan saat gabung | audio tiap bagian disalin | Materi asli harus tetap utuh | Hapus materi asli manual setelah yakin |
+| Urutan bagian | otomatis dari materi terlama | Belum ada pengaturan urutan | Tambah pilihan urut di fase berikutnya |
+| Transkrip sangat panjang | dikirim utuh ke LLM | Bisa melewati context window | Rencana map-reduce per bagian |
 | Transkripsi | Butuh internet | Ini API, bukan model lokal | Fase 2 coba Whisper WebGPU |
 | Provider | 6 pilihan, 2 untuk audio | Batas kompatibilitas | Tambah provider transkripsi |
 | Biaya | Bukan benar-benar nol | User bayar kuota provider | Free tier Groq, atau Ollama untuk teks |
@@ -353,6 +393,10 @@ Screenshot yang perlu diambil sebelum menyusun slide:
 | 10 | Ekspor ZIP | 5 | Bukti data bisa dibawa |
 | 11 | Mobile 390px | 5, 8 | Responsif |
 | 12 | Mindmap hasil ekspor PNG | 7 | Kualitas file |
+| 13 | Dialog "Gabungkan rekaman" | 5 | Pilih materi, judul, penjelasan biaya |
+| 14 | Dialog "Tambah rekaman" | 5 | Konfirmasi, hanya bagian baru yang ditranskripsi |
+| 15 | Banner hasil basi | 5 | Tombol "Perbarui hasil" setelah transkrip bertambah |
+| 16 | Transkrip dengan label Bagian 1 dan 2 | 5 | Bukti transkrip gabungan tetap rapi |
 
 Aset yang sudah ada di repo:
 - Logo: `public/logo-mindo.png`
@@ -389,14 +433,19 @@ Buka Mindo
   -> Pengaturan: pilih provider, tempel API key (sekali saja)
   -> Dasbor: [Upload file] atau [Rekam]
      -> Processing: Transkrip -> Ringkasan / Mindmap / Flashcard (paralel)
-        -> Halaman materi, 4 tab: Ringkasan | Peta Konsep | Flashcard | Tanya Mindo
+        -> Halaman materi: tab Ringkasan | Peta Konsep | Flashcard
+           (Transkrip lewat tombol, Tutor lewat panel)
            -> Belajar: swipe kartu, tanya tutor, baca sitasi
+              -> Tambah rekaman: berkas baru ditranskripsi, tiga hasil diperbarui
               -> Ekspor: Markdown, PNG, atau ZIP
+  -> Riwayat: [Gabungkan rekaman], pilih 2 materi atau lebih
+     -> Materi baru berisi beberapa bagian, transkrip lama dipakai ulang
 ```
 
 Tiga kondisi yang wajib ada di setiap layar data, dan sudah jadi keputusan desain:
 kosong (belum ada materi), memuat (proses berjalan), gagal (error jelas plus aksi ulang).
-Gagal satu tahap tidak mengulang tahap yang sudah sukses.
+Gagal satu tahap tidak mengulang tahap yang sudah sukses. Saat transkrip bertambah, banner
+"hasil basi" muncul sampai ketiga output selesai dibuat ulang.
 
 ---
 
@@ -437,7 +486,7 @@ Tahap AI berhenti. Data yang sudah ada tetap aman di browser. Rekaman baru tidak
 Offline penuh adalah rencana Fase 2 lewat WebGPU, bukan fitur sekarang.
 
 **8. Kenapa tidak pakai vector database untuk tutor?**
-Satu rekaman hanya punya ratusan chunk. BM25 cukup, jalan di browser, tanpa biaya embedding, dan
+Satu materi hanya punya ratusan chunk. BM25 cukup, jalan di browser, tanpa biaya embedding, dan
 mudah dijelaskan. Kalau nanti lintas materi, embedding masuk hitungan.
 
 **9. Bagaimana kalau user hapus browser data?**
@@ -459,6 +508,28 @@ punya field `found` dan `citations`, dan skema divalidasi Zod. Kalau tidak ada d
 diarahkan menjawab tidak ada. Ringkasan tetap bisa keliru karena model generatif, jadi ada
 transkrip sumber untuk dicek.
 
+**13. Bisa menggabungkan beberapa rekaman jadi satu materi?**
+Bisa. Pilih dua materi atau lebih di Riwayat, tekan "Gabungkan rekaman". Hasilnya materi baru
+berurutan dari rekaman terlama. Transkrip lama dipakai ulang, jadi tidak ada transkripsi baru,
+dan materi asli tidak diubah. Tiga output teks dibuat ulang dari transkrip gabungan, jadi kuota
+teks provider tetap terpakai.
+
+**14. Kalau ada rekaman susulan, harus mengulang semuanya?**
+Tidak. Buka materi, tekan "Tambah rekaman". Hanya berkas baru yang dikirim ke provider untuk
+ditranskripsi. Segmennya disambung ke transkrip lama, lalu ringkasan, mindmap, dan flashcard
+dibuat ulang. Banner di halaman materi menandai bahwa hasil lama belum mencakup bagian baru.
+
+**15. Apakah audio gabungan jadi satu file?**
+Belum. Tiap bagian tetap berkas terpisah, dan pemutar berpindah berkas saat waktu melewati batas
+bagian. Ini disengaja: tidak ada decode atau encode ulang, jadi kualitas asli tetap utuh dan
+proses gabung berjalan cepat. Konsekuensinya, ekspor ZIP berisi beberapa berkas audio, bukan satu
+file panjang.
+
+**16. Urutan bagian bisa diatur?**
+Belum. Gabungan mengikuti waktu materi dibuat, dari yang terlama. Kalau urutannya salah, pengguna
+bisa menyusun ulang lewat materi baru, atau menunggu fitur pengaturan urutan. Ini batasan yang
+kami sebutkan, bukan disembunyikan.
+
 ---
 
 ## 15. Angka yang boleh dan tidak boleh diucapkan
@@ -473,6 +544,9 @@ transkrip sumber untuk dicek.
 | "Target 5 menit audio di bawah 60 detik" | NFR-01, sebut "target" |
 | "3 agen jalan paralel" | `Promise.all` |
 | "8 jam audio per hari di free tier Groq" | Batas provider |
+| "Menggabung materi tidak memicu transkripsi baru" | Transkrip lama disalin di `mergeMaterials` |
+| "Menambah rekaman hanya mentranskripsi berkas baru" | `append` memproses satu bagian saja |
+| "Audio tetap terpisah per bagian" | Pemutar berpindah berkas, tanpa encode ulang |
 
 | Jangan | Kenapa |
 |---|---|
@@ -484,6 +558,9 @@ transkrip sumber untuk dicek.
 | "Gratis selamanya" | Tergantung free tier provider |
 | "Digunakan 1.000 mahasiswa" | Tidak ada pengguna terdaftar, tidak ada akun |
 | "Terverifikasi keamanan" | Tidak ada audit |
+| "Audio hasil gabungan jadi satu file" | Tiap bagian tetap berkas terpisah |
+| "Gabung rekaman menghemat penyimpanan" | Audio tiap bagian disalin ke materi baru |
+| "Transkrip panjang selalu aman" | Dikirim utuh, bisa lewat context window |
 
 ---
 
@@ -504,6 +581,10 @@ transkrip sumber untuk dicek.
 | Timestamp | Penanda detik, dasar sitasi Tutor AI. |
 | Zod | Pustaka validasi skema di runtime. |
 | Dexie | Pembungkus IndexedDB. |
+| Bagian | Satu berkas audio di dalam materi. Satu materi bisa punya beberapa bagian. |
+| Offset | Detik mulai sebuah bagian di timeline materi. Dipakai memilih berkas saat lompat waktu. |
+| Materi gabungan | Materi baru hasil `mergeMaterials`, berisi salinan bagian dari materi asal. |
+| Hasil basi | Tiga output teks yang dibuat sebelum transkrip bertambah, ditandai `derivedSourceCount`. |
 
 ---
 
@@ -517,12 +598,14 @@ Masalah     : Rekaman kuliah tidak pernah dipakai ulang. Review terlalu mahal.
 User        : Mahasiswa S1, 18-24 SKS, banyak kelas
 Solusi      : Rekaman -> transkrip -> ringkasan + mindmap + flashcard + tutor AI
 Beda        : Output belajar lengkap, bukan cuma teks. Tanpa akun. Tanpa server data. BYOK.
+              Bisa beberapa rekaman dalam satu materi: tambah bagian atau gabung materi.
 AI          : Whisper (Groq/OpenAI), LLM gpt-oss-120b atau gpt-4o-mini, BM25 + sitasi
-Data        : IndexedDB, audio di browser, key di browser, ekspor ZIP
+Data        : IndexedDB (tabel sources per bagian), key di browser, ekspor ZIP v2
 Stack       : Next 16.4.6, React 19.3.1, Tailwind 4, Dexie, markmap
-Batasan     : 25 MB, butuh internet, butuh API key, sync manual
+Batasan     : 25 MB, butuh internet, butuh API key, sync manual, tanpa urutan bagian manual,
+              tanpa file audio gabungan, transkrip panjang bisa lewat context window
 Target      : 5 menit audio < 60 detik (belum diukur)
-Belum ada   : akun, sync otomatis, mobile native, PDF, WebGPU, data pengguna
+Belum ada   : akun, sync otomatis, mobile native, PDF, WebGPU, data pengguna, audio gabungan
 Tim         : [ISI]
 ```
 

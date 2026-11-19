@@ -123,7 +123,7 @@ Rekamannya ada. Yang tidak ada: waktu untuk memutarnya lagi.
 
 **Judul**
 
-Satu rekaman. Empat bahan belajar.
+Rekaman masuk. Empat bahan belajar keluar.
 
 **Solusi**
 
@@ -146,6 +146,7 @@ Transkrip ber-timestamp
 | Hasil | transkrip | kartu | 4 bahan sekaligus |
 | Dari sumber asli | ya | tidak | ya |
 | Jawaban menunjuk detik rekaman | tidak | tidak | ya |
+| Beberapa rekaman dalam satu materi | terbatas | tidak | ya, tambah bagian atau gabung materi |
 | Akun | wajib | wajib | tidak ada |
 | Data disimpan di mana | server mereka | server mereka | browser user |
 
@@ -162,19 +163,25 @@ kalau ditanya.
    flashcard, dan tutor semuanya berasal dari transkrip yang sama.
 4. **Tutor yang mengaku tidak tahu.** Jawaban wajib bersitasi timestamp. Kalau tidak ada di
    rekaman, Tutor AI bilang tidak dibahas.
+5. **Banyak rekaman, satu materi.** Satu mata kuliah sering punya beberapa sesi. Pengguna bisa
+   menambah rekaman susulan tanpa mengulang transkripsi lama, atau menggabungkan materi lama jadi
+   satu. Tiap rekaman tetap utuh sebagai bagian sendiri, pemutar berpindah berkas otomatis.
 
 **Visual**
 
 - Diagram dua lapis: kiri "satu input", kanan "empat output" dengan garis panah.
 - Jangan pakai tabel kompetitor penuh di slide. Cukup tiga kolom pendek.
 - Highlight dua kata: `local-first` dan `BYOK`.
+- Kalau ada ruang, satu baris kecil di bawah: "bisa beberapa rekaman per materi".
 
 **Naskah (60 detik)**
 
 > Kalau transkripsi saja, itu sudah banyak. Yang Mindo lakukan tambahan: hasil transkrip diolah
 > jadi ringkasan, peta konsep, flashcard, dan tutor yang bisa ditanya. Semua dari satu rekaman,
 > jadi semua merujuk ke materi yang sama. Dan arsitekturnya sengaja dibalik: bukan data mahasiswa
-> yang naik ke cloud kami, tapi proses yang turun ke browser mahasiswa.
+> yang naik ke cloud kami, tapi proses yang turun ke browser mahasiswa. Satu materi juga tidak
+> harus satu file: rekaman susulan bisa ditambahkan, dan beberapa materi bisa digabung tanpa
+> mentranskripsi ulang.
 
 ---
 
@@ -191,18 +198,21 @@ Buka Mindo
   -> Pengaturan: pilih provider, tempel API key (sekali)
   -> Dasbor: Upload file atau Rekam
   -> Processing: Transkrip -> Ringkasan + Peta Konsep + Flashcard (paralel)
-  -> Halaman materi: 4 tab
-     Ringkasan | Peta Konsep | Flashcard | Tanya Mindo
+  -> Halaman materi: 3 tab + transkrip + panel tutor
+     Ringkasan | Peta Konsep | Flashcard   (Transkrip lewat tombol, Tutor lewat panel)
   -> Belajar: swipe kartu, tanya tutor, buka timestamp
+  -> Tambah rekaman: berkas baru ditranskripsi, tiga hasil diperbarui
+  -> Riwayat: Gabungkan rekaman, pilih 2 materi atau lebih
   -> Ekspor: Markdown atau PNG, atau ZIP untuk pindah perangkat
 ```
 
 **Screenshot wajib (3 saja)**
 
-1. Halaman dasbor dengan drop zone dan tombol rekam.
+1. Halaman dasbor dengan drop zone, tombol rekam, dan "Gabungkan rekaman".
 2. Halaman processing dengan empat tahap.
-3. Halaman materi, tab Peta Konsep atau Tanya Mindo dengan sitasi timestamp.
+3. Halaman materi, tab Peta Konsep atau panel Tutor dengan sitasi timestamp.
 
+Kalau masih ada ruang di lampiran, tambahkan dialog "Tambah rekaman" dan banner hasil basi.
 Sisanya letakkan di lampiran. Slide ini untuk menunjukkan bahwa produknya nyata, bukan untuk
 dibaca.
 
@@ -212,6 +222,7 @@ dibaca.
 - Satu area kerja, bukan kumpulan kartu.
 - Tiap layar data punya tiga kondisi: kosong, memuat, gagal. Gagal punya aksi ulang.
 - Gagal satu tahap tidak mengulang tahap yang sudah selesai.
+- Saat transkrip bertambah, hasil lama ditandai basi sampai ketiganya dibuat ulang.
 - Kontras minimal AA, target sentuh 44 px, semua kontrol bisa dipakai keyboard.
 - Gerak hanya saat menjelaskan perubahan state.
 
@@ -224,9 +235,10 @@ dibaca.
 **Naskah (60 detik)**
 
 > Alurnya sengaja pendek. Pengaturan cuma sekali di awal. Setelah itu, buka, taruh file, tunggu,
-> lalu masuk ke ruang belajar. Di dalamnya ada empat cara memandang materi yang sama. Pengguna
-> bisa membaca, melihat hubungan, menguji diri, atau bertanya. Kuncinya: kalau satu tahap gagal,
-> tahap lain yang sudah selesai tidak hilang.
+> lalu masuk ke ruang belajar. Di dalamnya ada tiga cara memandang materi yang sama, plus transkrip
+> dan tutor. Pengguna bisa membaca, melihat hubungan, menguji diri, atau bertanya. Kalau ada
+> rekaman susulan, tambahkan saja; yang ditranskripsi hanya bagian baru. Kuncinya: kalau satu
+> tahap gagal, tahap lain yang sudah selesai tidak hilang.
 
 ---
 
@@ -249,13 +261,16 @@ Empat agen, satu transkrip, tanpa server data.
 **Alur AI: Input, Processing, Model, Output**
 
 ```
-[Audio/Video 25 MB]
+[Audio/Video 25 MB per berkas]
       |
       v  di browser
+[Satu baris sources per bagian, offset dihitung]
+      |
+      v
 [Ekstrak + kirim ke provider]
       |
       v
-[Whisper]  -> segmen {start, end, text}
+[Whisper]  -> segmen {start, end, text}, digeser offset
       |
       +--> [LLM] -> ringkasan (JSON) -> Zod -> IndexedDB
       +--> [LLM] -> mindmap (JSON)   -> Zod -> IndexedDB
@@ -270,8 +285,8 @@ Empat agen, satu transkrip, tanpa server data.
 ```
 Browser mahasiswa
   Next.js 16 (static export, React 19)
-  Dexie / IndexedDB: material, transkrip, ringkasan, mindmap,
-                     flashcard, chunks, settings
+  Dexie / IndexedDB: materials, sources (audio + offset), transcripts,
+                     summaries, mindmaps, flashcards, chunks
   BM25 lokal untuk pencarian
         |
         | HTTPS langsung, tanpa server perantara
@@ -283,11 +298,18 @@ Browser mahasiswa
 **Penjelasan teknis singkat**
 
 - Tidak ada backend. Tidak ada API route yang menyimpan data.
+- Satu materi bisa punya beberapa bagian. Tiap bagian punya berkas audio sendiri dan `offset` di
+  satu timeline. Pemutar memilih berkas yang tepat saat pengguna melompat ke detik tertentu.
+- Tambah rekaman: hanya bagian baru yang dikirim ke Whisper, lalu segmennya disambung ke transkrip
+  lama dan ketiga output dibuat ulang. Banner "hasil basi" menandai hasil yang belum diperbarui.
+- Gabung materi: transkrip tersimpan disalin dengan offset baru, tanpa transkripsi ulang. Materi
+  asli tidak diubah dan audionya disalin ke materi baru.
 - Tiga agen teks berjalan paralel setelah transkripsi (`Promise.all`).
 - Semua output divalidasi Zod sebelum masuk database.
 - Tutor AI mencari 5 chunk terbaik, menambahkan chunk sebelum dan sesudahnya, lalu melarang model
-  memakai pengetahuan luar. Field `found` dan `citations` memaksa kejujuran.
-- Retrieval memakai BM25 buatan sendiri, bukan vector database. Untuk satu rekaman, ini cukup dan
+  memakai pengetahuan luar. Chunk tidak menyeberangi batas bagian. Field `found` dan `citations`
+  memaksa kejujuran.
+- Retrieval memakai BM25 buatan sendiri, bukan vector database. Untuk satu materi, ini cukup dan
   nol biaya.
 
 **Visual**
@@ -304,7 +326,8 @@ Browser mahasiswa
 > konsep, dan kartu. Skema itu divalidasi sebelum disimpan, jadi kalau model mengarang format,
 > kita menolak, bukan menampilkan sampah. Untuk tutor, kami mencari potongan transkrip dengan
 > BM25, lalu memaksa model menjawab dari potongan itu dan menyebut detiknya. Kalau tidak ada,
-> dia harus bilang tidak ada.
+> dia harus bilang tidak ada. Satu materi boleh punya beberapa bagian audio; yang menentukan
+> bagian mana yang diputar adalah offset, bukan satu file gabungan.
 
 ---
 
@@ -320,15 +343,20 @@ Sudah jalan. Sekarang kita ukur seberapa berguna.
 2. Dasbor: unggah satu file contoh yang sudah disiapkan, bukan file baru.
 3. Processing: tunjukkan empat tahap berjalan dan tiga agen paralel.
 4. Halaman materi: buka Ringkasan, lalu Peta Konsep, lalu Flashcard.
-5. Tanya Mindo: ajukan satu pertanyaan yang jawabannya ada, tunjukkan timestamp. Lalu satu
+5. Panel Tutor: ajukan satu pertanyaan yang jawabannya ada, tunjukkan timestamp. Lalu satu
    pertanyaan yang tidak ada, tunjukkan jawaban jujur bahwa tidak dibahas.
-6. Ekspor ZIP, tunjukkan isi file.
-7. Tutup browser, buka lagi, tunjukkan materi masih ada.
+6. Tambah rekaman: tunjukkan dialognya, jelaskan hanya bagian baru yang ditranskripsi, lalu
+   tampilkan banner hasil basi. Jangan tunggu proses selesai di panggung.
+7. Dasbor: tunjukkan "Gabungkan rekaman", pilih dua materi, jelaskan aslinya tidak berubah.
+8. Ekspor ZIP, tunjukkan isi file berisi beberapa audio bagian.
+9. Tutup browser, buka lagi, tunjukkan materi masih ada.
 
 **Rencana cadangan**
 
 - Rekaman demo 60 sampai 90 detik sudah disiapkan sebelum hari H.
 - Satu materi yang sudah diproses penuh, jadi tidak perlu menunggu jaringan.
+- Satu materi dengan dua bagian dan banner basi sudah disiapkan, kalau proses tambah rekaman
+  terlalu lama untuk ditunggu.
 - Video layar 3 menit sebagai cadangan kalau jaringan ruangan buruk.
 - Jangan pernah demo dengan file 20 MB baru di panggung.
 
@@ -344,6 +372,7 @@ Sudah jalan. Sekarang kita ukur seberapa berguna.
 | Waktu proses 5 menit audio | `[BUTUH DATA]` | Ukur 3 kali, ambil median |
 | Jumlah flashcard per rekaman | `[BUTUH DATA]` | Hitung di 3 materi |
 | Akurasi transkrip | belum diukur | Butuh 5 rekaman berlabel |
+| Timeline multi-bagian | lulus | `node src/lib/timeline.check.mts`, 7/7 |
 
 **Validation plan (kalau data belum ada, slide ini menjelaskan caranya)**
 
@@ -380,9 +409,10 @@ Belajar yang tidak menitipkan data.
 | Untuk | Dampak |
 |---|---|
 | Mahasiswa | Rekaman yang sudah ada berubah jadi bahan belajar dalam satu sesi |
+| Mahasiswa dengan banyak sesi | Rekaman susulan ditambahkan tanpa mengulang transkripsi lama, atau beberapa materi digabung jadi satu |
 | Mahasiswa hemat | Nol biaya platform, cukup free tier provider |
 | Privasi | Tidak ada akun, tidak ada server data, tidak ada profil belajar yang dijual |
-| Kampus | Materi tidak keluar dari perangkat mahasiswa |
+| Kampus | Audio tidak disimpan di server kampus atau server kami, hanya dikirim ke provider yang dipilih mahasiswa |
 
 **Nilai pembeda**
 
@@ -397,8 +427,9 @@ Belajar yang tidak menitipkan data.
 
 | Fase | Isi | Ukuran selesai |
 |---|---|---|
-| Sekarang | Fase 1: upload, rekam, transkrip, 4 output, ekspor ZIP | Bisa dipakai harian |
+| Sekarang | Fase 1: upload, rekam, transkrip, 4 output, tambah rekaman, gabung materi, ekspor ZIP | Bisa dipakai harian |
 | Berikutnya | Validasi pengguna, ukur akurasi dan waktu, perbaiki alur onboarding API key | 5 wawancara, 3 metrik terukur |
+| Berikutnya | Urutkan bagian sendiri, map-reduce untuk transkrip sangat panjang | Bisa atur urutan tanpa materi baru |
 | Fase 2 | Transkripsi lokal via Whisper WebGPU, 100 persen offline | Tanpa koneksi, tanpa API key |
 | Fase 2 | Sinkronisasi antar perangkat tanpa server (WebRTC atau file) | 2 perangkat, 1 materi |
 | Fase 3 | Integrasi slide kuliah, cocokkan timestamp dengan halaman | Rekaman dan slide sejajar |
@@ -510,12 +541,17 @@ Cukup satu kalimat, tanpa slide:
 - [ ] Bagian "belum diukur" sudah disiapkan jawabannya secara lisan.
 - [ ] Satu kalimat tagline dipilih dan dipakai konsisten di semua slide.
 - [ ] Tidak ada klaim "100 persen offline", "gratis selamanya", atau "akurat 95 persen".
+- [ ] Tidak ada klaim "audio gabungan jadi satu file" atau "gabung menghemat penyimpanan".
 - [ ] Sumber data pihak ketiga (batas free tier, harga) dicek ulang di hari presentasi.
+- [ ] Jawaban soal gabung/tambah rekaman sudah dilatih: tanpa transkripsi ulang, audio tetap
+      terpisah, urutan otomatis, materi asli tidak berubah.
 
 ## Teknis
 
 - [ ] Demo memakai file yang sudah disiapkan, durasi 60 sampai 90 detik.
 - [ ] Materi contoh sudah diproses penuh sebelum naik panggung.
+- [ ] Materi kedua dan dialog gabung sudah disiapkan, supaya bagian gabung tidak dibuat mendadak.
+- [ ] Satu materi dengan dua bagian dan banner basi tersedia sebagai cadangan demo tambah rekaman.
 - [ ] API key aktif dan kuotanya masih ada. Siapkan satu cadangan.
 - [ ] Video cadangan 3 menit tersimpan lokal, bukan di cloud.
 - [ ] Repo dan build diuji dari commit terakhir, bukan dari working tree.
@@ -537,5 +573,5 @@ Cukup satu kalimat, tanpa slide:
 - [ ] Timing 6 menit diukur dengan stopwatch, bukan perkiraan.
 - [ ] Setiap anggota tahu bagian mana yang dia ambil.
 - [ ] Transisi antar pembicara ditulis, tidak mengandalkan "eh, lanjut ya".
-- [ ] Jawaban untuk 12 pertanyaan di `bahan-mentah.md` bagian 14 dilatih lisan.
+- [ ] Jawaban untuk 16 pertanyaan di `bahan-mentah.md` bagian 14 dilatih lisan.
 - [ ] Simulasi gangguan: internet mati, API key gagal, proyektor 4:3.
