@@ -494,27 +494,28 @@ export default function BerandaPage() {
                   Riwayat
                 </h2>
                 {materials.length > 1 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-4"
-                    onClick={toggleMergeMode}
-                    aria-pressed={mergeMode}
-                  >
-                    <Combine className="h-4 w-4" />
-                    {mergeMode ? "Batal gabung" : "Gabungkan rekaman"}
-                  </Button>
-                )}
-                {materials.length > 3 && (
-                  <button
-                    type="button"
-                    className="mt-4 min-h-9 text-[0.9375rem] text-muted-foreground underline decoration-1 underline-offset-4 hover:text-foreground"
-                    onClick={() => setShowAll((v) => !v)}
-                  >
-                    {showAll
-                      ? "Tampilkan lebih sedikit"
-                      : `Lihat semua (${materials.length})`}
-                  </button>
+                  <div className="mt-4 flex flex-col items-start gap-2.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleMergeMode}
+                      aria-pressed={mergeMode}
+                    >
+                      <Combine className="h-4 w-4" />
+                      {mergeMode ? "Batal gabung" : "Gabungkan rekaman"}
+                    </Button>
+                    {materials.length > 3 && (
+                      <button
+                        type="button"
+                        className="min-h-9 text-[0.9375rem] text-muted-foreground underline decoration-1 underline-offset-4 hover:text-foreground"
+                        onClick={() => setShowAll((v) => !v)}
+                      >
+                        {showAll
+                          ? "Tampilkan lebih sedikit"
+                          : `Lihat semua (${materials.length})`}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
 
