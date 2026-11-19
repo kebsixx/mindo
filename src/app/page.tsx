@@ -48,7 +48,7 @@ const STEPS = [
   },
   {
     title: "Belajar interaktif dan simpan mandiri.",
-    body: "Buka hasil kapan saja dari Riwayat, tanyakan materi ke Tutor AI, atau ekspor bahan ajar ke PDF, Markdown, atau arsip ZIP untuk pindah perangkat tanpa akun.",
+    body: "Buka hasil kapan saja dari Riwayat, tanyakan materi ke Tutor AI, atau ekspor bahan ajar ke Markdown atau arsip ZIP untuk pindah perangkat tanpa akun.",
   },
 ];
 
