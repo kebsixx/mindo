@@ -36,7 +36,8 @@ import {
   ensureSources,
   MAX_AUDIO_BYTES,
 } from "@/lib/sources";
-import { isOutputsStale, resolveAt } from "@/lib/timeline";
+import AudioPlayerBar from "@/components/audio-player-bar";
+import { isOutputsStale, nextOffset, resolveAt, sourceLabel } from "@/lib/timeline";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -150,6 +151,11 @@ function MaterialView() {
   const [appendTarget, setAppendTarget] = useState<File | null>(null);
   const [appendError, setAppendError] = useState("");
   const [addingSource, setAddingSource] = useState(false);
+  const [playerVisible, setPlayerVisible] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [activeSourceId, setActiveSourceId] = useState<number | undefined>(undefined);
+  const activeSourceIdRef = useRef<number | undefined>(undefined);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const appendInputRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -332,6 +338,18 @@ function MaterialView() {
     if (!el) return;
     const hit = resolveAt(sources, seconds);
     if (!hit?.source.id || !hit.source.audio) return;
+
+    // Toggle pause jika klik segmen yang sama saat audio sedang berputar
+    const isSameSegment =
+      isPlaying &&
+      Math.abs(currentTime - seconds) < 2 &&
+      activeSourceIdRef.current === hit.source.id;
+
+    if (isSameSegment) {
+      el.pause();
+      return;
+    }
+
     let url = objectUrlsRef.current.get(hit.source.id);
     if (!url) {
       url = URL.createObjectURL(hit.source.audio);
@@ -339,7 +357,36 @@ function MaterialView() {
     }
     if (el.src !== url) el.src = url;
     el.currentTime = hit.local;
+    activeSourceIdRef.current = hit.source.id;
+    setActiveSourceId(hit.source.id);
+    setCurrentTime(seconds);
+    setPlayerVisible(true);
     void el.play().catch(() => {});
+  };
+
+  const togglePlayAudio = () => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (isPlaying) {
+      el.pause();
+    } else {
+      if (!el.src && sources.length > 0) {
+        seekAudio(currentTime || 0);
+      } else {
+        void el.play().catch(() => {});
+      }
+    }
+  };
+
+  const stopAudio = () => {
+    const el = audioRef.current;
+    if (el) {
+      el.pause();
+      el.currentTime = 0;
+    }
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setPlayerVisible(false);
   };
 
   const chooseAppendFile = (file: File | null) => {
@@ -559,7 +606,13 @@ function MaterialView() {
         <div className="mt-8 flex items-start gap-6">
           <div className="min-w-0 flex-1">
             {transcriptView ? (
-              <TranscriptPanel segments={segments} sources={sources} onSeek={seekAudio} />
+              <TranscriptPanel
+                segments={segments}
+                sources={sources}
+                activeTime={playerVisible ? currentTime : undefined}
+                isPlaying={isPlaying}
+                onSeek={seekAudio}
+              />
             ) : (
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
@@ -716,7 +769,54 @@ function MaterialView() {
         </div>
       </main>
 
-      <audio ref={audioRef} className="hidden" />
+      <audio
+        ref={audioRef}
+        className="hidden"
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => {
+          setIsPlaying(false);
+          // Bila ada bagian berikutnya di timeline, transisi otomatis
+          const nextSec = currentTime + 0.5;
+          const hit = resolveAt(sources, nextSec);
+          if (hit && hit.source.id !== activeSourceIdRef.current) {
+            seekAudio(nextSec);
+          }
+        }}
+        onTimeUpdate={() => {
+          const el = audioRef.current;
+          if (!el) return;
+          const currentSource = sources.find(
+            (s) => s.id === activeSourceIdRef.current,
+          );
+          const offset = currentSource?.offset ?? 0;
+          setCurrentTime(offset + el.currentTime);
+        }}
+      />
+
+      {playerVisible && (
+        <AudioPlayerBar
+          isPlaying={isPlaying}
+          currentTime={currentTime}
+          totalDuration={
+            material?.duration ||
+            nextOffset(sources) ||
+            (segments.length ? segments[segments.length - 1].end : 0)
+          }
+          partLabel={
+            sources.length > 1
+              ? sources.find((s) => s.id === activeSourceId)
+                ? sourceLabel(
+                    sources.find((s) => s.id === activeSourceId)!.order,
+                  )
+                : undefined
+              : undefined
+          }
+          onTogglePlay={togglePlayAudio}
+          onStop={stopAudio}
+          onSeek={seekAudio}
+        />
+      )}
 
       <button
         type="button"

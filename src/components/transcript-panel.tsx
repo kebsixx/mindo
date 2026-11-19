@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Search, Play } from "lucide-react"
+import { Search, Play, Pause } from "lucide-react"
 import { formatClock, sourceLabel } from "@/lib/timeline"
 
 interface TranscriptSegment {
@@ -23,10 +23,18 @@ interface SourceRef {
 interface TranscriptPanelProps {
   segments: TranscriptSegment[]
   sources?: SourceRef[]
+  activeTime?: number
+  isPlaying?: boolean
   onSeek?: (time: number) => void
 }
 
-export default function TranscriptPanel({ segments, sources = [], onSeek }: TranscriptPanelProps) {
+export default function TranscriptPanel({
+  segments,
+  sources = [],
+  activeTime,
+  isPlaying = false,
+  onSeek,
+}: TranscriptPanelProps) {
   const [search, setSearch] = useState("")
 
   const filtered = segments.filter((s) =>
@@ -72,6 +80,11 @@ export default function TranscriptPanel({ segments, sources = [], onSeek }: Tran
               const label =
                 seg.sourceId === undefined ? undefined : labels.get(seg.sourceId)
 
+              const isCurrent =
+                activeTime !== undefined &&
+                activeTime >= seg.start &&
+                activeTime < seg.end
+
               return (
                 <div key={i}>
                   {startsSection && (
@@ -85,15 +98,29 @@ export default function TranscriptPanel({ segments, sources = [], onSeek }: Tran
                       {label ?? "Bagian"}
                     </p>
                   )}
-                  <div className="flex gap-2 rounded-2xl p-2 transition-colors hover:bg-secondary">
+                  <div
+                    className={
+                      isCurrent
+                        ? "flex gap-2 rounded-2xl bg-secondary/80 p-2 transition-colors ring-1 ring-border"
+                        : "flex gap-2 rounded-2xl p-2 transition-colors hover:bg-secondary"
+                    }
+                  >
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label={`Putar dari ${formatClock(seg.start)}`}
+                      aria-label={
+                        isCurrent && isPlaying
+                          ? `Jeda di ${formatClock(seg.start)}`
+                          : `Putar dari ${formatClock(seg.start)}`
+                      }
                       className="h-6 w-6 flex-shrink-0"
                       onClick={() => onSeek?.(seg.start)}
                     >
-                      <Play className="h-3 w-3" />
+                      {isCurrent && isPlaying ? (
+                        <Pause className="h-3 w-3" />
+                      ) : (
+                        <Play className="h-3 w-3" />
+                      )}
                     </Button>
                     <div className="flex-1">
                       <span className="text-[0.875rem] tabular-nums text-muted-foreground">
