@@ -113,13 +113,13 @@ export default function TranscriptPanel({
                           ? `Jeda di ${formatClock(seg.start)}`
                           : `Putar dari ${formatClock(seg.start)}`
                       }
-                      className="h-6 w-6 flex-shrink-0"
+                      className="relative h-8 w-8 flex-shrink-0 touch-manipulation before:absolute before:-inset-1.5 before:content-['']"
                       onClick={() => onSeek?.(seg.start)}
                     >
                       {isCurrent && isPlaying ? (
-                        <Pause className="h-3 w-3" />
+                        <Pause className="h-3.5 w-3.5" />
                       ) : (
-                        <Play className="h-3 w-3" />
+                        <Play className="h-3.5 w-3.5 ml-0.5" />
                       )}
                     </Button>
                     <div className="flex-1">
