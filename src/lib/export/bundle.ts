@@ -8,6 +8,7 @@ import type {
   Summary,
   Transcript,
 } from "@/lib/db"
+import { ensureSources } from "@/lib/sources"
 import { flashcardsToCsv, summaryToMarkdown, transcriptToText } from "./markdown"
 import { mindmapToPng } from "./mindmap"
 
@@ -23,14 +24,29 @@ export interface BundleResult {
   bytes: number
 }
 
+export interface PortableSource {
+  id: number
+  materialId: number
+  order: number
+  fileName: string
+  fileSize: number
+  duration: number
+  offset: number
+  status: string
+  createdAt: string
+  audioType?: string
+  audio?: string
+}
+
 export interface PortableData {
-  version: 1
+  version: 2
   exportedAt: string
   materials: (Omit<Material, "audio"> & {
     id: number
     audioType?: string
     audio?: string
   })[]
+  sources: PortableSource[]
   transcripts: Transcript[]
   summaries: Summary[]
   mindmaps: Mindmap[]
@@ -92,9 +108,10 @@ export async function exportBundle({
   const files: Record<string, Uint8Array> = {}
   const folders = new Set<string>()
   const dump: PortableData = {
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     materials: [],
+    sources: [],
     transcripts: [],
     summaries: [],
     mindmaps: [],
@@ -103,7 +120,10 @@ export async function exportBundle({
   }
 
   for (const id of materialIds) {
-    const [material, transcript, summary, mindmap, flashcards, chunks] =
+    // Materi lama belum punya baris sumber; lengkapi dulu supaya arsip baru
+    // tetap bisa memutar audio per bagian.
+    await ensureSources(id)
+    const [material, transcript, summary, mindmap, flashcards, chunks, sources] =
       await Promise.all([
         db.materials.get(id),
         db.transcripts.get(id),
@@ -111,6 +131,7 @@ export async function exportBundle({
         db.mindmaps.get(id),
         db.flashcards.where("materialId").equals(id).toArray(),
         db.chunks.where("materialId").equals(id).toArray(),
+        db.sources.where("materialId").equals(id).sortBy("order"),
       ])
     if (!material) continue
 
@@ -124,7 +145,7 @@ export async function exportBundle({
     }
     if (transcript?.segments.length) {
       files[`${folder}/transkrip.txt`] = strToU8(
-        transcriptToText(transcript.segments),
+        transcriptToText(transcript.segments, sources),
       )
       dump.transcripts.push(transcript)
     }
@@ -151,13 +172,20 @@ export async function exportBundle({
 
     if (portable) {
       const { audio, ...rest } = material
-      dump.materials.push({
-        ...rest,
-        id,
-        audioType: audio?.type || undefined,
-        audio:
-          includeAudio && audio ? await blobToBase64(audio) : undefined,
-      })
+      // Audio ikut di tiap sumber; materi tidak menyimpan salinan kedua.
+      void audio
+      dump.materials.push({ ...rest, id })
+      for (const source of sources) {
+        if (!source.id) continue
+        const { audio, ...sourceRest } = source
+        dump.sources.push({
+          ...sourceRest,
+          id: source.id,
+          audioType: audio?.type || undefined,
+          audio:
+            includeAudio && audio ? await blobToBase64(audio) : undefined,
+        })
+      }
       dump.chunks.push(...chunks)
     }
   }
@@ -186,11 +214,20 @@ export async function estimateBytes(
   portable: boolean,
   includeAudio: boolean,
 ): Promise<number> {
-  const materials = await openDB().materials.bulkGet(materialIds)
+  const db = openDB()
+  const materials = await db.materials.bulkGet(materialIds)
   let bytes = materialIds.length * 40 * 1024
   if (!portable) return bytes
   bytes += 48 * 1024
   if (includeAudio) {
+    const sources = await db.sources
+      .where("materialId")
+      .anyOf(materialIds)
+      .toArray()
+    for (const source of sources) {
+      bytes += Math.ceil(((source.audio?.size ?? 0) * 4) / 3)
+    }
+    // Materi lama tanpa baris sumber masih menyimpan audio di materinya.
     for (const material of materials) {
       bytes += Math.ceil(((material?.audio?.size ?? 0) * 4) / 3)
     }

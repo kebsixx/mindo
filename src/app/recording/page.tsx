@@ -233,15 +233,37 @@ export default function RecordingPage() {
               : "webm"
 
       const db = openDB()
-      const materialId = await db.materials.add({
-        title: finalTitle,
-        createdAt: new Date().toISOString(),
-        duration,
-        status: "pending",
-        fileName: `recording-${Date.now()}.${ext}`,
-        fileSize: audioBlob.size,
-        audio: audioBlob,
-      })
+      const createdAt = new Date().toISOString()
+      const fileName = `recording-${Date.now()}.${ext}`
+      // Audio disimpan sekali di baris sumber. Materi cukup menyimpan metadata;
+      // pemutar dan transkripsi membaca dari sumbernya.
+      const materialId = await db.transaction(
+        "rw",
+        db.materials,
+        db.sources,
+        async () => {
+          const id = await db.materials.add({
+            title: finalTitle,
+            createdAt,
+            duration,
+            status: "pending",
+            fileName,
+            fileSize: audioBlob.size,
+          })
+          await db.sources.add({
+            materialId: id,
+            order: 0,
+            fileName,
+            fileSize: audioBlob.size,
+            duration,
+            offset: 0,
+            status: "pending",
+            audio: audioBlob,
+            createdAt,
+          })
+          return id
+        },
+      )
 
       router.push(`/processing?id=${materialId}`)
     } catch (e) {

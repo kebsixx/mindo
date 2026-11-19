@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import { Mic, Upload, Trash2, Loader2, Pencil, Check, X } from "lucide-react";
+import { Mic, Upload, Trash2, Loader2, Pencil, Check, X, Combine } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,9 @@ import { openDB, type Material } from "@/lib/db";
 import { useStoredApiKey, useStoredProvider } from "@/lib/storage/settings";
 import ProviderKeyList from "@/components/provider-key-list";
 import { PROVIDERS } from "@/lib/ai/providers";
+import { humanError } from "@/lib/ai/errors";
+import { mergeMaterials } from "@/lib/sources";
+import { cn } from "@/lib/utils";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const ACCEPT = "audio/*,video/mp4";
@@ -100,6 +104,12 @@ export default function BerandaPage() {
     id: number;
     title: string;
   } | null>(null);
+  const [mergeMode, setMergeMode] = useState(false);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [mergeTitle, setMergeTitle] = useState("");
+  const [mergeError, setMergeError] = useState("");
+  const [merging, setMerging] = useState(false);
   const editInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadMaterials = useCallback(async () => {
@@ -164,15 +174,34 @@ export default function BerandaPage() {
     setSaving(true);
     try {
       const db = openDB();
-      const materialId = await db.materials.add({
-        title: file.name,
-        createdAt: new Date().toISOString(),
-        duration: 0,
-        status: "pending",
-        fileName: file.name,
-        fileSize: file.size,
-        audio: file,
-      });
+      const createdAt = new Date().toISOString();
+      const materialId = await db.transaction(
+        "rw",
+        db.materials,
+        db.sources,
+        async () => {
+          const id = await db.materials.add({
+            title: file.name,
+            createdAt,
+            duration: 0,
+            status: "pending",
+            fileName: file.name,
+            fileSize: file.size,
+          });
+          await db.sources.add({
+            materialId: id,
+            order: 0,
+            fileName: file.name,
+            fileSize: file.size,
+            duration: 0,
+            offset: 0,
+            status: "pending",
+            audio: file,
+            createdAt,
+          });
+          return id;
+        },
+      );
       router.push(`/processing?id=${materialId}`);
     } catch {
       toast({
@@ -187,13 +216,57 @@ export default function BerandaPage() {
   async function handleDelete(id: number) {
     const db = openDB();
     await db.materials.delete(id);
+    await db.sources.where("materialId").equals(id).delete();
     await db.transcripts.delete(id);
     await db.summaries.delete(id);
     await db.mindmaps.delete(id);
     await db.flashcards.where("materialId").equals(id).delete();
     await db.chunks.where("materialId").equals(id).delete();
     setMaterials((prev) => prev.filter((m) => m.id !== id));
+    setSelected((prev) => prev.filter((value) => value !== id));
     setDeleteTarget(null);
+  }
+
+  function toggleMergeMode() {
+    setMergeMode((value) => !value);
+    setSelected([]);
+    setMergeError("");
+  }
+
+  function toggleSelected(id: number) {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id],
+    );
+  }
+
+  function openMergeDialog() {
+    if (selected.length < 2) return;
+    setMergeError("");
+    setMergeTitle(`Gabungan ${selected.length} rekaman`);
+    setMergeOpen(true);
+  }
+
+  async function handleMerge() {
+    if (merging || selected.length < 2) return;
+    // Riwayat tersusun dari yang terbaru. Gabungan mengikuti urutan rekaman
+    // terlama lebih dulu supaya bagian 1 benar-benar bagian awal.
+    const ordered = [...materials]
+      .reverse()
+      .filter((material) => material.id !== undefined && selected.includes(material.id))
+      .map((material) => material.id!);
+    setMerging(true);
+    setMergeError("");
+    try {
+      const result = await mergeMaterials(ordered, mergeTitle);
+      setMerging(false);
+      setMergeOpen(false);
+      setMergeMode(false);
+      setSelected([]);
+      router.push(`/processing?id=${result.materialId}`);
+    } catch (e) {
+      setMergeError(humanError(e));
+      setMerging(false);
+    }
   }
 
   function startRename(id: number, currentTitle: string) {
@@ -420,6 +493,18 @@ export default function BerandaPage() {
                 <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
                   Riwayat
                 </h2>
+                {materials.length > 1 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={toggleMergeMode}
+                    aria-pressed={mergeMode}
+                  >
+                    <Combine className="h-4 w-4" />
+                    {mergeMode ? "Batal gabung" : "Gabungkan rekaman"}
+                  </Button>
+                )}
                 {materials.length > 3 && (
                   <button
                     type="button"
@@ -433,12 +518,30 @@ export default function BerandaPage() {
                 )}
               </div>
 
+              <div className="space-y-4">
               <ul className="space-y-2">
                 {(showAll ? materials : materials.slice(0, 3)).map((m) => (
                   <li
                     key={m.id}
                     className="flex min-h-16 items-center gap-4 rounded-2xl bg-secondary px-5 py-3 sm:px-6"
                   >
+                    {mergeMode && editingId !== m.id && (
+                      <button
+                        type="button"
+                        role="checkbox"
+                        aria-checked={selected.includes(m.id!)}
+                        aria-label={`Pilih ${m.title}`}
+                        onClick={() => toggleSelected(m.id!)}
+                        className={cn(
+                          "flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-colors",
+                          selected.includes(m.id!)
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-muted-foreground/40 bg-card hover:border-foreground/60",
+                        )}
+                      >
+                        {selected.includes(m.id!) && <Check className="h-4 w-4" />}
+                      </button>
+                    )}
                     {editingId === m.id ? (
                       <div className="flex min-w-0 flex-1 items-center gap-2">
                         <input
@@ -470,6 +573,24 @@ export default function BerandaPage() {
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
+                    ) : mergeMode ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleSelected(m.id!)}
+                        aria-pressed={selected.includes(m.id!)}
+                        className="min-w-0 flex-1 cursor-pointer py-0.5 text-left hover:text-muted-foreground"
+                      >
+                        <span className="block truncate text-[1.0625rem] font-medium">
+                          {m.title}
+                        </span>
+                        <span className="mt-0.5 block text-[0.875rem] text-muted-foreground">
+                          {new Date(m.createdAt).toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </button>
                     ) : (
                       <>
                         <Link
@@ -519,6 +640,24 @@ export default function BerandaPage() {
                   </li>
                 ))}
               </ul>
+
+              {mergeMode && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3">
+                  <p className="text-[0.9375rem] text-muted-foreground">
+                    {selected.length === 0
+                      ? "Pilih minimal dua rekaman."
+                      : `${selected.length} rekaman dipilih.`}
+                  </p>
+                  <Button
+                    onClick={openMergeDialog}
+                    disabled={selected.length < 2}
+                  >
+                    <Combine className="h-4 w-4" />
+                    Gabungkan{selected.length > 0 ? ` ${selected.length}` : ""}
+                  </Button>
+                </div>
+              )}
+              </div>
             </div>
           </section>
         )}
@@ -729,6 +868,80 @@ export default function BerandaPage() {
           </div>
         </div>
       </footer>
+
+      <Dialog
+        open={mergeOpen}
+        onOpenChange={(open) => {
+          if (!open && !merging) {
+            setMergeOpen(false);
+            setMergeError("");
+          }
+        }}
+      >
+        <DialogContent className="gap-0 rounded-[28px] p-6 sm:max-w-md">
+          <DialogTitle className="text-xl leading-[1.25]">
+            Gabungkan rekaman
+          </DialogTitle>
+          <DialogDescription className="mt-2 text-[0.9375rem] leading-relaxed text-muted-foreground">
+            {selected.length} rekaman menjadi satu materi baru, berurutan dari
+            rekaman terlama.
+          </DialogDescription>
+
+          <label
+            htmlFor="merge-title"
+            className="mt-5 block text-[0.9375rem] font-medium"
+          >
+            Judul materi baru
+          </label>
+          <Input
+            id="merge-title"
+            value={mergeTitle}
+            onChange={(e) => setMergeTitle(e.target.value)}
+            maxLength={100}
+            className="mt-2"
+            autoFocus
+          />
+
+          <div className="mt-4 space-y-2 text-[0.875rem] leading-snug text-muted-foreground">
+            <p>
+              Transkrip lama dipakai ulang, jadi tidak ada transkripsi baru.
+              Kuota penyedia terpakai untuk membuat ringkasan, mindmap, dan
+              flashcard dari teks gabungan.
+            </p>
+            <p>Materi asli tetap utuh dan tidak diubah.</p>
+          </div>
+
+          {mergeError && (
+            <p role="alert" className="mt-3 text-[0.9375rem] leading-snug text-destructive">
+              {mergeError}
+            </p>
+          )}
+
+          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setMergeOpen(false);
+                setMergeError("");
+              }}
+              disabled={merging}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={() => void handleMerge()}
+              disabled={merging || !mergeTitle.trim()}
+            >
+              {merging ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Combine className="h-4 w-4" aria-hidden="true" />
+              )}
+              {merging ? "Menggabungkan..." : "Gabungkan"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={deleteTarget !== null}

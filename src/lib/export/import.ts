@@ -25,13 +25,38 @@ const dataSchema = z.object({
       fileSize: z.number().catch(0),
       audioType: z.string().optional(),
       audio: z.string().optional(),
+      derivedSourceCount: z.number().optional(),
     }),
   ),
+  sources: z
+    .array(
+      z.object({
+        id: z.number().int(),
+        materialId: z.number().int(),
+        order: z.number().catch(0),
+        fileName: z.string().catch("rekaman"),
+        fileSize: z.number().catch(0),
+        duration: z.number().catch(0),
+        offset: z.number().catch(0),
+        status: z
+          .enum(["pending", "transcribing", "done", "failed"])
+          .catch("done"),
+        createdAt: z.string().catch(() => new Date().toISOString()),
+        audioType: z.string().optional(),
+        audio: z.string().optional(),
+      }),
+    )
+    .optional(),
   transcripts: z.array(
     z.object({
       materialId: z.number().int(),
       segments: z.array(
-        z.object({ start: z.number(), end: z.number(), text: z.string() }),
+        z.object({
+          start: z.number(),
+          end: z.number(),
+          text: z.string(),
+          sourceId: z.number().int().optional(),
+        }),
       ),
     }),
   ),
@@ -71,6 +96,7 @@ const dataSchema = z.object({
       start: z.number(),
       end: z.number(),
       text: z.string(),
+      sourceId: z.number().int().optional(),
     }),
   ),
 })
@@ -131,6 +157,7 @@ export async function importBundle(file: File): Promise<{ materials: number }> {
     "rw",
     [
       db.materials,
+      db.sources,
       db.transcripts,
       db.summaries,
       db.mindmaps,
@@ -139,6 +166,7 @@ export async function importBundle(file: File): Promise<{ materials: number }> {
     ],
     async () => {
       const idMap = new Map<number, number>()
+      const sourceIdMap = new Map<number, number>()
 
       for (const item of data.materials) {
         const { id, audio, audioType, ...rest } = item
@@ -153,9 +181,37 @@ export async function importBundle(file: File): Promise<{ materials: number }> {
 
       const remap = (oldId: number) => idMap.get(oldId)
 
+      // Versi 1 tidak punya daftar sumber. Baris sumbernya dibuat malas saat
+      // materi pertama kali dibuka.
+      for (const source of data.sources ?? []) {
+        const materialId = remap(source.materialId)
+        if (!materialId) continue
+        const { id, audio, audioType, ...rest } = source
+        const newSourceId = await db.sources.add({
+          ...rest,
+          materialId,
+          audio: audio
+            ? dataUrlToBlob(audio, audioType || "audio/mpeg")
+            : undefined,
+        })
+        sourceIdMap.set(id, newSourceId)
+      }
+
+      const remapSource = (oldId: number | undefined) =>
+        oldId === undefined ? undefined : sourceIdMap.get(oldId)
+
       for (const transcript of data.transcripts) {
         const materialId = remap(transcript.materialId)
-        if (materialId) await db.transcripts.put({ ...transcript, materialId })
+        if (!materialId) continue
+        await db.transcripts.put({
+          materialId,
+          segments: transcript.segments.map((segment) => ({
+            ...segment,
+            ...(segment.sourceId === undefined
+              ? {}
+              : { sourceId: remapSource(segment.sourceId) }),
+          })),
+        })
       }
       for (const summary of data.summaries) {
         const materialId = remap(summary.materialId)
@@ -171,7 +227,14 @@ export async function importBundle(file: File): Promise<{ materials: number }> {
       }
       for (const chunk of data.chunks) {
         const materialId = remap(chunk.materialId)
-        if (materialId) await db.chunks.put({ ...chunk, materialId })
+        if (!materialId) continue
+        await db.chunks.put({
+          ...chunk,
+          materialId,
+          ...(chunk.sourceId === undefined
+            ? {}
+            : { sourceId: remapSource(chunk.sourceId) }),
+        })
       }
     },
   )

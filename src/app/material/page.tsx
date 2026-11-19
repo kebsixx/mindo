@@ -3,14 +3,16 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, FileText, MessageCircle, PanelRightClose, AlertCircle, RefreshCw, Pencil, Check, X } from "lucide-react";
+import { Loader2, FileText, MessageCircle, PanelRightClose, AlertCircle, RefreshCw, Pencil, Check, X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ChatSheet from "@/components/chat-sheet";
 import { cn } from "@/lib/utils";
 import {
   openDB,
+  type AudioSource,
   type Material,
   type Summary,
   type Mindmap,
@@ -29,6 +31,17 @@ import { getApiKey, getProvider } from "@/lib/storage/settings";
 import { PROVIDERS } from "@/lib/ai/providers";
 import { humanError } from "@/lib/ai/errors";
 import { runFlashcards, runMindmap, runSummary } from "@/lib/ai/pipeline";
+import {
+  createSourceFromFile,
+  ensureSources,
+  MAX_AUDIO_BYTES,
+} from "@/lib/sources";
+import { isOutputsStale, resolveAt } from "@/lib/timeline";
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function StageFallback({
   title,
@@ -124,6 +137,7 @@ function MaterialView() {
   const [mindmap, setMindmap] = useState<Mindmap | null>(null);
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [segments, setSegments] = useState<TranscriptSegment[]>([]);
+  const [sources, setSources] = useState<AudioSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("summary");
   const [chatOpen, setChatOpen] = useState(false);
@@ -133,8 +147,13 @@ function MaterialView() {
   const [retrying, setRetrying] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
+  const [appendTarget, setAppendTarget] = useState<File | null>(null);
+  const [appendError, setAppendError] = useState("");
+  const [addingSource, setAddingSource] = useState(false);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const appendInputRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const objectUrlsRef = useRef(new Map<number, string>());
 
   const transcriptView = searchParams.get("view") === "transcript";
   const transcriptText = segments
@@ -145,14 +164,15 @@ function MaterialView() {
   const loadData = async () => {
     const db = openDB();
     const mid = parseInt(materialId!, 10);
-    const [mat, sum, mm, cards, trans] = await Promise.all([
+    const [mat, sum, mm, cards, trans, src] = await Promise.all([
       db.materials.get(mid),
       db.summaries.get(mid),
       db.mindmaps.get(mid),
       db.flashcards.where("materialId").equals(mid).toArray(),
       db.transcripts.get(mid),
+      ensureSources(mid),
     ]);
-    return { mat, sum, mm, cards, trans };
+    return { mat, sum, mm, cards, trans, src };
   };
 
   const applyData = (data: Awaited<ReturnType<typeof loadData>>) => {
@@ -161,6 +181,7 @@ function MaterialView() {
     setMindmap(data.mm || null);
     setFlashcards(data.cards);
     setSegments(data.trans?.segments || []);
+    setSources(data.src);
     setStageErrors(data.mat?.stageErrors || {});
   };
 
@@ -172,6 +193,14 @@ function MaterialView() {
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [materialId]);
+
+  useEffect(() => {
+    const urls = objectUrlsRef.current;
+    return () => {
+      for (const url of urls.values()) URL.revokeObjectURL(url);
+      urls.clear();
+    };
+  }, []);
 
   const startEditingTitle = () => {
     setEditedTitle(material?.title || "Materi");
@@ -264,9 +293,19 @@ function MaterialView() {
       const complete = Boolean(
         refreshed.sum && refreshed.mm && refreshed.cards.length > 0,
       );
+      // Hasil lama tetap terpakai untuk bagian yang tidak dicoba ulang. Kalau
+      // materi masih basi, satu bagian yang berhasil belum membuat semuanya
+      // segar, jadi penanda basi jangan dihapus.
+      const wasFresh = !isOutputsStale(
+        material?.derivedSourceCount,
+        sources.length,
+      );
       await db.materials.update(mid, {
         status: complete ? "done" : "partial",
         stageErrors: cleaned,
+        ...(complete && wasFresh && sources.length > 0
+          ? { derivedSourceCount: sources.length }
+          : {}),
       });
     } catch (e) {
       console.error(`[mindo] coba lagi ${stage} gagal`, e);
@@ -290,10 +329,50 @@ function MaterialView() {
 
   const seekAudio = (seconds: number) => {
     const el = audioRef.current;
-    if (!el || !material?.audio) return;
-    if (!el.src) el.src = URL.createObjectURL(material.audio);
-    el.currentTime = seconds;
+    if (!el) return;
+    const hit = resolveAt(sources, seconds);
+    if (!hit?.source.id || !hit.source.audio) return;
+    let url = objectUrlsRef.current.get(hit.source.id);
+    if (!url) {
+      url = URL.createObjectURL(hit.source.audio);
+      objectUrlsRef.current.set(hit.source.id, url);
+    }
+    if (el.src !== url) el.src = url;
+    el.currentTime = hit.local;
     void el.play().catch(() => {});
+  };
+
+  const chooseAppendFile = (file: File | null) => {
+    if (!file) return;
+    setAppendError("");
+    if (file.size > MAX_AUDIO_BYTES) {
+      setAppendError(
+        "Berkas lebih dari 25 MB. Kompres dulu atau rekam langsung dari browser.",
+      );
+    } else if (!file.type.startsWith("audio/") && file.type !== "video/mp4") {
+      setAppendError("Pilih berkas audio atau video MP4.");
+    }
+    setAppendTarget(file);
+  };
+
+  const closeAppendDialog = () => {
+    if (addingSource) return;
+    setAppendTarget(null);
+    setAppendError("");
+  };
+
+  const confirmAppend = async () => {
+    if (!appendTarget || !materialId || addingSource) return;
+    const mid = parseInt(materialId, 10);
+    setAddingSource(true);
+    setAppendError("");
+    try {
+      const sourceId = await createSourceFromFile(mid, appendTarget);
+      router.push(`/processing?id=${mid}&append=${sourceId}`);
+    } catch (e) {
+      setAppendError(humanError(e));
+      setAddingSource(false);
+    }
   };
 
   const handleGrade = async (
@@ -349,6 +428,12 @@ function MaterialView() {
   }
 
   const chat = <ChatPanel onSend={askTutor} onSeek={seekAudio} />;
+  const stale =
+    material !== null && isOutputsStale(material.derivedSourceCount, sources.length);
+  const freshParts =
+    material && typeof material.derivedSourceCount === "number"
+      ? Math.max(0, sources.length - material.derivedSourceCount)
+      : 0;
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-clip">
@@ -413,10 +498,31 @@ function MaterialView() {
             <FileText className="h-4 w-4" />
             {transcriptView ? "Kembali ke Materi" : "Transkrip"}
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => appendInputRef.current?.click()}
+          >
+            <Plus className="h-4 w-4" />
+            Tambah rekaman
+          </Button>
+          <input
+            ref={appendInputRef}
+            type="file"
+            accept="audio/*,video/mp4"
+            className="hidden"
+            onChange={(e) => {
+              chooseAppendFile(e.target.files?.[0] ?? null);
+              e.target.value = "";
+            }}
+          />
           <ExportDialog materialIds={[Number(materialId)]} />
         </div>
 
         <p className="mt-2 text-[0.9375rem] text-muted-foreground">
+          {sources.length > 1
+            ? `${sources.length} bagian rekaman. `
+            : ""}
           <Link
             href="/demo"
             className="underline decoration-1 underline-offset-4 hover:text-foreground"
@@ -425,10 +531,35 @@ function MaterialView() {
           </Link>
         </p>
 
+        {stale && (
+          <div
+            role="status"
+            className="mt-6 flex flex-col gap-4 rounded-[28px] bg-secondary px-5 py-4 sm:flex-row sm:items-center sm:px-6 sm:py-5"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.9375rem] font-medium">
+                Ringkasan, mindmap, dan flashcard belum mencakup{" "}
+                {freshParts > 1 ? `${freshParts} bagian baru` : "bagian baru"}.
+              </p>
+              <p className="mt-1 max-w-[62ch] text-[0.9375rem] leading-[1.55] text-muted-foreground">
+                Transkrip sudah lengkap. Perbarui untuk membuat ulang ketiga hasil dari
+                transkrip gabungan.
+              </p>
+            </div>
+            <Button
+              onClick={() => router.push(`/processing?id=${materialId}&refresh=1`)}
+              className="shrink-0"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Perbarui hasil
+            </Button>
+          </div>
+        )}
+
         <div className="mt-8 flex items-start gap-6">
           <div className="min-w-0 flex-1">
             {transcriptView ? (
-              <TranscriptPanel segments={segments} onSeek={seekAudio} />
+              <TranscriptPanel segments={segments} sources={sources} onSeek={seekAudio} />
             ) : (
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
@@ -606,6 +737,64 @@ function MaterialView() {
       >
         {chat}
       </ChatSheet>
+
+      <Dialog
+        open={appendTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) closeAppendDialog();
+        }}
+      >
+        <DialogContent className="bg-card sm:rounded-[28px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl leading-[1.25]">
+              Tambah rekaman ke materi ini?
+            </DialogTitle>
+            <DialogDescription className="text-[0.9375rem] leading-[1.55]">
+              {appendTarget
+                ? `${appendTarget.name} · ${formatSize(appendTarget.size)}`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 text-[0.9375rem] leading-[1.55] text-muted-foreground">
+            <p>
+              Hanya berkas baru ini yang ditranskripsi. Rekaman sebelumnya tidak
+              dikirim ulang ke penyedia.
+            </p>
+            <p>
+              Ringkasan, mindmap, dan flashcard dibuat ulang dari transkrip
+              lengkap. Kuota penyedia terpakai untuk satu transkripsi dan tiga
+              permintaan teks.
+            </p>
+            <p>
+              Flashcard baru menggantikan yang lama, jadi tanda sudah dikuasai
+              pada kartu lama ikut hilang.
+            </p>
+            {appendError && (
+              <p role="alert" className="text-destructive">
+                {appendError}
+              </p>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={closeAppendDialog} disabled={addingSource}>
+              Batal
+            </Button>
+            <Button
+              onClick={() => void confirmAppend()}
+              disabled={addingSource || Boolean(appendError)}
+            >
+              {addingSource ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Plus className="h-4 w-4" aria-hidden="true" />
+              )}
+              {addingSource ? "Menyimpan..." : "Tambah dan proses"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

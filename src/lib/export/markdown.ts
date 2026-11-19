@@ -1,10 +1,8 @@
 import type { Summary, TranscriptSegment, Flashcard } from "@/lib/db"
+import { formatClock, sourceLabel } from "@/lib/timeline"
 
 export function formatTimestamp(seconds: number): string {
-  const total = Math.max(0, Math.floor(seconds))
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+  return formatClock(seconds)
 }
 
 export function summaryToMarkdown(summary: Summary): string {
@@ -22,10 +20,39 @@ export function summaryToMarkdown(summary: Summary): string {
   return md
 }
 
-export function transcriptToText(segments: TranscriptSegment[]): string {
-  return segments
-    .map((seg) => `[${formatTimestamp(seg.start)}] ${seg.text}`)
-    .join("\n")
+/**
+ * Transkrip ekspor memakai waktu absolut. Saat materi punya lebih dari satu
+ * rekaman, awal tiap bagian ditandai supaya pembaca tahu batasnya.
+ */
+export function transcriptToText(
+  segments: TranscriptSegment[],
+  sources: { id?: number; order: number }[] = [],
+): string {
+  const labels = new Map<number, string>()
+  for (const source of sources) {
+    if (source.id !== undefined) labels.set(source.id, sourceLabel(source.order))
+  }
+  const multiple = sources.length > 1
+
+  const lines: string[] = []
+  let current: number | undefined
+  let started = false
+
+  for (const segment of segments) {
+    if (multiple && (!started || segment.sourceId !== current)) {
+      current = segment.sourceId
+      started = true
+      const label =
+        segment.sourceId === undefined ? undefined : labels.get(segment.sourceId)
+      if (lines.length > 0) lines.push("")
+      lines.push(
+        `## ${label ?? "Bagian"} (mulai ${formatClock(segment.start)})`,
+        "",
+      )
+    }
+    lines.push(`[${formatClock(segment.start)}] ${segment.text}`)
+  }
+  return lines.join("\n")
 }
 
 function csvField(value: string | number): string {
@@ -33,15 +60,18 @@ function csvField(value: string | number): string {
   return `"${text.replace(/"/g, '""')}"`
 }
 
-// Kolom Pertanyaan/Jawaban dikenali Anki dan Quizlet saat impor CSV.
 export function flashcardsToCsv(cards: Flashcard[]): string {
-  const rows = cards.map((card) =>
-    [
-      csvField(card.question),
-      csvField(card.answer),
-      csvField(card.difficulty),
-      csvField(formatTimestamp(card.timestampRef)),
-    ].join(","),
-  )
-  return ["Pertanyaan,Jawaban,Kesulitan,Waktu", ...rows].join("\r\n")
+  const rows = [
+    ["pertanyaan", "jawaban", "kesulitan", "waktu", "status"].join(","),
+    ...cards.map((card) =>
+      [
+        csvField(card.question),
+        csvField(card.answer),
+        csvField(card.difficulty),
+        csvField(formatTimestamp(card.timestampRef)),
+        csvField(card.grade),
+      ].join(","),
+    ),
+  ]
+  return rows.join("\r\n")
 }

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Send, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { formatClock } from "@/lib/timeline"
 
 interface ChatMessage {
   role: "user" | "assistant"
@@ -63,8 +64,7 @@ export default function ChatPanel({ onSend, onSeek }: ChatPanelProps) {
     }
   }
 
-  const formatTime = (s: number) =>
-    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`
+  const formatTime = (s: number) => formatClock(s)
 
   return (
     <div className="flex h-full min-h-0 flex-col">

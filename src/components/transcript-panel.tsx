@@ -6,30 +6,38 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Search, Play } from "lucide-react"
+import { formatClock, sourceLabel } from "@/lib/timeline"
 
 interface TranscriptSegment {
   start: number
   end: number
   text: string
+  sourceId?: number
+}
+
+interface SourceRef {
+  id?: number
+  order: number
 }
 
 interface TranscriptPanelProps {
   segments: TranscriptSegment[]
+  sources?: SourceRef[]
   onSeek?: (time: number) => void
 }
 
-export default function TranscriptPanel({ segments, onSeek }: TranscriptPanelProps) {
+export default function TranscriptPanel({ segments, sources = [], onSeek }: TranscriptPanelProps) {
   const [search, setSearch] = useState("")
 
   const filtered = segments.filter((s) =>
     s.text.toLowerCase().includes(search.toLowerCase())
   )
 
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60)
-    const sec = Math.floor(s % 60)
-    return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
+  const labels = new Map<number, string>()
+  for (const source of sources) {
+    if (source.id !== undefined) labels.set(source.id, sourceLabel(source.order))
   }
+  const multiple = sources.length > 1
 
   return (
     <Card>
@@ -47,36 +55,56 @@ export default function TranscriptPanel({ segments, onSeek }: TranscriptPanelPro
       </CardHeader>
       <CardContent>
         {segments.length === 0 && (
-          <p className="py-8 text-center text-sm text-muted-foreground">
+          <p className="py-8 text-center text-[0.9375rem] text-muted-foreground">
             Belum ada transkrip. Proses materi ini dulu.
           </p>
         )}
         {segments.length > 0 && filtered.length === 0 && (
-          <p className="py-8 text-center text-sm text-muted-foreground">
+          <p className="py-8 text-center text-[0.9375rem] text-muted-foreground">
             Tidak ada segmen yang cocok dengan pencarian.
           </p>
         )}
         <ScrollArea className="h-[400px]">
           <div className="space-y-2">
-            {filtered.map((seg, i) => (
-              <div key={i} className="flex gap-2 rounded-2xl p-2 transition-colors hover:bg-secondary">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`Putar dari ${formatTime(seg.start)}`}
-                  className="h-6 w-6 flex-shrink-0"
-                  onClick={() => onSeek?.(seg.start)}
-                >
-                  <Play className="h-3 w-3" />
-                </Button>
-                <div className="flex-1">
-                  <span className="text-[0.8125rem] tabular-nums text-muted-foreground">
-                    {formatTime(seg.start)}
-                  </span>
-                  <p className="text-[1.0625rem] leading-[1.55]">{seg.text}</p>
+            {filtered.map((seg, i) => {
+              const previous = i > 0 ? filtered[i - 1] : undefined
+              const startsSection = multiple && seg.sourceId !== previous?.sourceId
+              const label =
+                seg.sourceId === undefined ? undefined : labels.get(seg.sourceId)
+
+              return (
+                <div key={i}>
+                  {startsSection && (
+                    <p
+                      className={
+                        i === 0
+                          ? "mb-2 text-[0.875rem] font-medium text-muted-foreground"
+                          : "mb-2 mt-5 border-t border-border pt-4 text-[0.875rem] font-medium text-muted-foreground"
+                      }
+                    >
+                      {label ?? "Bagian"}
+                    </p>
+                  )}
+                  <div className="flex gap-2 rounded-2xl p-2 transition-colors hover:bg-secondary">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Putar dari ${formatClock(seg.start)}`}
+                      className="h-6 w-6 flex-shrink-0"
+                      onClick={() => onSeek?.(seg.start)}
+                    >
+                      <Play className="h-3 w-3" />
+                    </Button>
+                    <div className="flex-1">
+                      <span className="text-[0.875rem] tabular-nums text-muted-foreground">
+                        {formatClock(seg.start)}
+                      </span>
+                      <p className="text-[1.0625rem] leading-[1.55]">{seg.text}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </ScrollArea>
       </CardContent>
