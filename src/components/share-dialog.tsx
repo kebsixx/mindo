@@ -52,20 +52,15 @@ export default function ShareDialog({
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [tone, setTone] = useState<"casual" | "formal">("casual")
-  const headings = summary?.sections.map((s) => s.heading) || []
-  const points = summary?.sections.flatMap((s) => s.points) || []
-
-  const initialDraft = buildFallbackShareMessage({
-    title,
-    headings,
-    points,
-    tone: "casual",
+  // Simpan cache hasil pesan per tone agar tidak memanggil AI berulang kali
+  const [cachedDrafts, setCachedDrafts] = useState<Record<"casual" | "formal", string>>({
+    casual: "",
+    formal: "",
   })
 
-  const [message, setMessage] = useState(initialDraft)
+  const [message, setMessage] = useState("")
   const [customized, setCustomized] = useState(false)
   const [isAiLoading, setIsAiLoading] = useState(false)
-  const [isFading, setIsFading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [pngBusy, setPngBusy] = useState(false)
 
@@ -86,9 +81,15 @@ export default function ShareDialog({
     return false
   })
 
-  // Refine draf lewat AI
+  // Refine draf lewat AI dengan sistem caching per tone
   const triggerAiRefinement = useCallback(
     (currentTone: "casual" | "formal") => {
+      // Jika sudah ada di cache, langsung gunakan tanpa panggil AI
+      if (cachedDrafts[currentTone]) {
+        setMessage(cachedDrafts[currentTone])
+        return
+      }
+
       const provider = getProvider("llm")
       const apiKey = getApiKey(provider)
 
@@ -98,7 +99,21 @@ export default function ShareDialog({
             .join("\n\n")
         : transcriptExcerpt || ""
 
-      if (!apiKey || summaryText.trim().length === 0) return
+      const headings = summary?.sections.map((s) => s.heading) || []
+      const points = summary?.sections.flatMap((s) => s.points) || []
+
+      const fallback = buildFallbackShareMessage({
+        title,
+        headings,
+        points,
+        tone: currentTone,
+      })
+
+      if (!apiKey || summaryText.trim().length === 0) {
+        setCachedDrafts((prev) => ({ ...prev, [currentTone]: fallback }))
+        setMessage(fallback)
+        return
+      }
 
       setIsAiLoading(true)
       composeShareMessage(provider, apiKey, {
@@ -107,55 +122,43 @@ export default function ShareDialog({
         tone: currentTone,
       })
         .then((aiMsg) => {
-          if (aiMsg.trim()) {
-            setIsFading(true)
-            setTimeout(() => {
-              setMessage(aiMsg)
-              setIsFading(false)
-            }, 120)
-          }
+          const finalMsg = aiMsg.trim() || fallback
+          setCachedDrafts((prev) => ({ ...prev, [currentTone]: finalMsg }))
+          setMessage(finalMsg)
         })
         .catch(() => {
-          // Gagal AI: fallback deterministik tetap terpasang aman
+          setCachedDrafts((prev) => ({ ...prev, [currentTone]: fallback }))
+          setMessage(fallback)
         })
         .finally(() => {
           setIsAiLoading(false)
         })
     },
-    [summary, transcriptExcerpt, title]
+    [cachedDrafts, summary, transcriptExcerpt, title]
   )
 
   const handleOpenDialog = () => {
     setTone("casual")
     setCustomized(false)
-    setMessage(
-      buildFallbackShareMessage({
-        title,
-        headings,
-        points,
-        tone: "casual",
-      })
-    )
     setOpen(true)
-    triggerAiRefinement("casual")
+    if (cachedDrafts.casual) {
+      setMessage(cachedDrafts.casual)
+    } else {
+      setMessage("")
+      triggerAiRefinement("casual")
+    }
   }
 
   const handleToneChange = (newTone: "casual" | "formal") => {
     if (newTone === tone) return
     setTone(newTone)
     if (!customized) {
-      const nextTemplate = buildFallbackShareMessage({
-        title,
-        headings,
-        points,
-        tone: newTone,
-      })
-      setIsFading(true)
-      setTimeout(() => {
-        setMessage(nextTemplate)
-        setIsFading(false)
-      }, 100)
-      triggerAiRefinement(newTone)
+      if (cachedDrafts[newTone]) {
+        setMessage(cachedDrafts[newTone])
+      } else {
+        setMessage("")
+        triggerAiRefinement(newTone)
+      }
     }
   }
 
@@ -325,21 +328,30 @@ export default function ShareDialog({
                 AI sedang menyusun...
               </span>
             </div>
-            <div className="relative">
-              <textarea
-                value={message}
-                onChange={(e) => {
-                  setCustomized(true)
-                  setMessage(sanitizeShareText(e.target.value))
-                }}
-                rows={7}
-                className={cn(
-                  "w-full resize-y rounded-2xl border border-input bg-card p-3 text-[0.875rem] leading-relaxed outline-hidden transition-all duration-200 focus:border-ring focus:ring-2 focus:ring-ring/20",
-                  isFading && "opacity-40 scale-[0.995]",
-                  isAiLoading && "border-primary/40 bg-primary/[0.02]"
-                )}
-                placeholder="Menyusun pesan..."
-              />
+            <div className="relative min-h-[160px]">
+              {isAiLoading && !message ? (
+                <div
+                  aria-label="Memuat draf pesan"
+                  className="flex h-[160px] w-full flex-col justify-center gap-2.5 rounded-2xl border border-border bg-secondary/30 p-4"
+                >
+                  <div className="h-3.5 w-2/5 animate-pulse rounded-md bg-muted-foreground/15" />
+                  <div className="mt-1 h-3 w-4/5 animate-pulse rounded-md bg-muted-foreground/15" />
+                  <div className="h-3 w-3/4 animate-pulse rounded-md bg-muted-foreground/15" />
+                  <div className="h-3 w-2/3 animate-pulse rounded-md bg-muted-foreground/15" />
+                  <div className="mt-2 h-3 w-1/2 animate-pulse rounded-md bg-muted-foreground/15" />
+                </div>
+              ) : (
+                <textarea
+                  value={message}
+                  onChange={(e) => {
+                    setCustomized(true)
+                    setMessage(sanitizeShareText(e.target.value))
+                  }}
+                  rows={7}
+                  className="w-full resize-y rounded-2xl border border-input bg-card p-3 text-[0.875rem] leading-relaxed outline-hidden transition-all duration-200 focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  placeholder="Menyusun pesan..."
+                />
+              )}
             </div>
           </div>
 
