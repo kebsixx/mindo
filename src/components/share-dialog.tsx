@@ -65,6 +65,7 @@ export default function ShareDialog({
   const [message, setMessage] = useState(initialDraft)
   const [customized, setCustomized] = useState(false)
   const [isAiLoading, setIsAiLoading] = useState(false)
+  const [isFading, setIsFading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [pngBusy, setPngBusy] = useState(false)
 
@@ -107,7 +108,11 @@ export default function ShareDialog({
       })
         .then((aiMsg) => {
           if (aiMsg.trim()) {
-            setMessage(aiMsg)
+            setIsFading(true)
+            setTimeout(() => {
+              setMessage(aiMsg)
+              setIsFading(false)
+            }, 120)
           }
         })
         .catch(() => {
@@ -136,16 +141,20 @@ export default function ShareDialog({
   }
 
   const handleToneChange = (newTone: "casual" | "formal") => {
+    if (newTone === tone) return
     setTone(newTone)
     if (!customized) {
-      setMessage(
-        buildFallbackShareMessage({
-          title,
-          headings,
-          points,
-          tone: newTone,
-        })
-      )
+      const nextTemplate = buildFallbackShareMessage({
+        title,
+        headings,
+        points,
+        tone: newTone,
+      })
+      setIsFading(true)
+      setTimeout(() => {
+        setMessage(nextTemplate)
+        setIsFading(false)
+      }, 100)
       triggerAiRefinement(newTone)
     }
   }
@@ -303,25 +312,35 @@ export default function ShareDialog({
           </div>
 
           <div className="relative mt-3">
-            <div className="flex items-center justify-between pb-1.5 text-xs text-muted-foreground">
+            <div className="flex h-5 items-center justify-between pb-1.5 text-xs text-muted-foreground">
               <span>Isi pesan (dapat disunting)</span>
-              {isAiLoading && (
-                <span className="flex items-center gap-1 text-primary">
-                  <Sparkles className="h-3 w-3 animate-spin" />
-                  AI sedang menyusun...
-                </span>
-              )}
+              <span
+                className={cn(
+                  "flex items-center gap-1.5 font-medium text-emerald-600 transition-opacity duration-200",
+                  isAiLoading ? "opacity-100" : "pointer-events-none opacity-0"
+                )}
+                aria-live="polite"
+              >
+                <Sparkles className="h-3 w-3 animate-spin" />
+                AI sedang menyusun...
+              </span>
             </div>
-            <textarea
-              value={message}
-              onChange={(e) => {
-                setCustomized(true)
-                setMessage(sanitizeShareText(e.target.value))
-              }}
-              rows={7}
-              className="w-full resize-y rounded-2xl border border-input bg-card p-3 text-[0.875rem] leading-relaxed outline-hidden focus:border-ring focus:ring-2 focus:ring-ring/20"
-              placeholder="Menyusun pesan..."
-            />
+            <div className="relative">
+              <textarea
+                value={message}
+                onChange={(e) => {
+                  setCustomized(true)
+                  setMessage(sanitizeShareText(e.target.value))
+                }}
+                rows={7}
+                className={cn(
+                  "w-full resize-y rounded-2xl border border-input bg-card p-3 text-[0.875rem] leading-relaxed outline-hidden transition-all duration-200 focus:border-ring focus:ring-2 focus:ring-ring/20",
+                  isFading && "opacity-40 scale-[0.995]",
+                  isAiLoading && "border-primary/40 bg-primary/[0.02]"
+                )}
+                placeholder="Menyusun pesan..."
+              />
+            </div>
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
