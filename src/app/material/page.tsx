@@ -25,6 +25,7 @@ import { BackLink } from "@/components/site-header";
 import FlashcardSwiper from "@/components/flashcard-swiper";
 import TranscriptPanel from "@/components/transcript-panel";
 import ExportDialog from "@/components/export-dialog";
+import ShareDialog from "@/components/share-dialog";
 import ChatPanel, { type TutorReply } from "@/components/chat-panel";
 import { tutor } from "@/lib/ai/agents/tutor";
 import { getApiKey, getProvider } from "@/lib/storage/settings";
@@ -564,6 +565,14 @@ function MaterialView() {
             }}
           />
           <ExportDialog materialIds={[Number(materialId)]} />
+          <ShareDialog
+            title={material?.title || "Catatan Materi"}
+            summary={summary}
+            mindmap={mindmap}
+            flashcards={flashcards}
+            transcriptExcerpt={segments.slice(0, 5).map((s) => s.text).join(" ")}
+            disabled={!summary && segments.length === 0}
+          />
         </div>
 
         <p className="mt-2 text-[0.9375rem] text-muted-foreground">

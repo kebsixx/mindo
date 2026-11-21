@@ -72,7 +72,7 @@ export function formatBytes(bytes: number): string {
   return `${Math.round(bytes / 1024)} KB`
 }
 
-function slugify(title: string): string {
+export function slugify(title: string): string {
   return (
     title
       .toLowerCase()

@@ -50,3 +50,8 @@ export const TUTOR_SCHEMA = z.object({
   answer: z.string().min(1),
   citations: z.array(z.number().min(0)),
 }).strict()
+
+// 5. Share Message Schema
+export const SHARE_SCHEMA = z.object({
+  message: z.string().min(20).max(1500),
+}).strict()
