@@ -488,16 +488,16 @@ function MaterialView() {
       <SiteHeader />
       <main className="mx-auto w-full max-w-280 flex-1 px-5 pb-16 pt-4 sm:px-8 sm:pt-6">
         <BackLink href="/" label="Kembali ke beranda" />
-        <div className="mt-2 flex flex-wrap items-center gap-3">
+        <div className="mt-3 space-y-3">
           {isEditingTitle ? (
-            <div className="flex min-w-0 flex-1 items-center gap-2">
+            <div className="flex max-w-3xl items-center gap-2">
               <input
                 ref={titleInputRef}
                 type="text"
                 value={editedTitle}
                 onChange={(e) => setEditedTitle(e.target.value)}
                 onKeyDown={handleTitleKeyDown}
-                className="w-full min-w-[200px] rounded-xl border border-foreground/30 bg-card px-3 py-1.5 text-[clamp(1.5rem,3vw,2.25rem)] font-semibold leading-[1.1] tracking-tight text-foreground outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="w-full min-w-0 rounded-xl border border-foreground/30 bg-card px-3 py-1.5 text-[clamp(1.5rem,3vw,2.25rem)] font-semibold leading-[1.15] tracking-tight text-foreground outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20"
                 maxLength={100}
                 aria-label="Ubah judul materi"
               />
@@ -521,8 +521,8 @@ function MaterialView() {
               </Button>
             </div>
           ) : (
-            <div className="group flex min-w-0 flex-1 items-center gap-2">
-              <h1 className="truncate text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
+            <div className="group flex items-start gap-2">
+              <h1 className="break-words text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-[1.15] tracking-tight">
                 {material?.title || "Materi"}
               </h1>
               <Button
@@ -531,48 +531,51 @@ function MaterialView() {
                 onClick={startEditingTitle}
                 aria-label="Ubah nama materi"
                 title="Ubah nama materi"
-                className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+                className="mt-1 h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
               >
                 <Pencil className="h-4 w-4" />
               </Button>
             </div>
           )}
-          <Button
-            size="sm"
-            variant={transcriptView ? "default" : "outline"}
-            onClick={toggleTranscript}
-            aria-pressed={transcriptView}
-          >
-            <FileText className="h-4 w-4" />
-            {transcriptView ? "Kembali ke Materi" : "Transkrip"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => appendInputRef.current?.click()}
-          >
-            <Plus className="h-4 w-4" />
-            Tambah rekaman
-          </Button>
-          <input
-            ref={appendInputRef}
-            type="file"
-            accept="audio/*,video/mp4"
-            className="hidden"
-            onChange={(e) => {
-              chooseAppendFile(e.target.files?.[0] ?? null);
-              e.target.value = "";
-            }}
-          />
-          <ExportDialog materialIds={[Number(materialId)]} />
-          <ShareDialog
-            title={material?.title || "Catatan Materi"}
-            summary={summary}
-            mindmap={mindmap}
-            flashcards={flashcards}
-            transcriptExcerpt={segments.slice(0, 5).map((s) => s.text).join(" ")}
-            disabled={!summary && segments.length === 0}
-          />
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Button
+              size="sm"
+              variant={transcriptView ? "default" : "outline"}
+              onClick={toggleTranscript}
+              aria-pressed={transcriptView}
+            >
+              <FileText className="h-4 w-4" />
+              {transcriptView ? "Kembali ke Materi" : "Transkrip"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => appendInputRef.current?.click()}
+            >
+              <Plus className="h-4 w-4" />
+              Tambah rekaman
+            </Button>
+            <input
+              ref={appendInputRef}
+              type="file"
+              accept="audio/*,video/mp4"
+              className="hidden"
+              onChange={(e) => {
+                chooseAppendFile(e.target.files?.[0] ?? null);
+                e.target.value = "";
+              }}
+            />
+            <ExportDialog materialIds={[Number(materialId)]} />
+            <ShareDialog
+              title={material?.title || "Catatan Materi"}
+              summary={summary}
+              mindmap={mindmap}
+              flashcards={flashcards}
+              transcriptExcerpt={segments.slice(0, 5).map((s) => s.text).join(" ")}
+              disabled={!summary && segments.length === 0}
+            />
+          </div>
         </div>
 
         <p className="mt-2 text-[0.9375rem] text-muted-foreground">
