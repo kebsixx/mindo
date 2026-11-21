@@ -372,7 +372,7 @@ export default function BerandaPage() {
               </div>
             </div>
 
-            <div className="rounded-[28px] bg-secondary p-2.5 sm:p-3">
+            <div className="min-w-0 rounded-[28px] bg-secondary p-2.5 sm:p-3">
               <div
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -384,28 +384,29 @@ export default function BerandaPage() {
                   setDragging(false);
                   pickFile(e.dataTransfer.files?.[0] ?? null);
                 }}
-                className={`flex min-h-37 flex-col items-start justify-center gap-3 rounded-[22px] border-2 border-dashed bg-card px-5 py-6 transition-colors ${
+                className={`flex min-h-37 w-full min-w-0 flex-col items-start justify-center gap-3 overflow-hidden rounded-[22px] border-2 border-dashed bg-card px-5 py-6 transition-colors ${
                   dragging
                     ? "border-primary bg-primary/12"
                     : "border-foreground/20"
                 }`}
               >
                 {file ? (
-                  <>
-                    <p className="w-full truncate text-lg font-medium">
+                  <div className="w-full min-w-0">
+                    <p className="truncate text-lg font-medium" title={file.name}>
                       {file.name}
                     </p>
-                    <p className="text-[0.9375rem] tabular-nums text-muted-foreground">
+                    <p className="mt-1 text-[0.9375rem] tabular-nums text-muted-foreground">
                       {(file.size / 1024 / 1024).toFixed(1)} MB
                     </p>
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="mt-3 -ml-2.5"
                       onClick={() => setFile(null)}
                     >
                       Ganti file
                     </Button>
-                  </>
+                  </div>
                 ) : (
                   <>
                     <p className="text-[1.0625rem] font-medium">
