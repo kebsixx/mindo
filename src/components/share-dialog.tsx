@@ -273,7 +273,20 @@ export default function ShareDialog({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="gap-0 rounded-[1.75rem] p-6 sm:max-w-lg">
+        <DialogContent
+          className={cn(
+            "gap-0 p-5 sm:p-6",
+            // Mobile: Bottom Sheet slide-up
+            "max-sm:fixed max-sm:bottom-0 max-sm:top-auto max-sm:left-0 max-sm:right-0 max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0",
+            "max-sm:max-h-[90dvh] max-sm:overflow-y-auto max-sm:rounded-t-[28px] max-sm:rounded-b-none max-sm:border-b-0",
+            "max-sm:data-[state=open]:slide-in-from-bottom max-sm:data-[state=closed]:slide-out-to-bottom",
+            // Desktop: Centered dialog
+            "sm:max-w-lg sm:rounded-[1.75rem]"
+          )}
+        >
+          {/* Pull handle bar untuk visual affordance bottom sheet di mobile */}
+          <div className="mx-auto -mt-1 mb-3 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/25 sm:hidden" />
+
           <DialogHeader className="text-left">
             <DialogTitle className="text-xl">Bagikan ke Teman Kelas</DialogTitle>
             <DialogDescription className="mt-1 leading-relaxed">
