@@ -147,7 +147,7 @@ export default function SettingsPage() {
         </p>
 
         <div className="mt-8 space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid items-start gap-4 lg:grid-cols-2">
             <RoleCard
               role="stt"
               provider={stt}
