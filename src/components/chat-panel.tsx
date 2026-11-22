@@ -68,7 +68,7 @@ export default function ChatPanel({ onSend, onSeek }: ChatPanelProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
+      <div className="flex-1 space-y-3 overflow-y-auto overscroll-contain touch-pan-y p-4" aria-live="polite">
         {messages.length === 0 && !loading && (
           <p className="text-[0.9375rem] text-muted-foreground">
             Mulai dari salah satu pertanyaan di bawah, atau tulis sendiri.
@@ -106,7 +106,7 @@ export default function ChatPanel({ onSend, onSeek }: ChatPanelProps) {
       </div>
       {/* Chip selalu di atas input, satu baris yang bisa digeser horizontal. */}
       {!loading && (
-        <div className="flex gap-2 overflow-x-auto border-t px-4 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-2 touch-pan-x overflow-x-auto border-t px-4 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {SUGGESTIONS.map((s) => (
             <button
               key={s}

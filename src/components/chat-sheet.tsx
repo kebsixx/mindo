@@ -108,7 +108,7 @@ export default function ChatSheet({
         type="button"
         aria-label="Tutup Tanya Mindo"
         onClick={() => close()}
-        className="absolute inset-0 cursor-default overscroll-y-contain overflow-hidden bg-foreground/40"
+        className="absolute inset-0 cursor-default touch-none overscroll-y-contain overflow-hidden bg-foreground/40"
       />
 
       <div
@@ -116,7 +116,7 @@ export default function ChatSheet({
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "absolute inset-x-0 bottom-0 touch-action-none flex flex-col overflow-hidden rounded-t-[28px] border border-border bg-card shadow-2xl",
+          "absolute inset-x-0 bottom-0 touch-none flex flex-col overflow-hidden rounded-t-[28px] border border-border bg-card shadow-2xl",
           "transition-[height,transform] duration-300 ease-out motion-reduce:transition-none",
         )}
         style={{
@@ -146,7 +146,7 @@ export default function ChatSheet({
         // mengganggu pointer drag tanya mindo).
         onWheel={(e) => e.preventDefault()}
       >
-        <div className="flex shrink-0 cursor-grab touch-action-none flex-col items-center pb-1 pt-3 active:cursor-grabbing">
+        <div className="flex shrink-0 cursor-grab touch-none flex-col items-center pb-1 pt-3 active:cursor-grabbing">
           <span aria-hidden className="h-1.5 w-10 rounded-full bg-border" />
         </div>
 
