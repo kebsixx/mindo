@@ -179,6 +179,7 @@ export default function SettingsPage() {
                   <KeyField
                     key={provider}
                     provider={provider}
+                    pickModel={provider === llm}
                     roles={
                       stt === llm
                         ? "Transkripsi & ringkasan"
@@ -435,9 +436,11 @@ function GuideItem({ provider }: { provider: Provider }) {
 function KeyField({
   provider,
   roles,
+  pickModel,
 }: {
   provider: Provider;
   roles: string;
+  pickModel?: boolean;
 }) {
   const info = PROVIDERS[provider];
   const stored = useStoredApiKey(provider);
@@ -447,6 +450,7 @@ function KeyField({
   const [testResult, setTestResult] = useState<{
     ok: boolean;
     message: string;
+    models?: string[];
   } | null>(null);
   const value = draft ?? stored;
 
@@ -467,9 +471,20 @@ function KeyField({
       const res = await fetch(`${info.baseUrl}/models`, { headers });
       const elapsed = Math.round(performance.now() - startedAt);
       if (res.ok) {
+        const data = await res.json().catch(() => null);
+        const models: string[] = Array.isArray(data?.data)
+          ? data.data
+              .map((m: { id?: unknown }) =>
+                typeof m?.id === "string" ? m.id : "",
+              )
+              .filter(Boolean)
+          : [];
         setTestResult({
           ok: true,
-          message: `Koneksi berhasil, respons ${elapsed} ms.`,
+          message: models.length
+            ? `Koneksi berhasil, respons ${elapsed} ms. ${models.length} model tersedia${info.keyless ? " di server ini" : " untuk key ini"}.`
+            : `Koneksi berhasil, respons ${elapsed} ms. Provider tidak mengirim daftar model.`,
+          models,
         });
       } else if (res.status === 401 || res.status === 403) {
         setTestResult({
@@ -513,9 +528,20 @@ function KeyField({
           <p className="text-[0.8125rem] text-muted-foreground">{roles}</p>
         </div>
         {info.keyless ? (
-          <span className="pt-0.5 text-[0.8125rem] text-muted-foreground">
-            tanpa key
-          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-11 shrink-0"
+            onClick={testConnection}
+            disabled={testing}
+          >
+            {testing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Key className="h-4 w-4" />
+            )}
+            Cek model
+          </Button>
         ) : (
           <Button
             variant="ghost"
@@ -579,6 +605,35 @@ function KeyField({
           )}
           {testResult.message}
         </p>
+      )}
+
+      {testResult?.models && testResult.models.length > 0 && (
+        <div className="mt-2 max-h-44 overflow-y-auto rounded-[16px] border border-border bg-background p-3">
+          <ul className="space-y-1 font-mono text-[0.8125rem] leading-snug">
+            {testResult.models.map((id) =>
+              pickModel ? (
+                <li key={id}>
+                  <button
+                    type="button"
+                    onClick={() => setModel(provider, id)}
+                    className="cursor-pointer break-all text-left underline decoration-transparent underline-offset-4 hover:decoration-current"
+                  >
+                    {id}
+                  </button>
+                </li>
+              ) : (
+                <li key={id} className="break-all">
+                  {id}
+                </li>
+              ),
+            )}
+          </ul>
+          {pickModel && (
+            <p className="mt-2 text-[0.75rem] leading-snug text-muted-foreground">
+              Klik satu model untuk memakainya sebagai model teks.
+            </p>
+          )}
+        </div>
       )}
     </div>
   );
