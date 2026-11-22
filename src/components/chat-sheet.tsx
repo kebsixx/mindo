@@ -23,14 +23,31 @@ export default function ChatSheet({
 }: ChatSheetProps) {
   const [expanded, setExpanded] = useState(false)
   const [drag, setDrag] = useState(0)
+  const [dragging, setDragging] = useState(false)
   const startY = useRef<number | null>(null)
   const dragRef = useRef(0)
+  const sheetRef = useRef<HTMLDivElement | null>(null)
 
   const close = () => {
     setExpanded(false)
     setDrag(0)
     onOpenChange(false)
   }
+
+  // true kalau pointer berada di area yang sedang tergulir (scroll diberi
+  // ruang: drag tidak dimulai, biar guliran berjalan normal).
+  const isScrolledArea = (el: EventTarget | null): boolean => {
+    let node = el instanceof HTMLElement ? el : null
+    while (node && sheetRef.current && node !== sheetRef.current) {
+      if (node.scrollTop > 0) return true
+      node = node.parentElement
+    }
+    return false
+  }
+
+  const isInteractive = (el: EventTarget | null): boolean =>
+    el instanceof HTMLElement &&
+    !!el.closest("button, a, input, textarea, select, [data-no-drag]")
 
   useEffect(() => {
     if (!open) return
@@ -56,16 +73,51 @@ export default function ChatSheet({
       />
 
       <div
+        ref={sheetRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "absolute inset-x-0 bottom-0 flex flex-col overflow-hidden rounded-t-[28px] border border-border bg-card shadow-2xl",
+          "absolute inset-x-0 bottom-0 touch-action-none flex flex-col overflow-hidden rounded-t-[28px] border border-border bg-card shadow-2xl",
           "transition-[height,transform] duration-200 ease-out motion-reduce:transition-none",
         )}
         style={{
           height: expanded ? "100dvh" : "82dvh",
           transform: `translateY(${Math.max(0, drag)}px)`,
+          transition: dragging ? "none" : undefined,
+        }}
+        onPointerDown={(e) => {
+          if (dragging) return
+          if (isInteractive(e.target) || isScrolledArea(e.target)) return
+          startY.current = e.clientY
+          dragRef.current = 0
+          setDragging(true)
+          e.currentTarget.setPointerCapture(e.pointerId)
+        }}
+        onPointerMove={(e) => {
+          if (startY.current === null) return
+          const dy = e.clientY - startY.current
+          dragRef.current = Math.max(0, dy)
+          setDrag(dragRef.current)
+        }}
+        onPointerUp={() => {
+          const moved = dragRef.current
+          startY.current = null
+          dragRef.current = 0
+          setDragging(false)
+          setDrag(0)
+          if (moved > 120) {
+            if (expanded) setExpanded(false)
+            else close()
+          } else if (moved < -60) {
+            setExpanded(true)
+          }
+        }}
+        onPointerCancel={() => {
+          startY.current = null
+          dragRef.current = 0
+          setDragging(false)
+          setDrag(0)
         }}
       >
         <div
