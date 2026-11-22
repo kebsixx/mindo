@@ -35,7 +35,7 @@ export function ProviderPicker({ role, value, onChange }: ProviderPickerProps) {
         </span>
       </summary>
 
-      <div className="border-t border-border p-3">
+      <div className="border-t border-border p-4">
         <div className="grid gap-2 sm:grid-cols-2">
           {options.map((id) => {
             const p = PROVIDERS[id];
