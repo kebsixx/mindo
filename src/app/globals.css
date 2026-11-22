@@ -142,3 +142,8 @@
 .sheet-handle:active {
   cursor: grabbing;
 }
+
+/* Area teks/kosong di sheet: sentuhan di sini memulai tarik, bukan gulir. */
+.sheet-drag-zone {
+  touch-action: none;
+}

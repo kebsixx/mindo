@@ -69,6 +69,7 @@ export default function ShareDialog({
   const [dragging, setDragging] = useState(false)
   const dragStart = useRef<{ y: number; t: number } | null>(null)
   const closeTimer = useRef<number | null>(null)
+  const sheetRef = useRef<HTMLDivElement | null>(null)
 
   const isMobileSheet = () =>
     typeof window !== "undefined" &&
@@ -87,18 +88,32 @@ export default function ShareDialog({
     }, 240)
   }
 
-  const onHandlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  // Tarik dari mana saja, kecuali kontrol interaktif dan isi yang sedang
+  // tergulir. Kalau sheet sudah di posisi atas, tarikan ke bawah menutup panel.
+  const onSheetPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isMobileSheet() || dragging || dragY !== 0) return
+    const target = e.target as HTMLElement
+    if (target.closest("button, a, input, textarea, select, [data-no-drag]")) return
+    const scroller = sheetRef.current
+    if (scroller && scroller.scrollTop > 0) return
+
     dragStart.current = { y: e.clientY, t: Date.now() }
     setDragging(true)
     e.currentTarget.setPointerCapture(e.pointerId)
   }
 
-  const onHandlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+  const onSheetPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragStart.current) return
-    setDragY(Math.max(0, e.clientY - dragStart.current.y))
+    const dy = e.clientY - dragStart.current.y
+    if (dy <= 0) {
+      // Tarikan ke atas biarkan konten menggulir seperti biasa.
+      if (dragY !== 0) setDragY(0)
+      return
+    }
+    setDragY(dy)
   }
 
-  const onHandlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+  const onSheetPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragStart.current) return
     const dy = Math.max(0, e.clientY - dragStart.current.y)
     const elapsed = Date.now() - dragStart.current.t
@@ -340,6 +355,7 @@ export default function ShareDialog({
         }}
       >
         <DialogContent
+          ref={sheetRef}
           className={cn(
             "gap-0 p-5 sm:p-6",
             // Mobile: bottom sheet, posisi dan animasi diatur .sheet-mobile
@@ -347,6 +363,10 @@ export default function ShareDialog({
             // Desktop: centered dialog
             "sm:max-w-lg sm:rounded-[1.75rem]"
           )}
+          onPointerDown={onSheetPointerDown}
+          onPointerMove={onSheetPointerMove}
+          onPointerUp={onSheetPointerUp}
+          onPointerCancel={onSheetPointerUp}
           style={
             dragY !== 0 || dragging
               ? {
@@ -358,18 +378,13 @@ export default function ShareDialog({
         >
           {/* Area tarik: geser ke bawah untuk menutup sheet */}
           <div
-            role="presentation"
             aria-hidden="true"
-            onPointerDown={onHandlePointerDown}
-            onPointerMove={onHandlePointerMove}
-            onPointerUp={onHandlePointerUp}
-            onPointerCancel={onHandlePointerUp}
             className="sheet-handle -mx-5 -mt-5 flex h-9 items-center justify-center sm:hidden"
           >
             <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
 
-          <DialogHeader className="text-left">
+          <DialogHeader className="sheet-drag-zone text-left">
             <DialogTitle className="text-xl">Bagikan ke Teman Kelas</DialogTitle>
             <DialogDescription className="mt-1 leading-relaxed">
               AI menyiapkan pesan WhatsApp dari materi ini. Tinjau pesan, lalu kirim
