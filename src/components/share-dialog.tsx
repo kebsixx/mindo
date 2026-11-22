@@ -296,89 +296,12 @@ export default function ShareDialog({
     })
   }
 
-  // Cek kapabilitas Web Share API tanpa synchronous setState in effect
-  const [supportsShareFiles] = useState(() => {
-    if (
-      typeof navigator !== "undefined" &&
-      !!navigator.share &&
-      !!navigator.canShare
-    ) {
-      try {
-        const dummy = new File(["test"], "test.txt", { type: "text/plain" })
-        return navigator.canShare({ files: [dummy] })
-      } catch {
-        return false
-      }
-    }
-    return false
-  })
-
-  // Kirim lewat Web Share: text WhatsApp + lampiran bersama. true = sah.
-  const sendViaWebShare = async (): Promise<boolean> => {
-    try {
-      const shareData: ShareData = {
-        title: `Catatan: ${title}`,
-        text: message,
-      }
-
-      // Bila Web Share dengan file didukung, sertakan lampiran
-      if (supportsShareFiles) {
-        const files: File[] = []
-        if (mindmap) {
-          try {
-            const blob = await mindmapToPng(JSON.stringify(mindmap))
-            files.push(
-              new File([blob], `${slugify(title)}-peta-konsep.png`, {
-                type: "image/png",
-              })
-            )
-          } catch {
-            // Lewatin error, share teks saja
-          }
-        }
-        if (summary) {
-          files.push(
-            new File([summaryToMarkdown(summary)], `${slugify(title)}-ringkasan.md`, {
-              type: "text/markdown",
-            })
-          )
-        }
-        if (flashcards.length > 0) {
-          files.push(
-            new File([flashcardsToCsv(flashcards)], `${slugify(title)}-flashcard.csv`, {
-              type: "text/csv",
-            })
-          )
-        }
-        if (files.length > 0) {
-          shareData.files = files
-        }
-      }
-
-      await navigator.share(shareData)
-      return true
-    } catch (e) {
-      // AbortError = user klik sebelahnya di sheet, diam lewat.
-      if ((e as Error).name !== "AbortError") {
-        toast({
-          title: "Batal membagikan",
-          description: "Coba salin teks saja atau unduh lampiran.",
-        })
-      }
-      return false
-    }
-  }
-
   const openWhatsappUrl = () => {
     const url = buildWhatsAppShareUrl(message)
     window.open(url, "_blank", "noopener,noreferrer")
   }
 
-  const handleOpenWhatsApp = async () => {
-    if (supportsShareFiles) {
-      await sendViaWebShare()
-      return
-    }
+  const handleOpenWhatsApp = () => {
     openWhatsappUrl()
   }
 
@@ -546,9 +469,8 @@ export default function ShareDialog({
               Lampiran visual & dokumen
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              WhatsApp kirim langsung pesan dan lampiran bila browser mendukung
-              Web Share; jika tidak, unduh lampiran berikut untuk dikirimkan
-              bersama:
+              WhatsApp hanya bisa kirim teks — lampiran di sini dapat diunduh
+              dan kamu kirim ke WhatsApp sendiri:
             </p>
             <div className="mt-2.5 flex flex-wrap gap-2.5">
               {mindmap && (
