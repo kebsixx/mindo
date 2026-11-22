@@ -7,8 +7,8 @@ import {
   Download,
   Loader2,
   MessageCircle,
+  RotateCw,
   Share2,
-  Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -147,9 +147,9 @@ export default function ShareDialog({
 
   // Refine draf lewat AI dengan sistem caching per tone
   const triggerAiRefinement = useCallback(
-    (currentTone: "casual" | "formal") => {
+    (currentTone: "casual" | "formal", force = false) => {
       // Jika sudah ada di cache, langsung gunakan tanpa panggil AI
-      if (cachedDrafts[currentTone]) {
+      if (!force && cachedDrafts[currentTone]) {
         setMessage(cachedDrafts[currentTone])
         return
       }
@@ -184,6 +184,7 @@ export default function ShareDialog({
         title,
         summaryText,
         tone: currentTone,
+        variation: force,
       })
         .then((aiMsg) => {
           const finalMsg = aiMsg.trim() || fallback
@@ -235,6 +236,22 @@ export default function ShareDialog({
         triggerAiRefinement(newTone)
       }
     }
+  }
+
+  const handleRegenerate = () => {
+    if (isAiLoading) return
+    // Draf yang sudah disunting akan hilang, jadi minta konfirmasi dulu.
+    if (
+      customized &&
+      message.trim() &&
+      !window.confirm(
+        "Pesan yang Anda sunting akan diganti dengan draf baru. Lanjutkan?"
+      )
+    ) {
+      return
+    }
+    setCustomized(false)
+    triggerAiRefinement(tone, true)
   }
 
   const handleCopy = async () => {
@@ -425,17 +442,23 @@ export default function ShareDialog({
           </div>
 
           <div className="relative mt-3">
-            <div className="flex h-5 items-center justify-between pb-1.5 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between gap-2 pb-1.5 text-xs text-muted-foreground">
               <label htmlFor="share-message">Isi pesan (dapat disunting)</label>
-              <span
-                className={cn(
-                  "flex items-center gap-1.5 font-medium text-emerald-600 transition-opacity duration-200",
-                  isAiLoading ? "opacity-100" : "pointer-events-none opacity-0"
-                )}
-                aria-live="polite"
+              <button
+                type="button"
+                onClick={handleRegenerate}
+                disabled={isAiLoading}
+                className="-mr-1 flex items-center gap-1.5 rounded-full px-2 py-1.5 font-medium transition-colors hover:text-foreground disabled:opacity-60 touch-manipulation"
               >
-                <Sparkles className="h-3 w-3 animate-spin" />
-                AI sedang menyusun...
+                {isAiLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RotateCw className="h-3 w-3" />
+                )}
+                {isAiLoading ? "Menyusun..." : "Buat ulang"}
+              </button>
+              <span aria-live="polite" className="sr-only">
+                {isAiLoading ? "AI sedang menyusun pesan" : ""}
               </span>
             </div>
             <div className="relative min-h-[160px]">

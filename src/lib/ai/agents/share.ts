@@ -17,9 +17,11 @@ export async function composeShareMessage(
     title: string
     summaryText: string
     tone?: "casual" | "formal"
+    /** Draf ulang: naikkan variasi supaya kalimatnya tidak sama persis. */
+    variation?: boolean
   }
 ): Promise<string> {
-  const { title, summaryText, tone = "casual" } = options
+  const { title, summaryText, tone = "casual", variation = false } = options
 
   const toneInstruction =
     tone === "formal"
@@ -49,7 +51,7 @@ ${summaryText.slice(0, 4000)}`
     userPrompt,
     schema,
     (raw) => ShareDraftSchema.parse(JSON.parse(raw)),
-    { temperature: 0 }
+    { temperature: variation ? 0.9 : 0 }
   )
 
   return sanitizeShareText(res.message)
