@@ -375,10 +375,14 @@ export default function ShareDialog({
     }
   }
 
-  // WhatsApp: coba kirim langsung lewat Web Share, kalau gagal/tidak didukung,
-  // fallback ke WhatsApp URL (link teks).
+  // WhatsApp: lewati Web Share langsung (teks + lampiran). Yang nggak didukung,
+  // buka WhatsApp URL. JANGAN buka URL setelah await, sebab popup
+  // Android Chrome tersumbat saat activation telah dipakai oleh navigator.share.
   const handleOpenWhatsApp = async () => {
-    if (supportsShareFiles && (await sendViaWebShare())) return
+    if (supportsShareFiles) {
+      await sendViaWebShare()
+      return
+    }
     openWhatsappUrl()
   }
 
