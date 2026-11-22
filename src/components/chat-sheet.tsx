@@ -33,7 +33,6 @@ export default function ChatSheet({
   const [prevOpen, setPrevOpen] = useState(open)
   const startY = useRef<number | null>(null)
   const dragRef = useRef(0)
-  const sheetRef = useRef<HTMLDivElement | null>(null)
   const closeTimer = useRef<number | null>(null)
 
   // Buka dari bawah: sebelum paint panel off-screen, lalu rAF ke drag 0
@@ -66,18 +65,28 @@ export default function ChatSheet({
     if (closeTimer.current !== null) window.clearTimeout(closeTimer.current)
   }, [])
 
-  const isScrolledArea = (el: EventTarget | null): boolean => {
-    let node = el instanceof HTMLElement ? el : null
-    while (node && sheetRef.current && node !== sheetRef.current) {
-      if (node.scrollTop > 0) return true
-      node = node.parentElement
+  const handlePointerUp = () => {
+    const moved = dragRef.current
+    startY.current = null
+    dragRef.current = 0
+    setDragging(false)
+    setDrag(0)
+    if (moved > 120) {
+      setExpanded(false)
+      close()
+    } else if (moved < -60) {
+      setExpanded(true)
     }
-    return false
   }
 
   const isInteractive = (el: EventTarget | null): boolean =>
     el instanceof HTMLElement &&
     !!el.closest("button, a, input, textarea, select, [data-no-drag]")
+
+  // Guidance prevent-page-scroll-under-modal-dialog: overscroll-behavior:
+  // contain pada sheet (overflow-hidden) dan overlay — geser/wheel di dalam
+  // sheet tidak chain ke halaman di belakangnya. JANGAN overflow:hidden di
+  // body/html (hilangkan scrollbar, layout shift, rusak sticky).
 
   useEffect(() => {
     if (!open) return
@@ -97,16 +106,15 @@ export default function ChatSheet({
         type="button"
         aria-label="Tutup Tanya Mindo"
         onClick={() => close()}
-        className="absolute inset-0 cursor-default bg-foreground/40"
+        className="absolute inset-0 cursor-default overscroll-y-contain overflow-hidden bg-foreground/40"
       />
 
       <div
-        ref={sheetRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "absolute inset-x-0 bottom-0 touch-action-none flex flex-col overflow-hidden rounded-t-[28px] border border-border bg-card shadow-2xl",
+          "absolute inset-x-0 bottom-0 touch-action-none flex flex-col overflow-hidden overscroll-y-contain rounded-t-[28px] border border-border bg-card shadow-2xl",
           "transition-[height,transform] duration-300 ease-out motion-reduce:transition-none",
         )}
         style={{
@@ -116,7 +124,7 @@ export default function ChatSheet({
         }}
         onPointerDown={(e) => {
           if (leaving || dragging) return
-          if (isInteractive(e.target) || isScrolledArea(e.target)) return
+          if (isInteractive(e.target)) return
           startY.current = e.clientY
           dragRef.current = 0
           setDragging(true)
@@ -125,28 +133,11 @@ export default function ChatSheet({
         onPointerMove={(e) => {
           if (startY.current === null) return
           const dy = e.clientY - startY.current
-          dragRef.current = Math.max(0, dy)
+          dragRef.current = dy
           setDrag(dragRef.current)
         }}
-        onPointerUp={() => {
-          const moved = dragRef.current
-          startY.current = null
-          dragRef.current = 0
-          setDragging(false)
-          setDrag(0)
-          if (moved > 120) {
-            if (expanded) setExpanded(false)
-            else close()
-          } else if (moved < -60) {
-            setExpanded(true)
-          }
-        }}
-        onPointerCancel={() => {
-          startY.current = null
-          dragRef.current = 0
-          setDragging(false)
-          setDrag(0)
-        }}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
       >
         <div className="flex shrink-0 cursor-grab touch-action-none flex-col items-center pb-1 pt-3 active:cursor-grabbing">
           <span aria-hidden className="h-1.5 w-10 rounded-full bg-border" />
