@@ -1,4 +1,4 @@
-import { chatCompletionParsed } from "@/lib/ai/client"
+import { chatCompletionParsed, parseModelJson } from "@/lib/ai/client"
 import { SHARE_SCHEMA } from "@/lib/ai/schema"
 import { z } from "zod"
 import type { Provider } from "@/lib/ai/client"
@@ -50,7 +50,7 @@ ${summaryText.slice(0, 4000)}`
     systemPrompt,
     userPrompt,
     schema,
-    (raw) => ShareDraftSchema.parse(JSON.parse(raw)),
+    (raw) => ShareDraftSchema.parse(parseModelJson(raw)),
     { temperature: variation ? 0.9 : 0 }
   )
 

@@ -49,8 +49,8 @@ export function humanError(e: unknown): string {
   ) {
     return "Provider mengembalikan jawaban yang tidak bisa dibaca. Coba lagi, biasanya percobaan kedua berhasil."
   }
-  if (/invalid_request_error|unsupported_|json_validate_failed/i.test(raw)) {
-    return "Provider menolak permintaan karena formatnya tidak didukung. Ini masalah konfigurasi Mindo, bukan key Anda."
+  if (/invalid_request_error|unsupported_|json_validate_failed|too many states/i.test(raw)) {
+    return "Provider menolak format permintaan ini. Mindo sudah mencoba tanpa paksaan format; kalau tetap gagal, ganti provider di Pengaturan."
   }
   return "Proses gagal. Coba lagi. Kalau tetap gagal, ganti provider di Pengaturan."
 }

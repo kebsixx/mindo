@@ -1,4 +1,4 @@
-import { chatCompletionParsed } from "@/lib/ai/client"
+import { chatCompletionParsed, parseModelJson } from "@/lib/ai/client"
 import { SUMMARY_SCHEMA } from "@/lib/ai/schema"
 import { z } from "zod"
 import type { Provider } from "@/lib/ai/client"
@@ -40,7 +40,7 @@ Aturan:
     systemPrompt,
     userPrompt,
     schema,
-    (raw) => SummarySchema.parse(JSON.parse(raw)),
+    (raw) => SummarySchema.parse(parseModelJson(raw)),
     { temperature: 0 }
   )
 }

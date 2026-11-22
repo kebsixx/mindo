@@ -1,28 +1,11 @@
-import { chatCompletionParsed } from "@/lib/ai/client"
+import { chatCompletionParsed, parseModelJson } from "@/lib/ai/client"
 import { MINDMAP_SCHEMA } from "@/lib/ai/schema"
+import { normalizeMindmap } from "@/lib/mindmap"
 import { z } from "zod"
+import type { MindmapTree } from "@/lib/mindmap"
 import type { Provider } from "@/lib/ai/client"
 
-const MindmapSchema = z.object({
-  title: z.string(),
-  children: z.array(
-    z.object({
-      label: z.string(),
-      children: z.array(
-        z.object({
-          label: z.string(),
-          children: z.array(
-            z.object({
-              label: z.string(),
-            })
-          ),
-        })
-      ),
-    })
-  ),
-})
-
-export type MindmapResult = z.infer<typeof MindmapSchema>
+export type MindmapResult = MindmapTree
 
 export async function mindmap(
   provider: Provider,
@@ -48,7 +31,7 @@ Aturan:
     systemPrompt,
     userPrompt,
     schema,
-    (raw) => MindmapSchema.parse(JSON.parse(raw)),
+    (raw) => normalizeMindmap(parseModelJson(raw)),
     { temperature: 0 }
   )
 }

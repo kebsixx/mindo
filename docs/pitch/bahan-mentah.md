@@ -336,6 +336,7 @@ Sebut ini sebelum juri menemukannya. Mengaku batasan lebih kuat daripada ketahua
 | Provider | 6 pilihan, 2 untuk audio | Batas kompatibilitas | Tambah provider transkripsi |
 | Biaya | Bukan benar-benar nol | User bayar kuota provider | Free tier Groq, atau Ollama untuk teks |
 | Sinkronisasi | Manual lewat ZIP | Belum ada backend | Fase 2 atau 3 |
+| Bagikan ke WhatsApp | Teks saja | `wa.me` hanya punya parameter `text`; Web Share `files` tidak konsisten antar browser | Tombol bagikan berkas opsional di balik `navigator.canShare({ files })` |
 | Akurasi transkrip | Tidak diukur | Belum ada ground truth | Buat uji 5 rekaman berlabel |
 | Akurasi ringkasan | Tidak diukur | Sama | Minta 2 dosen/asisten menilai |
 
@@ -530,6 +531,23 @@ Belum. Gabungan mengikuti waktu materi dibuat, dari yang terlama. Kalau urutanny
 bisa menyusun ulang lewat materi baru, atau menunggu fitur pengaturan urutan. Ini batasan yang
 kami sebutkan, bukan disembunyikan.
 
+**17. Kenapa lampirannya tidak langsung ikut terkirim ke WhatsApp?**
+Karena memang tidak bisa lewat jalur itu. `wa.me/?text=` hanya punya satu parameter, `text`;
+tidak ada parameter berkas, jadi tombol WhatsApp hanya bisa membawa teks. Melampirkan berkas
+secara otomatis hanya mungkin lewat Web Share API (`navigator.share({ files })`), dan dukungannya
+tidak merata: Android Chrome jalan, desktop dan Safari terbatas, browser dalam aplikasi sering
+menolak. Sudah kami coba, dan di perangkat nyata muncul toast gagal, bukan berhasil. Jadi
+lampiran kami sediakan sebagai berkas unduhan (peta konsep PNG, ringkasan Markdown, flashcard
+CSV) yang dikirim pengguna sendiri. Satu ketukan ekstra, nol kegagalan fitur.
+
+**18. Berarti ada fitur yang belum selesai?**
+Itu keputusan, bukan sisa pekerjaan. Fungsinya bisa lengkap dengan dua cara: berbagi teks yang
+pasti jalan di semua browser, atau berbagi berkas yang jalan di sebagian perangkat dan gagal
+tanpa penjelasan di sebagian lain. Kami pilih yang pertama, karena kegagalan yang tidak bisa
+diprediksi pengguna lebih mahal daripada satu langkah manual. Kalau nanti target perangkatnya
+jelas Android Chrome, tombol bagikan berkas bisa ditambahkan di balik pemeriksaan kemampuan
+(`navigator.canShare({ files })`), dan saat itu tidak ada pengguna yang dirugikan.
+
 ---
 
 ## 15. Angka yang boleh dan tidak boleh diucapkan
@@ -559,6 +577,7 @@ kami sebutkan, bukan disembunyikan.
 | "Digunakan 1.000 mahasiswa" | Tidak ada pengguna terdaftar, tidak ada akun |
 | "Terverifikasi keamanan" | Tidak ada audit |
 | "Audio hasil gabungan jadi satu file" | Tiap bagian tetap berkas terpisah |
+| "Lampiran ikut terkirim ke WhatsApp" | Teks lewat `wa.me`, lampiran diunduh lalu dikirim manual |
 | "Gabung rekaman menghemat penyimpanan" | Audio tiap bagian disalin ke materi baru |
 | "Transkrip panjang selalu aman" | Dikirim utuh, bisa lewat context window |
 

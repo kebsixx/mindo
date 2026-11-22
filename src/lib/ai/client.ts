@@ -1,4 +1,5 @@
 import { PROVIDERS } from "./providers"
+import { getModel } from "@/lib/storage/settings"
 import type { Provider } from "./providers"
 
 export type { Provider } from "./providers"
@@ -89,10 +90,21 @@ export async function chatCompletion(
 ): Promise<string> {
   const info = PROVIDERS[provider]
 
+  // Skema dikirim dua kali: sebagai `response_format` (kalau provider
+  // menegakkannya) dan sebagai teks di prompt (selalu). Provider yang cuma
+  // punya JSON mode tidak pernah melihat bentuk yang diminta, jadi tanpa teks
+  // ini model menebak dan mindmap gagal parse.
+  const schemaText =
+    schema && info.structured === "json_object"
+      ? `\n\nBalas dengan satu objek JSON valid yang mengikuti skema ini:\n${JSON.stringify(
+          stripSchemaMeta(schema)
+        )}`
+      : ""
+
   const body: Record<string, unknown> = {
-    model: info.llm,
+    model: getModel(provider),
     messages: [
-      { role: "system", content: systemPrompt },
+      { role: "system", content: `${systemPrompt}${schemaText}` },
       { role: "user", content: userPrompt },
     ],
     temperature: options?.temperature ?? 0,
@@ -105,14 +117,17 @@ export async function chatCompletion(
   const send = async (withSchema: boolean) => {
     const payload = { ...body }
     if (withSchema && schema) {
-      payload.response_format = {
-        type: "json_schema",
-        json_schema: {
-          name: "response",
-          strict: true,
-          schema: stripSchemaMeta(schema),
-        },
-      }
+      payload.response_format =
+        info.structured === "json_schema"
+          ? {
+              type: "json_schema",
+              json_schema: {
+                name: "response",
+                strict: true,
+                schema: stripSchemaMeta(schema),
+              },
+            }
+          : { type: "json_object" }
     }
     return fetch(`${info.baseUrl}/chat/completions`, {
       method: "POST",
@@ -127,14 +142,17 @@ export async function chatCompletion(
   let useSchema = Boolean(schema)
   let res = await send(useSchema)
 
-  // Sebagian model/akun menolak structured output. Ulangi tanpa itu; prompt
-  // semua agen sudah meminta JSON murni, jadi hasilnya tetap bisa diparse.
+  // Provider boleh menolak permintaan terstruktur dengan alasan apa pun
+  // (skema terlalu berat, parameter tidak dikenal). Prompt sudah membawa
+  // skemanya, jadi satu percobaan tanpa `response_format` tetap bisa diparse.
   if (!res.ok && useSchema && (res.status === 400 || res.status === 422)) {
     const firstError = await res.clone().text()
-    if (/json_schema|response_format|structured/i.test(firstError)) {
-      useSchema = false
-      res = await send(false)
-    }
+    console.warn(
+      `[mindo] ${info.label} menolak format terstruktur, ulang tanpa response_format:`,
+      firstError.slice(0, 300)
+    )
+    useSchema = false
+    res = await send(false)
   }
 
   // Rate limit: satu percobaan ulang, hormati retry-after, jangan menggantung.
@@ -159,6 +177,16 @@ export async function chatCompletion(
     throw new Error("Provider mengembalikan jawaban kosong.")
   }
   return content
+}
+
+/** Model kadang membungkus JSON dengan blok kode markdown. */
+export function parseModelJson(raw: string): unknown {
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/, "")
+    .trim()
+  return JSON.parse(cleaned)
 }
 
 /**

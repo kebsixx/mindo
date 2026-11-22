@@ -1,6 +1,7 @@
 import { useCallback, useSyncExternalStore } from "react"
 import {
   DEFAULT_PROVIDERS,
+  PROVIDERS,
   isProvider,
   supportsRole,
 } from "@/lib/ai/providers"
@@ -13,6 +14,7 @@ export type SaveMode = "local" | "session"
 const EVENT = "mindo:settings"
 const SAVE_MODE_KEY = "mindo.saveMode"
 const KEYS_KEY = "mindo.apiKeys"
+const MODELS_KEY = "mindo.modelOverrides"
 const LEGACY_KEY = "mindo.apiKey"
 const LEGACY_PROVIDER_KEY = "mindo.provider"
 
@@ -160,6 +162,56 @@ export function useStoredApiKey(provider: Provider): string {
   return useSyncExternalStore(subscribe, read, () => "")
 }
 
+/** Nama model teks. Override menang atas nilai bawaan di `providers.ts`. */
+export function getModel(provider: Provider): string {
+  if (typeof window === "undefined") return PROVIDERS[provider].llm
+  try {
+    const raw = localStorage.getItem(MODELS_KEY)
+    if (!raw) return PROVIDERS[provider].llm
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return PROVIDERS[provider].llm
+    }
+    const value = (parsed as Record<string, unknown>)[provider]
+    return typeof value === "string" && value.trim()
+      ? value.trim()
+      : PROVIDERS[provider].llm
+  } catch {
+    return PROVIDERS[provider].llm
+  }
+}
+
+export function setModel(provider: Provider, model: string): void {
+  if (typeof window === "undefined") return
+  const map: Record<string, string> = {}
+  try {
+    const raw = localStorage.getItem(MODELS_KEY)
+    const parsed: unknown = raw ? JSON.parse(raw) : null
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      for (const [id, value] of Object.entries(parsed)) {
+        if (isProvider(id) && typeof value === "string" && value.trim()) {
+          map[id] = value.trim()
+        }
+      }
+    }
+    const trimmed = model.trim()
+    if (trimmed && trimmed !== PROVIDERS[provider].llm) {
+      map[provider] = trimmed
+    } else {
+      delete map[provider]
+    }
+    localStorage.setItem(MODELS_KEY, JSON.stringify(map))
+  } catch {
+    // ignore
+  }
+  notify()
+}
+
+export function useStoredModel(provider: Provider): string {
+  const read = useCallback(() => getModel(provider), [provider])
+  return useSyncExternalStore(subscribe, read, () => PROVIDERS[provider].llm)
+}
+
 export function useStoredSaveMode(): SaveMode {
   return useSyncExternalStore(subscribe, getSaveMode, () => "local")
 }
@@ -172,6 +224,7 @@ export function clearAllData(): void {
       storage.removeItem(PROVIDER_KEYS.llm)
       storage.removeItem(LEGACY_PROVIDER_KEY)
       storage.removeItem(KEYS_KEY)
+      storage.removeItem(MODELS_KEY)
       storage.removeItem(LEGACY_KEY)
     } catch {
       // ignore

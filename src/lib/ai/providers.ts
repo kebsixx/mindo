@@ -4,6 +4,11 @@
 // ponytail: model ID di-hardcode per provider. Ceiling: provider menaikkan
 // versi model dan Mindo ketinggalan sampai kode diubah. Upgrade: simpan
 // override model di settings lalu baca lewat getModel(provider, kind).
+//
+// `structured` menentukan cara meminta JSON. Hanya provider yang benar-benar
+// menegakkan JSON Schema yang boleh "json_schema"; sisanya "json_object" plus
+// skema di prompt. Gemini menolak skema bersarang dengan 400 "too many states",
+// dan DeepSeek/Ollama tidak punya json_schema sama sekali.
 
 export const PROVIDERS = {
   groq: {
@@ -13,6 +18,7 @@ export const PROVIDERS = {
     stt: "whisper-large-v3",
     llm: "openai/gpt-oss-120b",
     llmFast: "openai/gpt-oss-20b",
+    structured: "json_schema",
     billing: "Gratis",
     billingNote:
       "Free tier permanen, tanpa kartu kredit. Ada batas request dan audio per hari.",
@@ -38,6 +44,7 @@ export const PROVIDERS = {
     stt: "whisper-1",
     llm: "gpt-4o-mini",
     llmFast: "gpt-4o-mini",
+    structured: "json_schema",
     billing: "Berbayar",
     billingNote:
       "Bayar per penggunaan. Tidak ada free tier API permanen, saldo harus diisi dulu.",
@@ -64,6 +71,7 @@ export const PROVIDERS = {
     stt: null,
     llm: "gemini-2.5-flash",
     llmFast: "gemini-2.5-flash-lite",
+    structured: "json_object",
     billing: "Gratis + berbayar",
     billingNote:
       "Free tier tersedia dengan kuota harian. Paid tier untuk kuota lebih besar.",
@@ -89,6 +97,7 @@ export const PROVIDERS = {
     stt: null,
     llm: "meta-llama/llama-3.3-70b-instruct:free",
     llmFast: "meta-llama/llama-3.3-70b-instruct:free",
+    structured: "json_object",
     billing: "Gratis + berbayar",
     billingNote:
       "Model :free terbatas 20 request/menit dan 50/hari. Setelah top up $10, 1.000/hari.",
@@ -114,6 +123,7 @@ export const PROVIDERS = {
     stt: null,
     llm: "deepseek-flash",
     llmFast: "deepseek-flash",
+    structured: "json_object",
     billing: "Berbayar",
     billingNote: "Isi saldo dulu. Harga off-peak lebih murah.",
     data: "Perlu dicek",
@@ -138,6 +148,7 @@ export const PROVIDERS = {
     stt: null,
     llm: "llama3.1",
     llmFast: "llama3.1",
+    structured: "json_object",
     billing: "Lokal",
     billingNote: "Gratis. Biayanya listrik dan perangkat Anda sendiri.",
     data: "Lokal",

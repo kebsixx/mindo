@@ -351,6 +351,7 @@ Aturan: maksimal 20 detik per jawaban. Kalau butuh lebih, berarti belum dikuasai
 | "Tidak ada koneksi ke AI" | "Langsung ke provider pilihan pengguna" |
 | "Audio gabungan jadi satu file" | "Tiap bagian tetap file terpisah, pemutar berpindah otomatis" |
 | "Gabung rekaman menghemat penyimpanan" | "Audio tiap bagian disalin ke materi baru" |
+| "Lampiran ikut terkirim ke WhatsApp" | "WhatsApp lewat `wa.me` hanya bawa teks; lampiran diunduh lalu dikirim sendiri" |
 | "Revolusioner" | Sebut hal konkret yang berubah |
 | "Ekosistem" | Sebut produknya |
 | "Sinergi" | Sebut kerja samanya |

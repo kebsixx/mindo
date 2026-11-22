@@ -28,18 +28,18 @@ import { cn } from "@/lib/utils";
 import { openDB } from "@/lib/db";
 import { importBundle } from "@/lib/export/import";
 import ExportDialog from "@/components/export-dialog";
-import { ProviderDetail } from "@/components/provider-detail";
 import { ProviderPicker } from "@/components/provider-picker";
 import {
   setProvider,
   setApiKey,
   setSaveMode,
+  setModel,
   clearAllData,
   useStoredProvider,
   useStoredApiKey,
+  useStoredModel,
   useStoredSaveMode,
-} from "@/lib/storage/settings";
-import {
+} from "@/lib/storage/settings";import {
   PROVIDERS,
   privacySummary,
   providerIdsFor,
@@ -186,9 +186,12 @@ export default function SettingsPage() {
                   ))}
                 </div>
 
+                <div className="mt-5 border-t border-border pt-4">
+                  <ModelField provider={llm} />
+                </div>
+
                 {needsAnyKey && (
-                  <div className="mt-5 border-t border-border pt-4">
-                    <button
+                  <div className="mt-5 border-t border-border pt-4">                    <button
                       type="button"
                       role="switch"
                       aria-checked={saveMode === "local"}
@@ -235,20 +238,28 @@ export default function SettingsPage() {
 
             <section id="panduan-api-key" className="scroll-mt-6">
               <Card>
-                <div className="p-5 sm:p-8">
-                  <h2 className="text-lg font-semibold">
-                    Cara mendapatkan API key
-                  </h2>
-                  <p className="mt-1 text-[0.9375rem] leading-snug text-muted-foreground">
-                    Panduan singkat per provider. Mindo hanya menautkan ke situs
-                    resmi.
-                  </p>
-                  <div className="mt-2">
+                <details className="group">
+                  <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 p-5 sm:p-8 [&::-webkit-details-marker]:hidden">
+                    <span className="min-w-0">
+                      <span className="block text-lg font-semibold">
+                        Cara mendapatkan API key
+                      </span>
+                      <span className="mt-0.5 block text-[0.875rem] leading-snug text-muted-foreground">
+                        Panduan singkat per provider. Mindo hanya menautkan ke
+                        situs resmi.
+                      </span>
+                    </span>
+                    <ChevronDown
+                      className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                      aria-hidden="true"
+                    />
+                  </summary>
+                  <div className="px-5 pb-5 sm:px-8 sm:pb-8">
                     {GUIDED_PROVIDERS.map((provider) => (
                       <GuideItem key={provider} provider={provider} />
                     ))}
                   </div>
-                </div>
+                </details>
               </Card>
             </section>
           </div>
@@ -376,9 +387,6 @@ function RoleCard({
         </p>
         <div className="mt-4">
           <ProviderPicker role={role} value={provider} onChange={onChange} />
-        </div>
-        <div className="mt-4 border-t border-border pt-1">
-          <ProviderDetail provider={provider} />
         </div>
       </div>
     </Card>
@@ -568,6 +576,53 @@ function KeyField({
           {testResult.message}
         </p>
       )}
+    </div>
+  );
+}
+
+function ModelField({ provider }: { provider: Provider }) {
+  const info = PROVIDERS[provider];
+  const stored = useStoredModel(provider);
+  const [draft, setDraft] = useState<string | null>(null);
+  const value = draft ?? stored;
+  const overridden = value.trim() !== info.llm;
+
+  const commit = (next: string) => {
+    setDraft(next);
+    setModel(provider, next);
+  };
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <label
+          htmlFor={`model-${provider}`}
+          className="text-[0.9375rem] font-medium"
+        >
+          Model teks
+        </label>
+        {overridden && (
+          <button
+            type="button"
+            onClick={() => commit("")}
+            className="cursor-pointer text-[0.8125rem] text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          >
+            Pakai bawaan
+          </button>
+        )}
+      </div>
+      <p className="mt-0.5 text-[0.8125rem] leading-snug text-muted-foreground">
+        Bawaan {info.label}: {info.llm}. Ganti kalau nama model di akunmu berbeda.
+      </p>
+      <Input
+        id={`model-${provider}`}
+        value={value}
+        onChange={(e) => commit(e.target.value)}
+        placeholder={info.llm}
+        autoComplete="off"
+        spellCheck={false}
+        className="mt-2 h-11 rounded-full bg-background px-4 text-base"
+      />
     </div>
   );
 }

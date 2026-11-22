@@ -573,5 +573,5 @@ Cukup satu kalimat, tanpa slide:
 - [ ] Timing 6 menit diukur dengan stopwatch, bukan perkiraan.
 - [ ] Setiap anggota tahu bagian mana yang dia ambil.
 - [ ] Transisi antar pembicara ditulis, tidak mengandalkan "eh, lanjut ya".
-- [ ] Jawaban untuk 16 pertanyaan di `bahan-mentah.md` bagian 14 dilatih lisan.
+- [ ] Jawaban untuk 18 pertanyaan di `bahan-mentah.md` bagian 14 dilatih lisan.
 - [ ] Simulasi gangguan: internet mati, API key gagal, proyektor 4:3.

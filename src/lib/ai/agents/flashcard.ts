@@ -1,4 +1,4 @@
-import { chatCompletionParsed } from "@/lib/ai/client"
+import { chatCompletionParsed, parseModelJson } from "@/lib/ai/client"
 import { FLASHCARD_SCHEMA } from "@/lib/ai/schema"
 import { z } from "zod"
 import type { Provider } from "@/lib/ai/client"
@@ -42,7 +42,7 @@ Aturan:
     systemPrompt,
     userPrompt,
     schema,
-    (raw) => FlashcardSchema.parse(JSON.parse(raw)),
+    (raw) => FlashcardSchema.parse(parseModelJson(raw)),
     { temperature: 0 }
   )
 }
