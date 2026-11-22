@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -12,8 +12,13 @@ interface ChatSheetProps {
 }
 
 /**
- * Panel chat mobile: naik dari bawah, bisa ditarik ke atas sampai layar penuh.
- * Dua titik snap (82dvh / penuh) supaya pengguna tidak perlu menebak tinggi.
+ * Panel chat mobile: slide up dari bawah, bisa ditarik ke atas sampai layar
+ * penuh. Dua titik snap (82dvh / penuh). Seluruh badan panel bisa ditarik
+ * (kecuali target interaktif dan area yang sedang tergulir: scroll
+ * diberi ruang supaya guliran tetap berjalan).
+ *
+ * Masuk/tutup: panel meluncur dari bawah (di-slide keluar saat tutup),
+ * durasi 300 ms.
  */
 export default function ChatSheet({
   open,
@@ -22,20 +27,45 @@ export default function ChatSheet({
   children,
 }: ChatSheetProps) {
   const [expanded, setExpanded] = useState(false)
-  const [drag, setDrag] = useState(0)
+  const [drag, setDrag] = useState(() => (open ? window.innerHeight : 0))
   const [dragging, setDragging] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+  const [prevOpen, setPrevOpen] = useState(open)
   const startY = useRef<number | null>(null)
   const dragRef = useRef(0)
   const sheetRef = useRef<HTMLDivElement | null>(null)
+  const closeTimer = useRef<number | null>(null)
 
-  const close = () => {
-    setExpanded(false)
-    setDrag(0)
-    onOpenChange(false)
+  // Buka dari bawah: sebelum paint panel off-screen, lalu rAF ke drag 0
+  // (slide up 300 ms melalui className transition).
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    setDrag(open ? window.innerHeight : 0)
   }
 
-  // true kalau pointer berada di area yang sedang tergulir (scroll diberi
-  // ruang: drag tidak dimulai, biar guliran berjalan normal).
+  const close = useCallback(() => {
+    if (leaving) return
+    setDragging(false)
+    setExpanded(false)
+    setLeaving(true)
+    setDrag(window.innerHeight)
+    closeTimer.current = window.setTimeout(() => {
+      closeTimer.current = null
+      setLeaving(false)
+      onOpenChange(false)
+    }, 300)
+  }, [leaving, onOpenChange])
+
+  useEffect(() => {
+    if (!open) return
+    const id = requestAnimationFrame(() => setDrag(0))
+    return () => cancelAnimationFrame(id)
+  }, [open])
+
+  useEffect(() => () => {
+    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current)
+  }, [])
+
   const isScrolledArea = (el: EventTarget | null): boolean => {
     let node = el instanceof HTMLElement ? el : null
     while (node && sheetRef.current && node !== sheetRef.current) {
@@ -53,18 +83,16 @@ export default function ChatSheet({
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return
-      setExpanded(false)
-      setDrag(0)
-      onOpenChange(false)
+      close()
     }
     document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
-  }, [open, onOpenChange])
+  }, [open, close])
 
-  if (!open) return null
+  if (!open && !leaving) return null
 
   return (
-    <div className="fixed inset-0 z-50 lg:hidden">
+    <div className={cn("fixed inset-0 z-50 lg:hidden", leaving && "pointer-events-none")}>
       <button
         type="button"
         aria-label="Tutup Tanya Mindo"
@@ -79,7 +107,7 @@ export default function ChatSheet({
         aria-label={title}
         className={cn(
           "absolute inset-x-0 bottom-0 touch-action-none flex flex-col overflow-hidden rounded-t-[28px] border border-border bg-card shadow-2xl",
-          "transition-[height,transform] duration-200 ease-out motion-reduce:transition-none",
+          "transition-[height,transform] duration-300 ease-out motion-reduce:transition-none",
         )}
         style={{
           height: expanded ? "100dvh" : "82dvh",
@@ -87,7 +115,7 @@ export default function ChatSheet({
           transition: dragging ? "none" : undefined,
         }}
         onPointerDown={(e) => {
-          if (dragging) return
+          if (leaving || dragging) return
           if (isInteractive(e.target) || isScrolledArea(e.target)) return
           startY.current = e.clientY
           dragRef.current = 0
@@ -120,35 +148,7 @@ export default function ChatSheet({
           setDrag(0)
         }}
       >
-        <div
-          className="flex shrink-0 cursor-grab touch-none flex-col items-center pb-1 pt-3 active:cursor-grabbing"
-          onPointerDown={(e) => {
-            startY.current = e.clientY
-            e.currentTarget.setPointerCapture(e.pointerId)
-          }}
-          onPointerMove={(e) => {
-            if (startY.current === null) return
-            const dy = e.clientY - startY.current
-            dragRef.current = dy
-            setDrag(dy)
-          }}
-          onPointerUp={() => {
-            const moved = dragRef.current
-            startY.current = null
-            dragRef.current = 0
-            setDrag(0)
-            if (moved < -60) setExpanded(true)
-            else if (moved > 120) {
-              if (expanded) setExpanded(false)
-              else close()
-            }
-          }}
-          onPointerCancel={() => {
-            startY.current = null
-            dragRef.current = 0
-            setDrag(0)
-          }}
-        >
+        <div className="flex shrink-0 cursor-grab touch-action-none flex-col items-center pb-1 pt-3 active:cursor-grabbing">
           <span aria-hidden className="h-1.5 w-10 rounded-full bg-border" />
         </div>
 
