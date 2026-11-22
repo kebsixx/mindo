@@ -95,12 +95,14 @@ export const PROVIDERS = {
     description: "Satu key untuk banyak model teks. Belum ada transkripsi.",
     baseUrl: "https://openrouter.ai/api/v1",
     stt: null,
-    llm: "meta-llama/llama-3.3-70b-instruct:free",
-    llmFast: "meta-llama/llama-3.3-70b-instruct:free",
+    // Router bawaan OpenRouter: memilih model gratis secara acak dari yang
+    // sedang tersedia, jadi tidak mati saat satu model gratis dicabut.
+    llm: "openrouter/free",
+    llmFast: "openrouter/free",
     structured: "json_object",
     billing: "Gratis + berbayar",
     billingNote:
-      "Model :free terbatas 20 request/menit dan 50/hari. Setelah top up $10, 1.000/hari.",
+      "openrouter/free memilih model gratis otomatis. Batasnya 20 request/menit dan 50/hari. Setelah top up $10, 1.000/hari.",
     data: "Tergantung model",
     dataNote:
       "Kebijakan data mengikuti model dan penyedia yang dirutekan OpenRouter.",
@@ -109,11 +111,12 @@ export const PROVIDERS = {
     keysLabel: "openrouter.ai/keys",
     placeholder: "sk-or-...",
     signup: "Daftar di openrouter.ai, lalu buat key di halaman Keys.",
-    note: "Model gratis bisa diganti atau dihapus provider tanpa pemberitahuan.",
+    note: "openrouter/free mengganti model gratis dari waktu ke waktu tanpa pemberitahuan. Kalau satu jawaban jelek, ulangi dan router bisa memilih model lain.",
     limits: [
       "Tanpa transkripsi audio di Mindo (v1)",
       "Model gratis: 20 request/menit, 50/hari",
       "1.000/hari setelah top up minimal $10",
+      "Model gratis bisa diganti atau dihapus provider kapan saja",
     ],
   },
   deepseek: {
