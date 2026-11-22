@@ -313,8 +313,14 @@ export default function ShareDialog({
     })
   }
 
-  const handleWebShare = async () => {
-    if (!navigator.share) return
+  const openWhatsappUrl = () => {
+    const url = buildWhatsAppShareUrl(message)
+    window.open(url, "_blank", "noopener,noreferrer")
+  }
+
+  // Kirim lewat Web Share (teks + lampiran bersama). true = sesuai terkirim.
+  const sendViaWebShare = async (): Promise<boolean> => {
+    if (!navigator.share) return false
     try {
       const shareData: ShareData = {
         title: `Catatan: ${title}`,
@@ -357,25 +363,23 @@ export default function ShareDialog({
       }
 
       await navigator.share(shareData)
+      return true
     } catch (e) {
       if ((e as Error).name !== "AbortError") {
         toast({
           title: "Batal membagikan",
-          description: "Gunakan tombol Buka WhatsApp atau Salin Teks.",
+          description: "Coba salin teks saja.",
         })
       }
+      return false
     }
   }
 
-  const handleOpenWhatsApp = () => {
-    if (supportsShareFiles) {
-      // Di browser yang mendukung Web Share dengan file: kirim langsung,
-      // teks pesan + lampiran bersama (muncuk sheet WhatsApp).
-      void handleWebShare()
-      return
-    }
-    const url = buildWhatsAppShareUrl(message)
-    window.open(url, "_blank", "noopener,noreferrer")
+  // WhatsApp: coba kirim langsung lewat Web Share, kalau gagal/tidak didukung,
+  // fallback ke WhatsApp URL (link teks).
+  const handleOpenWhatsApp = async () => {
+    if (supportsShareFiles && (await sendViaWebShare())) return
+    openWhatsappUrl()
   }
 
   return (
