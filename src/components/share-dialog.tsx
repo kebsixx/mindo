@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import {
   Check,
   Copy,
@@ -63,6 +63,55 @@ export default function ShareDialog({
   const [isAiLoading, setIsAiLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [pngBusy, setPngBusy] = useState(false)
+
+  // Bottom sheet mobile: geser dari bawah, tarik ke bawah untuk menutup.
+  const [dragY, setDragY] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const dragStart = useRef<{ y: number; t: number } | null>(null)
+  const closeTimer = useRef<number | null>(null)
+
+  const isMobileSheet = () =>
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 639px)").matches
+
+  const requestClose = () => {
+    if (!isMobileSheet()) {
+      setOpen(false)
+      return
+    }
+    // Turunkan panel dulu, baru unmount, supaya tidak hilang mendadak.
+    setDragY(window.innerHeight)
+    closeTimer.current = window.setTimeout(() => {
+      setOpen(false)
+      setDragY(0)
+    }, 240)
+  }
+
+  const onHandlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    dragStart.current = { y: e.clientY, t: Date.now() }
+    setDragging(true)
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+
+  const onHandlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragStart.current) return
+    setDragY(Math.max(0, e.clientY - dragStart.current.y))
+  }
+
+  const onHandlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragStart.current) return
+    const dy = Math.max(0, e.clientY - dragStart.current.y)
+    const elapsed = Date.now() - dragStart.current.t
+    dragStart.current = null
+    setDragging(false)
+
+    const flicked = elapsed > 0 && dy / elapsed > 0.5
+    if (dy > 110 || (flicked && dy > 40)) {
+      requestClose()
+    } else {
+      setDragY(0)
+    }
+  }
 
   // Cek kapabilitas Web Share API tanpa synchronous setState in effect
   const [supportsShareFiles] = useState(() => {
@@ -140,13 +189,24 @@ export default function ShareDialog({
   const handleOpenDialog = () => {
     setTone("casual")
     setCustomized(false)
-    setOpen(true)
     if (cachedDrafts.casual) {
       setMessage(cachedDrafts.casual)
     } else {
       setMessage("")
-      triggerAiRefinement("casual")
     }
+
+    if (isMobileSheet()) {
+      // Mulai dari bawah layar, lalu meluncur naik setelah panel terpasang.
+      setDragY(window.innerHeight)
+      setOpen(true)
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => setDragY(0))
+      )
+    } else {
+      setOpen(true)
+    }
+
+    if (!cachedDrafts.casual) triggerAiRefinement("casual")
   }
 
   const handleToneChange = (newTone: "casual" | "formal") => {
@@ -272,20 +332,42 @@ export default function ShareDialog({
         Bagikan
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (next) setOpen(true)
+          else requestClose()
+        }}
+      >
         <DialogContent
           className={cn(
             "gap-0 p-5 sm:p-6",
-            // Mobile: Bottom Sheet slide-up
-            "max-sm:fixed max-sm:bottom-0 max-sm:top-auto max-sm:left-0 max-sm:right-0 max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0",
-            "max-sm:max-h-[90dvh] max-sm:overflow-y-auto max-sm:rounded-t-[28px] max-sm:rounded-b-none max-sm:border-b-0",
-            "max-sm:data-[state=open]:slide-in-from-bottom max-sm:data-[state=closed]:slide-out-to-bottom",
-            // Desktop: Centered dialog
+            // Mobile: bottom sheet, posisi dan animasi diatur .sheet-mobile
+            "sheet-mobile",
+            // Desktop: centered dialog
             "sm:max-w-lg sm:rounded-[1.75rem]"
           )}
+          style={
+            dragY !== 0 || dragging
+              ? {
+                  transform: `translateY(${dragY}px)`,
+                  transition: dragging ? "none" : undefined,
+                }
+              : undefined
+          }
         >
-          {/* Pull handle bar untuk visual affordance bottom sheet di mobile */}
-          <div className="mx-auto -mt-1 mb-3 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/25 sm:hidden" />
+          {/* Area tarik: geser ke bawah untuk menutup sheet */}
+          <div
+            role="presentation"
+            aria-hidden="true"
+            onPointerDown={onHandlePointerDown}
+            onPointerMove={onHandlePointerMove}
+            onPointerUp={onHandlePointerUp}
+            onPointerCancel={onHandlePointerUp}
+            className="sheet-handle -mx-5 -mt-5 flex h-9 items-center justify-center sm:hidden"
+          >
+            <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+          </div>
 
           <DialogHeader className="text-left">
             <DialogTitle className="text-xl">Bagikan ke Teman Kelas</DialogTitle>
@@ -304,7 +386,7 @@ export default function ShareDialog({
                 type="button"
                 onClick={() => handleToneChange("casual")}
                 className={cn(
-                  "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                  "h-9 rounded-full px-4 py-1 text-xs font-medium transition-colors touch-manipulation",
                   tone === "casual"
                     ? "bg-card text-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
@@ -316,7 +398,7 @@ export default function ShareDialog({
                 type="button"
                 onClick={() => handleToneChange("formal")}
                 className={cn(
-                  "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                  "h-9 rounded-full px-4 py-1 text-xs font-medium transition-colors touch-manipulation",
                   tone === "formal"
                     ? "bg-card text-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
@@ -370,13 +452,17 @@ export default function ShareDialog({
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <Button
-              className="flex-1 bg-primary text-primary-foreground hover:bg-primary-hover"
+              className="h-10 flex-1 bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-hover touch-manipulation"
               onClick={handleOpenWhatsApp}
             >
               <MessageCircle className="h-4 w-4" />
               Buka WhatsApp
             </Button>
-            <Button variant="outline" onClick={handleCopy}>
+            <Button
+              variant="outline"
+              className="h-10 touch-manipulation"
+              onClick={handleCopy}
+            >
               {copied ? (
                 <Check className="h-4 w-4 text-primary" />
               ) : (
@@ -385,7 +471,11 @@ export default function ShareDialog({
               {copied ? "Disalin" : "Salin Teks"}
             </Button>
             {supportsShareFiles && (
-              <Button variant="outline" onClick={handleWebShare}>
+              <Button
+                variant="outline"
+                className="h-10 touch-manipulation"
+                onClick={handleWebShare}
+              >
                 <Share2 className="h-4 w-4" />
                 Share
               </Button>
@@ -400,14 +490,14 @@ export default function ShareDialog({
               WhatsApp link hanya memuat teks pesan. Unduh lampiran berikut untuk
               dikirimkan bersama:
             </p>
-            <div className="mt-2.5 flex flex-wrap gap-2">
+            <div className="mt-2.5 flex flex-wrap gap-2.5">
               {mindmap && (
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={handleDownloadPng}
                   disabled={pngBusy}
-                  className="h-8 text-xs"
+                  className="h-10 flex-1 text-xs touch-manipulation"
                 >
                   {pngBusy ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -422,7 +512,7 @@ export default function ShareDialog({
                   size="sm"
                   variant="ghost"
                   onClick={handleDownloadSummaryMd}
-                  className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                  className="h-10 text-xs touch-manipulation text-muted-foreground hover:text-foreground"
                 >
                   <Download className="h-3.5 w-3.5" />
                   Ringkasan (.md)
@@ -433,7 +523,7 @@ export default function ShareDialog({
                   size="sm"
                   variant="ghost"
                   onClick={handleDownloadFlashcardsCsv}
-                  className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                  className="h-10 text-xs touch-manipulation text-muted-foreground hover:text-foreground"
                 >
                   <Download className="h-3.5 w-3.5" />
                   Flashcard (.csv)
