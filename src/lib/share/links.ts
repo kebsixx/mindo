@@ -18,7 +18,7 @@ export function buildFallbackShareMessage(options: ShareTemplateOptions): string
     if (topItems.length > 0) {
       msg += `\nPoin pembahasan:\n${topItems.join("\n")}\n`
     }
-    msg += `\nDetail lengkap serta peta konsep terlampir. Semoga bermanfaat.`
+    msg += `\nKatalog lengkap terlampir di layar selanjutnya. Semoga bermanfaat.`
     return msg
   }
 
@@ -26,7 +26,7 @@ export function buildFallbackShareMessage(options: ShareTemplateOptions): string
   if (topItems.length > 0) {
     msg += `\nPoin pentingnya:\n${topItems.join("\n")}\n`
   }
-  msg += `\nCatatan lengkap dan peta konsep ada di lampiran ya!`
+  msg += `\nUnduh peta konsep dan ringkasan lengkap dari panel lampiran di bawah.`
   return msg
 }
 
