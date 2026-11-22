@@ -353,7 +353,7 @@ export default function BerandaPage() {
             </div>
           </div>
 
-          <div className="mt-10 grid gap-10 sm:mt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:items-start lg:gap-16">
+          <div className="mt-10 grid grid-cols-1 gap-10 sm:mt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:items-start lg:gap-16">
             <div className="max-w-[46ch] lg:pt-2">
               <p className="text-[1.0625rem] leading-[1.55] sm:text-[1.125rem]">
                 Ubah rekaman kuliah jadi ringkasan, mindmap, dan flashcard.
@@ -489,7 +489,7 @@ export default function BerandaPage() {
             id="riwayat"
             className="mx-auto w-full max-w-280 scroll-mt-8 px-5 pb-14 sm:px-8 sm:pb-20"
           >
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
               <div>
                 <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
                   Riwayat
@@ -720,7 +720,7 @@ export default function BerandaPage() {
           id="privasi"
           className="mx-auto w-full max-w-280 scroll-mt-8 px-5 py-14 sm:px-8 sm:py-20"
         >
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
             <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
               Privasi
             </h2>
@@ -761,7 +761,7 @@ export default function BerandaPage() {
           id="faq"
           className="mx-auto w-full max-w-280 scroll-mt-8 px-5 py-14 sm:px-8 sm:py-20"
         >
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
             <div>
               <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-tight">
                 Pertanyaan umum
