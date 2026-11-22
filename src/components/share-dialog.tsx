@@ -426,7 +426,7 @@ export default function ShareDialog({
 
           <div className="relative mt-3">
             <div className="flex h-5 items-center justify-between pb-1.5 text-xs text-muted-foreground">
-              <span>Isi pesan (dapat disunting)</span>
+              <label htmlFor="share-message">Isi pesan (dapat disunting)</label>
               <span
                 className={cn(
                   "flex items-center gap-1.5 font-medium text-emerald-600 transition-opacity duration-200",
@@ -452,6 +452,7 @@ export default function ShareDialog({
                 </div>
               ) : (
                 <textarea
+                  id="share-message"
                   value={message}
                   onChange={(e) => {
                     setCustomized(true)

@@ -154,7 +154,7 @@ export default function FlashcardSwiper({ cards, onGrade }: FlashcardSwiperProps
         onClick={() => setFlipped(!flipped)}
         role="button"
         tabIndex={0}
-        aria-label={flipped ? "Tampilkan pertanyaan" : "Tampilkan jawaban"}
+        aria-pressed={flipped}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault()

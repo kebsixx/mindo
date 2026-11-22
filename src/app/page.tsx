@@ -384,7 +384,7 @@ export default function BerandaPage() {
                   setDragging(false);
                   pickFile(e.dataTransfer.files?.[0] ?? null);
                 }}
-                className={`flex min-h-37 w-full min-w-0 flex-col items-start justify-center gap-3 overflow-hidden rounded-[22px] border-2 border-dashed bg-card px-5 py-6 transition-colors ${
+                className={`flex min-h-37 w-full min-w-0 flex-col items-start justify-center gap-3 overflow-hidden rounded-[22px] border-2 border-dashed px-5 py-6 transition-colors ${
                   dragging
                     ? "border-primary bg-primary/12"
                     : "border-foreground/20"
@@ -822,39 +822,39 @@ export default function BerandaPage() {
             >
               <a
                 href="#contoh"
-                className="transition-colors hover:text-foreground"
+                className="-my-1 py-1 transition-colors hover:text-foreground"
               >
                 Contoh
               </a>
               {hasHistory && (
                 <a
                   href="#riwayat"
-                  className="transition-colors hover:text-foreground"
+                  className="-my-1 py-1 transition-colors hover:text-foreground"
                 >
                   Riwayat
                 </a>
               )}
               <a
                 href="#cara-kerja"
-                className="transition-colors hover:text-foreground"
+                className="-my-1 py-1 transition-colors hover:text-foreground"
               >
                 Cara kerja
               </a>
               <a
                 href="#privasi"
-                className="transition-colors hover:text-foreground"
+                className="-my-1 py-1 transition-colors hover:text-foreground"
               >
                 Privasi
               </a>
               <a
                 href="#faq"
-                className="transition-colors hover:text-foreground"
+                className="-my-1 py-1 transition-colors hover:text-foreground"
               >
                 FAQ
               </a>
               <Link
                 href="/settings"
-                className="transition-colors hover:text-foreground"
+                className="-my-1 py-1 transition-colors hover:text-foreground"
               >
                 Pengaturan
               </Link>

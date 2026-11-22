@@ -75,6 +75,18 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Cegah baris terakhir berisi satu kata (straggler) pada teks panjang, dan
+     ratakan panjang baris judul. Keduanya hint rendering, tidak mengubah layout. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+  p,
+  li {
+    text-wrap: pretty;
+  }
   body::before {
     content: "";
     position: fixed;
@@ -102,12 +114,18 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /*
+   * Hentikan gerak (transform, scroll), bukan umpan balik state. Transisi
+   * warna dan opacity tetap berjalan singkat supaya perubahan state terbaca.
+   */
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-property: opacity, color, background-color, border-color,
+      outline-color, box-shadow !important;
+    transition-duration: 120ms !important;
     scroll-behavior: auto !important;
   }
 }

@@ -41,7 +41,7 @@ export default function MaskotPage() {
           Kembali ke beranda
         </Link>
 
-        <section className="mt-4 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:items-center lg:gap-16">
+        <section className="mt-4 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:items-center lg:gap-16">
           <div>
             <p className="text-[0.875rem] text-muted-foreground">Maskot</p>
             <h1 className="mt-2 max-w-[16ch] text-balance text-[clamp(2.25rem,5.4vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.03em]">
@@ -82,7 +82,7 @@ export default function MaskotPage() {
 
         <section
           aria-labelledby="ukuran"
-          className="mt-[clamp(3rem,8vw,6rem)] grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:gap-16"
+          className="mt-[clamp(3rem,8vw,6rem)] grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:gap-16"
         >
           <div>
             <h2
@@ -116,7 +116,7 @@ export default function MaskotPage() {
 
         <section
           aria-labelledby="warna"
-          className="mt-[clamp(3rem,8vw,6rem)] grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:gap-16"
+          className="mt-[clamp(3rem,8vw,6rem)] grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:gap-16"
         >
           <div>
             <h2

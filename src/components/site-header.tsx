@@ -82,13 +82,8 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
     <div
       className={cn(
         "sticky top-0 z-40 w-full pointer-events-none",
-        isScrolled ? "pt-3 sm:pt-4" : "pt-0",
+        isScrolled ? "pt-2 sm:pt-3" : "pt-0",
       )}
-      style={{
-        transitionProperty: "padding",
-        transitionDuration: "var(--duration-fast, 250ms)",
-        transitionTimingFunction: "var(--ease-smooth-out)",
-      }}
     >
       <header
         className={cn(
@@ -100,7 +95,7 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
         )}
         style={{
           transitionProperty:
-            "transform, opacity, max-width, height, border-radius, background-color, border-color, box-shadow, padding",
+            "transform, opacity, border-radius, background-color, border-color, box-shadow",
           transitionDuration: isVisible
             ? "var(--duration-medium, 350ms)"
             : "var(--duration-fast, 250ms)",
@@ -150,7 +145,7 @@ export default function SiteHeader({ showHistory }: { showHistory?: boolean }) {
             <a
               key={item.label}
               href={item.href}
-              className="transition-colors hover:text-foreground"
+              className="-my-1 py-1 transition-colors hover:text-foreground"
             >
               {item.label}
             </a>

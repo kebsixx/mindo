@@ -86,7 +86,14 @@ export default function DemoShowcase() {
           Rekaman berita 47 detik. Empat tahap berjalan sekali, hasil ini yang Anda dapat.
         </p>
         <div className="mt-4 rounded-[28px] bg-secondary p-1.5">
-          <audio ref={audioRef} src="/demo.mp3" controls preload="none" className="w-full" />
+          <audio
+            ref={audioRef}
+            src="/demo.mp3"
+            controls
+            preload="none"
+            aria-label="Putar rekaman contoh"
+            className="w-full"
+          />
         </div>
         <p className="mt-3 text-[0.875rem] leading-snug text-muted-foreground">
           Putar rekaman lalu klik baris transkrip untuk melompat ke detiknya.
@@ -110,7 +117,7 @@ export default function DemoShowcase() {
               <CardContent className="space-y-6">
                 {data.summary.sections.map((section, i) => (
                   <div key={i} className="space-y-2">
-                    <h4 className="text-[1.0625rem] font-semibold">{section.heading}</h4>
+                    <h3 className="text-[1.0625rem] font-semibold">{section.heading}</h3>
                     <ul className="max-w-[68ch] list-disc space-y-1 pl-5 text-[1.0625rem] leading-[1.6] text-muted-foreground">
                       {section.points.map((point, j) => (
                         <li key={j}>{point}</li>
