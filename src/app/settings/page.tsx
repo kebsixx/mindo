@@ -146,8 +146,8 @@ export default function SettingsPage() {
           koneksinya. Perubahan langsung tersimpan.
         </p>
 
-        <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:gap-8">
-          <div className="space-y-4">
+        <div className="mt-8 space-y-4">
+          <div className="grid gap-4 lg:grid-cols-2">
             <RoleCard
               role="stt"
               provider={stt}
@@ -160,109 +160,113 @@ export default function SettingsPage() {
             />
           </div>
 
-          <div className="space-y-4">
-            <Card>
-              <div className="p-5 sm:p-8">
-                <h2 className="text-lg font-semibold">API Key</h2>
-                <p className="mt-1 text-[0.875rem] leading-snug text-muted-foreground">
-                  {needsAnyKey
-                    ? "Key disimpan terpisah untuk setiap provider. Uji dulu sebelum memproses rekaman."
-                    : "Kedua peran berjalan di komputer ini, jadi tidak ada key yang perlu diisi."}
-                </p>
+          <Card>
+            <div className="p-5 sm:p-8">
+              <h2 className="text-lg font-semibold">API Key</h2>
+              <p className="mt-1 text-[0.875rem] leading-snug text-muted-foreground">
+                {needsAnyKey
+                  ? "Key disimpan terpisah untuk setiap provider. Uji dulu sebelum memproses rekaman."
+                  : "Kedua peran berjalan di komputer ini, jadi tidak ada key yang perlu diisi."}
+              </p>
 
-                <div className="mt-4 space-y-5">
-                  {keyProviders.map((provider) => (
-                    <KeyField
-                      key={provider}
-                      provider={provider}
-                      roles={
-                        stt === llm
-                          ? "Transkripsi & ringkasan"
-                          : provider === stt
-                            ? "Transkripsi"
-                            : "Ringkasan"
-                      }
-                    />
-                  ))}
-                </div>
-
-                <div className="mt-5 border-t border-border pt-4">
-                  <ModelField provider={llm} />
-                </div>
-
-                {needsAnyKey && (
-                  <div className="mt-5 border-t border-border pt-4">                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={saveMode === "local"}
-                      onClick={() =>
-                        chooseSaveMode(
-                          saveMode === "local" ? "session" : "local",
-                        )
-                      }
-                      className="flex min-h-11 w-full cursor-pointer items-start justify-between gap-4 text-left"
-                    >
-                      <span className="min-w-0">
-                        <span className="block text-[0.9375rem] font-medium">
-                          Simpan di browser ini
-                        </span>
-                        <span className="mt-0.5 block text-[0.8125rem] leading-snug text-muted-foreground">
-                          {saveMode === "local"
-                            ? "Permanen sampai key dihapus. Bisa dilihat lewat DevTools."
-                            : "Hanya sesi ini. Hilang saat tab/browser ditutup."}
-                        </span>
-                      </span>
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors",
-                          saveMode === "local" ? "bg-primary" : "bg-border",
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "absolute top-1 h-4 w-4 rounded-full bg-card shadow-sm transition-all",
-                            saveMode === "local" ? "left-6" : "left-1",
-                          )}
-                        />
-                      </span>
-                    </button>
-                  </div>
+              <div
+                className={cn(
+                  "mt-4 grid gap-5",
+                  keyProviders.length > 1 && "sm:grid-cols-2",
                 )}
-
-                <p className="mt-4 text-[0.8125rem] leading-snug text-muted-foreground">
-                  {privacySummary(stt, llm)}
-                </p>
+              >
+                {keyProviders.map((provider) => (
+                  <KeyField
+                    key={provider}
+                    provider={provider}
+                    roles={
+                      stt === llm
+                        ? "Transkripsi & ringkasan"
+                        : provider === stt
+                          ? "Transkripsi"
+                          : "Ringkasan"
+                    }
+                  />
+                ))}
               </div>
-            </Card>
 
-            <section id="panduan-api-key" className="scroll-mt-6">
-              <Card>
-                <details className="group">
-                  <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 p-5 sm:p-8 [&::-webkit-details-marker]:hidden">
+              <div className="mt-5 border-t border-border pt-4">
+                <ModelField provider={llm} />
+              </div>
+
+              {needsAnyKey && (
+                <div className="mt-5 border-t border-border pt-4">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={saveMode === "local"}
+                    onClick={() =>
+                      chooseSaveMode(
+                        saveMode === "local" ? "session" : "local",
+                      )
+                    }
+                    className="flex min-h-11 w-full cursor-pointer items-start justify-between gap-4 text-left"
+                  >
                     <span className="min-w-0">
-                      <span className="block text-lg font-semibold">
-                        Cara mendapatkan API key
+                      <span className="block text-[0.9375rem] font-medium">
+                        Simpan di browser ini
                       </span>
-                      <span className="mt-0.5 block text-[0.875rem] leading-snug text-muted-foreground">
-                        Panduan singkat per provider. Mindo hanya menautkan ke
-                        situs resmi.
+                      <span className="mt-0.5 block text-[0.8125rem] leading-snug text-muted-foreground">
+                        {saveMode === "local"
+                          ? "Permanen sampai key dihapus. Bisa dilihat lewat DevTools."
+                          : "Hanya sesi ini. Hilang saat tab/browser ditutup."}
                       </span>
                     </span>
-                    <ChevronDown
-                      className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                    <span
                       aria-hidden="true"
-                    />
-                  </summary>
-                  <div className="px-5 pb-5 sm:px-8 sm:pb-8">
-                    {GUIDED_PROVIDERS.map((provider) => (
-                      <GuideItem key={provider} provider={provider} />
-                    ))}
-                  </div>
-                </details>
-              </Card>
-            </section>
-          </div>
+                      className={cn(
+                        "relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors",
+                        saveMode === "local" ? "bg-primary" : "bg-border",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "absolute top-1 h-4 w-4 rounded-full bg-card shadow-sm transition-all",
+                          saveMode === "local" ? "left-6" : "left-1",
+                        )}
+                      />
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              <p className="mt-4 text-[0.8125rem] leading-snug text-muted-foreground">
+                {privacySummary(stt, llm)}
+              </p>
+            </div>
+          </Card>
+
+          <section id="panduan-api-key" className="scroll-mt-6">
+            <Card>
+              <details className="group">
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 p-5 sm:p-8 [&::-webkit-details-marker]:hidden">
+                  <span className="min-w-0">
+                    <span className="block text-lg font-semibold">
+                      Cara mendapatkan API key
+                    </span>
+                    <span className="mt-0.5 block text-[0.875rem] leading-snug text-muted-foreground">
+                      Panduan singkat per provider. Mindo hanya menautkan ke
+                      situs resmi.
+                    </span>
+                  </span>
+                  <ChevronDown
+                    className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                    aria-hidden="true"
+                  />
+                </summary>
+                <div className="px-5 pb-5 sm:px-8 sm:pb-8">
+                  {GUIDED_PROVIDERS.map((provider) => (
+                    <GuideItem key={provider} provider={provider} />
+                  ))}
+                </div>
+              </details>
+            </Card>
+          </section>
         </div>
 
         <div className="mt-8 space-y-3">
