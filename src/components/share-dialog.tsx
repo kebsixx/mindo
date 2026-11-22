@@ -271,11 +271,6 @@ export default function ShareDialog({
     }
   }
 
-  const handleOpenWhatsApp = () => {
-    const url = buildWhatsAppShareUrl(message)
-    window.open(url, "_blank", "noopener,noreferrer")
-  }
-
   const handleDownloadPng = async () => {
     if (!mindmap) return
     setPngBusy(true)
@@ -326,18 +321,38 @@ export default function ShareDialog({
         text: message,
       }
 
-      // Bila ada mindmap dan didukung, sertakan file PNG
-      if (supportsShareFiles && mindmap) {
-        try {
-          const blob = await mindmapToPng(JSON.stringify(mindmap))
-          const file = new File([blob], `${slugify(title)}-peta-konsep.png`, {
-            type: "image/png",
-          })
-          if (navigator.canShare?.({ files: [file] })) {
-            shareData.files = [file]
+      // Bila Web Share dengan file didukung, sertakan lampiran
+      // (Peta Konsep, Ringkasan, Flashcard) sehingga bisa dikirim bersama
+      if (supportsShareFiles) {
+        const files: File[] = []
+        if (mindmap) {
+          try {
+            const blob = await mindmapToPng(JSON.stringify(mindmap))
+            files.push(
+              new File([blob], `${slugify(title)}-peta-konsep.png`, {
+                type: "image/png",
+              })
+            )
+          } catch {
+            // Lewatin error, share teks saja
           }
-        } catch {
-          // Abaikan error file, bagikan teks saja
+        }
+        if (summary) {
+          files.push(
+            new File([summaryToMarkdown(summary)], `${slugify(title)}-ringkasan.md`, {
+              type: "text/markdown",
+            })
+          )
+        }
+        if (flashcards.length > 0) {
+          files.push(
+            new File([flashcardsToCsv(flashcards)], `${slugify(title)}-flashcard.csv`, {
+              type: "text/csv",
+            })
+          )
+        }
+        if (files.length > 0) {
+          shareData.files = files
         }
       }
 
@@ -350,6 +365,17 @@ export default function ShareDialog({
         })
       }
     }
+  }
+
+  const handleOpenWhatsApp = () => {
+    if (supportsShareFiles) {
+      // Di browser yang mendukung Web Share dengan file: kirim langsung,
+      // teks pesan + lampiran bersama (muncuk sheet WhatsApp).
+      void handleWebShare()
+      return
+    }
+    const url = buildWhatsAppShareUrl(message)
+    window.open(url, "_blank", "noopener,noreferrer")
   }
 
   return (
@@ -495,7 +521,7 @@ export default function ShareDialog({
               onClick={handleOpenWhatsApp}
             >
               <MessageCircle className="h-4 w-4" />
-              Buka WhatsApp
+              {supportsShareFiles ? "Kirim WhatsApp" : "Buka WhatsApp"}
             </Button>
             <Button
               variant="outline"
@@ -509,16 +535,6 @@ export default function ShareDialog({
               )}
               {copied ? "Disalin" : "Salin Teks"}
             </Button>
-            {supportsShareFiles && (
-              <Button
-                variant="outline"
-                className="h-10 touch-manipulation"
-                onClick={handleWebShare}
-              >
-                <Share2 className="h-4 w-4" />
-                Share
-              </Button>
-            )}
           </div>
 
           <div className="mt-5 rounded-2xl border border-border bg-secondary/50 p-3.5">
@@ -526,8 +542,9 @@ export default function ShareDialog({
               Lampiran visual & dokumen
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              WhatsApp link hanya memuat teks pesan. Unduh lampiran berikut untuk
-              dikirimkan bersama:
+              WhatsApp kirim langsung pesan dan lampiran bila browser mendukung
+              Web Share; jika tidak, unduh lampiran berikut untuk dikirimkan
+              bersama:
             </p>
             <div className="mt-2.5 flex flex-wrap gap-2.5">
               {mindmap && (
