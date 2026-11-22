@@ -128,23 +128,6 @@ export default function ShareDialog({
     }
   }
 
-  // Cek kapabilitas Web Share API tanpa synchronous setState in effect
-  const [supportsShareFiles] = useState(() => {
-    if (
-      typeof navigator !== "undefined" &&
-      !!navigator.share &&
-      !!navigator.canShare
-    ) {
-      try {
-        const dummy = new File(["test"], "test.txt", { type: "text/plain" })
-        return navigator.canShare({ files: [dummy] })
-      } catch {
-        return false
-      }
-    }
-    return false
-  })
-
   // Refine draf lewat AI dengan sistem caching per tone
   const triggerAiRefinement = useCallback(
     (currentTone: "casual" | "formal", force = false) => {
@@ -318,71 +301,7 @@ export default function ShareDialog({
     window.open(url, "_blank", "noopener,noreferrer")
   }
 
-  // Kirim lewat Web Share (teks + lampiran bersama). true = sesuai terkirim.
-  const sendViaWebShare = async (): Promise<boolean> => {
-    if (!navigator.share) return false
-    try {
-      const shareData: ShareData = {
-        title: `Catatan: ${title}`,
-        text: message,
-      }
-
-      // Bila Web Share dengan file didukung, sertakan lampiran
-      // (Peta Konsep, Ringkasan, Flashcard) sehingga bisa dikirim bersama
-      if (supportsShareFiles) {
-        const files: File[] = []
-        if (mindmap) {
-          try {
-            const blob = await mindmapToPng(JSON.stringify(mindmap))
-            files.push(
-              new File([blob], `${slugify(title)}-peta-konsep.png`, {
-                type: "image/png",
-              })
-            )
-          } catch {
-            // Lewatin error, share teks saja
-          }
-        }
-        if (summary) {
-          files.push(
-            new File([summaryToMarkdown(summary)], `${slugify(title)}-ringkasan.md`, {
-              type: "text/markdown",
-            })
-          )
-        }
-        if (flashcards.length > 0) {
-          files.push(
-            new File([flashcardsToCsv(flashcards)], `${slugify(title)}-flashcard.csv`, {
-              type: "text/csv",
-            })
-          )
-        }
-        if (files.length > 0) {
-          shareData.files = files
-        }
-      }
-
-      await navigator.share(shareData)
-      return true
-    } catch (e) {
-      if ((e as Error).name !== "AbortError") {
-        toast({
-          title: "Batal membagikan",
-          description: "Coba salin teks saja.",
-        })
-      }
-      return false
-    }
-  }
-
-  // WhatsApp: lewati Web Share langsung (teks + lampiran). Yang nggak didukung,
-  // buka WhatsApp URL. JANGAN buka URL setelah await, sebab popup
-  // Android Chrome tersumbat saat activation telah dipakai oleh navigator.share.
-  const handleOpenWhatsApp = async () => {
-    if (supportsShareFiles) {
-      await sendViaWebShare()
-      return
-    }
+  const handleOpenWhatsApp = () => {
     openWhatsappUrl()
   }
 
@@ -529,7 +448,7 @@ export default function ShareDialog({
               onClick={handleOpenWhatsApp}
             >
               <MessageCircle className="h-4 w-4" />
-              {supportsShareFiles ? "Kirim WhatsApp" : "Buka WhatsApp"}
+              Buka WhatsApp
             </Button>
             <Button
               variant="outline"
