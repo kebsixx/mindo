@@ -88,10 +88,16 @@ function writeKeyMap(
 
 export function getSaveMode(): SaveMode {
   try {
-    return localStorage.getItem(SAVE_MODE_KEY) === "session" ? "session" : "local"
+    const mode = localStorage.getItem(SAVE_MODE_KEY)
+    if (mode === "local" || mode === "session") return mode
+    // Belum pernah memilih. Kalau sudah ada key dari versi yang selalu menulis
+    // ke localStorage, jangan sembunyikan: anggap tetap "local".
+    if (localStorage.getItem(KEYS_KEY)) return "local"
   } catch {
-    return "local"
+    // storage tidak bisa dibaca
   }
+  // Bawaan "session": key tidak ditulis ke disk kecuali pengguna memilihnya.
+  return "session"
 }
 
 export function setSaveMode(mode: SaveMode): void {
@@ -213,7 +219,7 @@ export function useStoredModel(provider: Provider): string {
 }
 
 export function useStoredSaveMode(): SaveMode {
-  return useSyncExternalStore(subscribe, getSaveMode, () => "local")
+  return useSyncExternalStore(subscribe, getSaveMode, () => "session")
 }
 
 export function clearAllData(): void {
