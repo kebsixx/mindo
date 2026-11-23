@@ -86,23 +86,46 @@ function writeKeyMap(
   }
 }
 
+/**
+ * Pindahkan semua key dari satu storage ke storage lain, lalu kosongkan asal.
+ * Dipakai saat mode penyimpanan berubah: satu-satunya salinan harus ada di
+ * tempat yang benar-benar dipilih pengguna.
+ */
+function moveKeys(from: Storage, to: Storage): void {
+  const map = readKeyMap(from)
+  writeKeyMap(to, map)
+  try {
+    from.removeItem(KEYS_KEY)
+    from.removeItem(LEGACY_KEY)
+  } catch {
+    // ignore
+  }
+}
+
 export function getSaveMode(): SaveMode {
   try {
     const mode = localStorage.getItem(SAVE_MODE_KEY)
     if (mode === "local" || mode === "session") return mode
-    // Belum pernah memilih. Kalau sudah ada key dari versi yang selalu menulis
-    // ke localStorage, jangan sembunyikan: anggap tetap "local".
-    if (localStorage.getItem(KEYS_KEY)) return "local"
+
+    // Belum pernah memilih. Versi lama selalu menulis ke localStorage, jadi
+    // key yang masih di disk dipindahkan sekali ke sesi: tetap terpakai
+    // sekarang, tapi tidak tertinggal setelah tab ditutup.
+    if (localStorage.getItem(KEYS_KEY) || localStorage.getItem(LEGACY_KEY)) {
+      moveKeys(window.localStorage, window.sessionStorage)
+    }
   } catch {
     // storage tidak bisa dibaca
   }
-  // Bawaan "session": key tidak ditulis ke disk kecuali pengguna memilihnya.
   return "session"
 }
 
 export function setSaveMode(mode: SaveMode): void {
+  if (typeof window === "undefined") return
   try {
+    const from = storageFor(getSaveMode())
+    const to = storageFor(mode)
     localStorage.setItem(SAVE_MODE_KEY, mode)
+    if (from !== to) moveKeys(from, to)
   } catch {
     // storage tidak bisa ditulis (private mode dsb)
   }
