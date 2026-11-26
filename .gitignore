@@ -55,3 +55,8 @@ AGENTS.md
 characters/
 skills-lock.json
 .tmp-*
+
+# Scratch prompts & local audit output (kept on disk, not on GitHub)
+stitch-prompt.md
+anti-slop/
+docs/pitch/bahan-mentah.md
